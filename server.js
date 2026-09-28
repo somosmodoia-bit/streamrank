@@ -47,7 +47,7 @@ async function fetchTwitch(login) {
         'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ query: query, variables: { login: login.toLowerCase() } }),
+      body: JSON.stringify({ query, variables: { login: login.toLowerCase() } }),
       signal: AbortSignal.timeout(2500)
     });
     if (!res.ok) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
@@ -159,6 +159,9 @@ async function runLoop() {
           youtube: { active: yt.isLive, viewers: yt.viewers }
         }
       });
+
+      // Pausa secuencial de 300ms para no saturar CPU en Render
+      await new Promise(r => setTimeout(r, 300));
     }
 
     latestRanks = list.sort((a, b) => (b.isLive - a.isLive) || (b.totalViewers - a.totalViewers));
@@ -187,6 +190,7 @@ app.get('/api/analytics/export', (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log('StreamRank online en puerto ' + PORT);
-  runLoop();
-  setInterval(runLoop, 20000);
+  // Espera 3 segundos a que el servidor estabilice la red antes del primer ciclo
+  setTimeout(runLoop, 3000);
+  setInterval(runLoop, 25000);
 });
