@@ -4,7 +4,7 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 
 // ============================================================================
-// CONFIGURACIÓN DE CANALES CON PROXIES UNIVERSALES CORS (unavatar.io)
+// CONFIGURACIÓN DE CANALES CON METADATOS Y LÍMITES HEURÍSTICOS
 // ============================================================================
 const CHANNELS = [
   // Entretenimiento / Medios
@@ -15,6 +15,7 @@ const CHANNELS = [
     subtheme: 'Streaming General / Magazine',
     avatar: 'https://unavatar.io/youtube/LuzuTV',
     platforms: { yt: 'LuzuTV', tw: 'luzutv' },
+    baselineMax: 130000,
     isEmerging: false
   },
   {
@@ -24,6 +25,7 @@ const CHANNELS = [
     subtheme: 'Streaming General / Humor',
     avatar: 'https://unavatar.io/youtube/olgaenvivo_',
     platforms: { yt: 'olgaenvivo_', tw: 'olgaenvivo' },
+    baselineMax: 150000,
     isEmerging: false
   },
   {
@@ -33,6 +35,7 @@ const CHANNELS = [
     subtheme: 'Streaming General',
     avatar: 'https://unavatar.io/youtube/somoslacasaok',
     platforms: { yt: 'somoslacasaok' },
+    baselineMax: 45000,
     isEmerging: false
   },
   {
@@ -42,6 +45,7 @@ const CHANNELS = [
     subtheme: 'Cultura & Actualidad',
     avatar: 'https://unavatar.io/youtube/estoesblender',
     platforms: { yt: 'estoesblender' },
+    baselineMax: 40000,
     isEmerging: false
   },
   {
@@ -51,15 +55,17 @@ const CHANNELS = [
     subtheme: 'Radio & Rock',
     avatar: 'https://unavatar.io/youtube/vorterixoficial',
     platforms: { yt: 'vorterixoficial', tw: 'vorterixoficial' },
+    baselineMax: 35000,
     isEmerging: false
   },
   {
     id: 'bondi_liveok',
     name: 'Bondi Live',
     category: 'Entretenimiento',
-    subtheme: 'Farándula / Espectáculo',
+    subtheme: 'Farándula / Magazine',
     avatar: 'https://unavatar.io/youtube/bondi_liveok',
     platforms: { yt: 'bondi_liveok' },
+    baselineMax: 30000,
     isEmerging: false
   },
   {
@@ -69,6 +75,7 @@ const CHANNELS = [
     subtheme: 'Televisión de Aire',
     avatar: 'https://unavatar.io/youtube/telefe',
     platforms: { yt: 'telefe', tw: 'telefe' },
+    baselineMax: 90000,
     isEmerging: false
   },
   {
@@ -78,6 +85,7 @@ const CHANNELS = [
     subtheme: 'Televisión de Aire',
     avatar: 'https://unavatar.io/youtube/eltrece',
     platforms: { yt: 'eltrece' },
+    baselineMax: 60000,
     isEmerging: false
   },
 
@@ -89,6 +97,7 @@ const CHANNELS = [
     subtheme: 'Noticias 24 Horas',
     avatar: 'https://unavatar.io/youtube/todonoticias',
     platforms: { yt: 'todonoticias' },
+    baselineMax: 95000,
     isEmerging: false
   },
   {
@@ -98,6 +107,7 @@ const CHANNELS = [
     subtheme: 'Análisis Político',
     avatar: 'https://unavatar.io/youtube/lanacionmas',
     platforms: { yt: 'lanacionmas' },
+    baselineMax: 85000,
     isEmerging: false
   },
   {
@@ -107,6 +117,7 @@ const CHANNELS = [
     subtheme: 'Noticias & Debate',
     avatar: 'https://unavatar.io/youtube/c5n',
     platforms: { yt: 'c5n' },
+    baselineMax: 85000,
     isEmerging: false
   },
   {
@@ -116,6 +127,7 @@ const CHANNELS = [
     subtheme: 'Noticias Populares',
     avatar: 'https://unavatar.io/youtube/cronicatv',
     platforms: { yt: 'cronicatv' },
+    baselineMax: 45000,
     isEmerging: false
   },
   {
@@ -125,6 +137,7 @@ const CHANNELS = [
     subtheme: 'Humor Político / Streaming',
     avatar: 'https://unavatar.io/youtube/somosgelatina',
     platforms: { yt: 'somosgelatina', tw: 'somosgelatina' },
+    baselineMax: 55000,
     isEmerging: false
   },
   {
@@ -134,6 +147,7 @@ const CHANNELS = [
     subtheme: 'Opinión & Debate Digital',
     avatar: 'https://unavatar.io/youtube/carajostream',
     platforms: { yt: 'carajostream' },
+    baselineMax: 50000,
     isEmerging: false
   },
   {
@@ -143,6 +157,7 @@ const CHANNELS = [
     subtheme: 'Debate & Actualidad',
     avatar: 'https://unavatar.io/youtube/neuramedia',
     platforms: { yt: 'neuramedia', tw: 'neuramedia' },
+    baselineMax: 45000,
     isEmerging: false
   },
 
@@ -154,6 +169,7 @@ const CHANNELS = [
     subtheme: 'Debate Futbolero',
     avatar: 'https://unavatar.io/youtube/FlavioAzzaroOficial',
     platforms: { yt: 'FlavioAzzaroOficial' },
+    baselineMax: 65000,
     isEmerging: false
   },
   {
@@ -163,6 +179,7 @@ const CHANNELS = [
     subtheme: 'Radio Deportiva',
     avatar: 'https://unavatar.io/youtube/dsportsradio',
     platforms: { yt: 'dsportsradio' },
+    baselineMax: 30000,
     isEmerging: false
   },
   {
@@ -172,6 +189,7 @@ const CHANNELS = [
     subtheme: 'Noticias Deportivas',
     avatar: 'https://unavatar.io/youtube/tycsports',
     platforms: { yt: 'tycsports' },
+    baselineMax: 70000,
     isEmerging: false
   },
 
@@ -183,6 +201,7 @@ const CHANNELS = [
     subtheme: 'Variedad & Reacciones',
     avatar: 'https://unavatar.io/twitch/coscu',
     platforms: { tw: 'coscu', ki: 'coscu', yt: 'Coscu' },
+    baselineMax: 50000,
     isEmerging: false
   },
   {
@@ -192,37 +211,41 @@ const CHANNELS = [
     subtheme: 'Gaming & Entretenimiento',
     avatar: 'https://unavatar.io/twitch/elspreen',
     platforms: { tw: 'elspreen', ki: 'spreen', yt: 'SpreenDMC' },
+    baselineMax: 120000,
     isEmerging: false
   },
   {
     id: 'davooxeneize',
     name: 'Davoo Xeneize',
     category: 'Streamers',
-    subtheme: 'Fútbol & Gaming',
+    subtheme: 'Fútbol & Boca Juniors',
     avatar: 'https://unavatar.io/twitch/davooxeneize',
     platforms: { tw: 'davooxeneize', ki: 'davooxeneize' },
+    baselineMax: 60000,
     isEmerging: false
   },
   {
     id: 'lacobraaa',
     name: 'La Cobra',
     category: 'Streamers',
-    subtheme: 'Fútbol & Debate Picante',
+    subtheme: 'Fútbol & Reacciones',
     avatar: 'https://unavatar.io/twitch/lacobraaa',
     platforms: { tw: 'lacobraaa', ki: 'lacobraaa' },
+    baselineMax: 50000,
     isEmerging: false
   },
   {
     id: 'luquitasrodriguez',
     name: 'Luquitas Rodríguez',
     category: 'Streamers',
-    subtheme: 'Charlas & Reacciones',
+    subtheme: 'Charlas & Humor',
     avatar: 'https://unavatar.io/twitch/luquitasrodriguez',
     platforms: { tw: 'luquitasrodriguez' },
+    baselineMax: 45000,
     isEmerging: false
   },
 
-  // Canales Emergentes & Nuevas Promesas
+  // Emergentes
   {
     id: 'cenital',
     name: 'Cenital',
@@ -230,6 +253,7 @@ const CHANNELS = [
     subtheme: 'Periodismo Independiente',
     avatar: 'https://unavatar.io/youtube/Cenitalcom',
     platforms: { yt: 'Cenitalcom' },
+    baselineMax: 20000,
     isEmerging: true
   },
   {
@@ -239,6 +263,7 @@ const CHANNELS = [
     subtheme: 'Radio Multimedia',
     avatar: 'https://unavatar.io/youtube/urbanaplayfm',
     platforms: { yt: 'urbanaplayfm' },
+    baselineMax: 25000,
     isEmerging: true
   },
   {
@@ -248,16 +273,18 @@ const CHANNELS = [
     subtheme: 'Comedia & Charlas',
     avatar: 'https://unavatar.io/youtube/parenlamanoclips',
     platforms: { yt: 'parenlamanoclips' },
+    baselineMax: 40000,
     isEmerging: true
   }
 ];
 
 let telemetriaCache = [];
 let ultimaActualizacion = null;
-let enProcesoDeScrapeo = false;
+let estaScrapeando = false;
+const historialLecturas = new Map();
 
 // ============================================================================
-// MOTOR DE SCRAPING CON TIMEOUT SEGURO Y PROTECCIÓN HTTP 429
+// MOTOR DE SCRAPING CON TIMEOUT SEGURO Y PROTECCIÓN ANTI-FALSOS POSITIVOS
 // ============================================================================
 const fetchConTimeout = async (url, opciones = {}, ms = 1800) => {
   const controlador = new AbortController();
@@ -272,7 +299,7 @@ const fetchConTimeout = async (url, opciones = {}, ms = 1800) => {
   }
 };
 
-// YouTube Live Scraper
+// YouTube Live Scraper con Filtrado Estricto de Cortesía y Modos de Espera
 const scrapeYouTube = async (handle) => {
   if (!handle) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
   try {
@@ -292,14 +319,30 @@ const scrapeYouTube = async (handle) => {
     if (!res.ok) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
 
     const html = await res.text();
-    const isLiveRegex = /"isLive":\s*true/;
-    const isUpcomingRegex = /"status":\s*"UPCOMING"/;
-    const isLive = isLiveRegex.test(html) && !isUpcomingRegex.test(html);
 
-    if (!isLive) {
+    // 1. Validaciones estructurales de YouTube Live
+    const isLiveMatch = /"isLive":\s*true/.test(html);
+    const isUpcoming = /"status":\s*"UPCOMING"/.test(html) || /"upcomingEventData"/.test(html);
+    const isPremiere = /"isPremiere":\s*true/.test(html);
+
+    if (!isLiveMatch || isUpcoming || isPremiere) {
       return { isLive: false, viewers: 0, title: '', thumbnail: '' };
     }
 
+    // 2. Extracción de título
+    let title = '';
+    const titleMatch = html.match(/"title":\s*\{\s*"runs":\s*\[\s*\{\s*"text":\s*"([^"]+)"/);
+    if (titleMatch) {
+      title = titleMatch[1];
+    }
+
+    // 3. Filtrado de placas de cortesía, bucles y modos de espera
+    const blacklistRegex = /(hasta ma[nñ]ana|pr[oó]ximamente|en espera|esperando|comienza en|iniciamos en|arrancamos en|volvemos|transmisi[oó]n finalizada|estreno|directo finalizado)/i;
+    if (blacklistRegex.test(title)) {
+      return { isLive: false, viewers: 0, title: '', thumbnail: '' };
+    }
+
+    // 4. Extracción de espectadores concurrentes
     let viewers = 0;
     const concurrentMatch = html.match(/"concurrentViewers":\s*"(\d+)"/);
     const simpleViewMatch = html.match(/"originalViewCount":\s*"(\d+)"/);
@@ -314,16 +357,15 @@ const scrapeYouTube = async (handle) => {
       viewers = parseInt(limpio, 10) || 0;
     }
 
+    // 5. Umbral de corte real: descartar transmisiones colgadas con 5 o menos viewers
+    if (viewers <= 5) {
+      return { isLive: false, viewers: 0, title: '', thumbnail: '' };
+    }
+
     let videoId = '';
     const videoIdMatch = html.match(/"videoId":\s*"([a-zA-Z0-9_-]{11})"/);
     if (videoIdMatch) {
       videoId = videoIdMatch[1];
-    }
-
-    let title = '';
-    const titleMatch = html.match(/"title":\s*\{\s*"runs":\s*\[\s*\{\s*"text":\s*"([^"]+)"/);
-    if (titleMatch) {
-      title = titleMatch[1];
     }
 
     const thumbnail = videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : '';
@@ -371,7 +413,7 @@ const scrapeTwitch = async (login) => {
     const data = await res.json();
     const stream = data?.data?.user?.stream;
 
-    if (stream) {
+    if (stream && (stream.viewersCount || 0) > 3) {
       return {
         isLive: true,
         viewers: stream.viewersCount || 0,
@@ -405,11 +447,12 @@ const scrapeKick = async (slug) => {
 
     const data = await res.json();
     const isLive = data?.livestream?.is_live === true;
+    const viewers = data?.livestream?.viewer_count || 0;
 
-    if (isLive) {
+    if (isLive && viewers > 3) {
       return {
         isLive: true,
-        viewers: data.livestream.viewer_count || 0,
+        viewers,
         title: data.livestream.session_title || 'En vivo en Kick',
         thumbnail: data.livestream.thumbnail?.url || ''
       };
@@ -420,10 +463,53 @@ const scrapeKick = async (slug) => {
   }
 };
 
-// Ciclo de scraping secuencial canal por canal con pausa de 120 ms
+// ============================================================================
+// MOTOR HEURÍSTICO DE ANOMALÍAS Y TRÁFICO ARTIFICIAL (BOTS)
+// ============================================================================
+const evaluarAnomaliaTrafico = (canal, totalViewers) => {
+  const historial = historialLecturas.get(canal.id) || [];
+  
+  historial.push(totalViewers);
+  if (historial.length > 10) historial.shift();
+  historialLecturas.set(canal.id, historial);
+
+  if (!totalViewers || totalViewers < 2500) {
+    return { botAlert: false, reason: null, decoupled: false };
+  }
+
+  // 1. Exceso crítico sobre el límite histórico del canal
+  if (canal.baselineMax && totalViewers > canal.baselineMax * 2.8) {
+    return {
+      botAlert: true,
+      reason: `Pico desproporcionado (+${Math.round((totalViewers / canal.baselineMax) * 100)}% de baseline)`,
+      decoupled: true
+    };
+  }
+
+  // 2. Disparada repentina respecto al promedio reciente de las últimas 5 muestras
+  if (historial.length >= 4) {
+    const lecturasAnteriores = historial.slice(0, -1).filter((v) => v > 0);
+    if (lecturasAnteriores.length >= 2) {
+      const promedioPrevio = lecturasAnteriores.reduce((a, b) => a + b, 0) / lecturasAnteriores.length;
+      if (promedioPrevio > 500 && totalViewers > promedioPrevio * 4.2 && totalViewers > 15000) {
+        return {
+          botAlert: true,
+          reason: 'Variación anómala repentina de usuarios simultáneos sin correlación orgánica',
+          decoupled: true
+        };
+      }
+    }
+  }
+
+  return { botAlert: false, reason: null, decoupled: false };
+};
+
+// ============================================================================
+// CICLO DE SCRAPEO SECUENCIAL CON PAUSA DE 120 MS (ANTI 429)
+// ============================================================================
 const actualizarTelemetria = async () => {
-  if (enProcesoDeScrapeo) return;
-  enProcesoDeScrapeo = true;
+  if (estaScrapeando) return;
+  estaScrapeando = true;
 
   try {
     const listaActualizada = [];
@@ -440,7 +526,9 @@ const actualizarTelemetria = async () => {
         const totalViewers = (ytRes.viewers || 0) + (twRes.viewers || 0) + (kiRes.viewers || 0);
 
         let thumbnail = ytRes.thumbnail || twRes.thumbnail || kiRes.thumbnail || '';
-        let title = ytRes.title || twRes.title || kiRes.title || (isLive ? 'Transmitiendo en vivo' : 'Canal fuera de línea');
+        let title = ytRes.title || twRes.title || kiRes.title || (isLive ? 'Transmitiendo en directo' : 'Canal fuera de línea');
+
+        const anomalia = isLive ? evaluarAnomaliaTrafico(canal, totalViewers) : { botAlert: false, reason: null, decoupled: false };
 
         listaActualizada.push({
           id: canal.id,
@@ -453,6 +541,9 @@ const actualizarTelemetria = async () => {
           totalViewers,
           title,
           thumbnail,
+          botAlert: anomalia.botAlert,
+          botReason: anomalia.reason,
+          decoupled: anomalia.decoupled,
           platforms: {
             youtube: {
               active: Boolean(canal.platforms.yt),
@@ -479,33 +570,34 @@ const actualizarTelemetria = async () => {
         console.error(`Error procesando telemetría de ${canal.name}:`, canalError);
       }
 
-      // Pausa obligatoria de 120 ms para evitar saturación y HTTP 429
-      await new Promise((r) => setTimeout(r, 120));
+      await new Promise((resolve) => setTimeout(resolve, 120));
     }
 
-    // Ordenar: primero EN VIVO por audiencia descendente, luego OFFLINE por nombre
     listaActualizada.sort((a, b) => {
       if (a.isLive && !b.isLive) return -1;
       if (!a.isLive && b.isLive) return 1;
-      if (a.isLive && b.isLive) return b.totalViewers - a.totalViewers;
+      if (a.isLive && b.isLive) {
+        if (a.decoupled && !b.decoupled) return 1;
+        if (!a.decoupled && b.decoupled) return -1;
+        return b.totalViewers - a.totalViewers;
+      }
       return a.name.localeCompare(b.name);
     });
 
     telemetriaCache = listaActualizada;
     ultimaActualizacion = new Date().toISOString();
   } catch (error) {
-    console.error('Error global en actualización de telemetría:', error);
+    console.error('Error durante la actualización de telemetría:', error);
   } finally {
-    enProcesoDeScrapeo = false;
+    estaScrapeando = false;
   }
 };
 
-// Inicialización y loop cada 25 segundos
 actualizarTelemetria();
 setInterval(actualizarTelemetria, 25000);
 
 // ============================================================================
-// ENDPOINTS DEL SERVIDOR EXPRESS
+// ENDPOINTS DE API
 // ============================================================================
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
@@ -513,13 +605,13 @@ app.get('/health', (req, res) => {
 
 app.get('/api/ranks', (req, res) => {
   const liveCount = telemetriaCache.filter((c) => c.isLive).length;
-  const totalAudience = telemetriaCache.reduce((acc, c) => acc + c.totalViewers, 0);
+  const organicAudience = telemetriaCache.filter((c) => !c.decoupled).reduce((acc, c) => acc + c.totalViewers, 0);
 
   res.json({
     updatedAt: ultimaActualizacion,
     totalChannels: telemetriaCache.length,
     liveChannels: liveCount,
-    totalAudience,
+    totalAudience: organicAudience,
     data: telemetriaCache
   });
 });
@@ -532,13 +624,14 @@ app.get('/api/analytics/export', (req, res) => {
   });
   const fechaAr = formateadorFecha.format(new Date());
 
-  const cabeceras = ['Canal', 'Categoria', 'Subtema', 'Espectadores_Totales', 'En_Vivo', 'YouTube', 'Twitch', 'Kick', 'Fecha_Hora_Argentina'];
+  const cabeceras = ['Canal', 'Categoria', 'Subtema', 'Espectadores_Totales', 'En_Vivo', 'Alerta_Bots', 'YouTube', 'Twitch', 'Kick', 'Fecha_Hora_Buenos_Aires'];
   const lineas = telemetriaCache.map((c) => [
     `"${c.name.replace(/"/g, '""')}"`,
     `"${c.category}"`,
     `"${c.subtheme}"`,
     c.totalViewers,
     c.isLive ? 'SI' : 'NO',
+    c.botAlert ? 'AUDITORIA_ACTIVADA' : 'NORMAL',
     c.platforms.youtube.viewers || 0,
     c.platforms.twitch.viewers || 0,
     c.platforms.kick.viewers || 0,
@@ -559,7 +652,7 @@ const HTML_APP = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StreamRank ARG | Monitor de Streaming en Vivo de Argentina</title>
+  <title>StreamRank ARG | Monitor de Audiencia en Vivo</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>
@@ -598,25 +691,28 @@ const HTML_APP = `<!DOCTYPE html>
 </head>
 <body class="min-h-screen flex flex-col bg-[#050811] text-slate-100 antialiased selection:bg-[#00ff66] selection:text-black">
 
-  <!-- HEADER NAVEGACIÓN -->
+  <!-- HEADER -->
   <header class="sticky top-0 z-40 bg-[#050811]/95 backdrop-blur-md border-b border-[#162238]">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <div class="relative flex items-center justify-center w-10 h-10 rounded-xl bg-black border border-matrix/50 shadow-matrixSoft">
+      
+      <!-- LOGO -->
+      <div class="flex items-center space-x-2.5 sm:space-x-3">
+        <div class="relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-black border border-matrix/50 shadow-matrixSoft flex-shrink-0">
           <span class="absolute w-3.5 h-3.5 rounded-full bg-matrix animate-ping opacity-75"></span>
           <span class="w-3 h-3 rounded-full bg-matrix"></span>
         </div>
         <div>
-          <div class="flex items-center space-x-2">
-            <span class="text-xl font-black tracking-wider text-white">STREAMRANK</span>
-            <span class="text-xs px-2 py-0.5 rounded font-black tracking-widest bg-matrix/20 text-matrix border border-matrix/40">ARG</span>
+          <div class="flex items-center space-x-1.5 sm:space-x-2">
+            <span class="text-base sm:text-xl font-black tracking-wider text-white">STREAMRANK</span>
+            <span class="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded font-black tracking-widest bg-matrix/20 text-matrix border border-matrix/40">ARG</span>
           </div>
-          <p class="text-[11px] text-slate-400">Telemetría y Audiencia en Vivo de Canales de Streaming</p>
+          <p class="text-[10px] sm:text-[11px] text-slate-400 truncate max-w-[190px] sm:max-w-none">Telemetría y Ranking en Vivo de Argentina</p>
         </div>
       </div>
 
-      <div class="flex items-center space-x-3">
-        <div class="hidden md:flex items-center bg-[#0b1120] border border-[#162238] rounded-xl px-4 py-2 space-x-4">
+      <!-- STATUS & BOTÓN CSV RESPONSIVE -->
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <div class="hidden lg:flex items-center bg-[#0b1120] border border-[#162238] rounded-xl px-4 py-2 space-x-4">
           <div class="flex items-center space-x-2">
             <span class="inline-block w-2.5 h-2.5 rounded-full bg-matrix shadow-matrix"></span>
             <span class="text-xs font-semibold text-slate-300"><span id="stat-live-count" class="text-matrix font-bold">0</span> En Vivo</span>
@@ -629,71 +725,91 @@ const HTML_APP = `<!DOCTYPE html>
           <div class="text-[11px] font-mono text-slate-400" id="sync-clock">Sinc: --:--:--</div>
         </div>
 
-        <a href="/api/analytics/export" class="inline-flex items-center px-4 py-2 text-xs font-black uppercase tracking-wider text-black bg-matrix rounded-xl hover:bg-emerald-400 transition-all shadow-matrix">
-          <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <!-- BOTÓN CSV OPTIMIZADO PARA MÓVILES -->
+        <a href="/api/analytics/export" class="inline-flex items-center justify-center px-3 sm:px-4 py-2 text-xs font-black uppercase tracking-wider text-black bg-matrix rounded-xl hover:bg-emerald-400 transition-all shadow-matrix flex-shrink-0">
+          <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
           </svg>
-          Exportar CSV
+          <span class="hidden sm:inline">Exportar CSV</span>
+          <span class="sm:hidden text-[11px]">CSV</span>
         </a>
       </div>
     </div>
   </header>
 
-  <!-- BANNER DE INTEGRIDAD Y SEGURIDAD CONTRA BOTS EXTERNOS -->
-  <div class="bg-gradient-to-r from-emerald-950/40 via-amber-950/20 to-emerald-950/40 border-b border-matrix/20 px-4 py-2.5">
+  <!-- BANNER DE INTEGRIDAD DE DATOS Y AUDITORÍA DE BOTS -->
+  <div class="bg-gradient-to-r from-emerald-950/40 via-amber-950/30 to-emerald-950/40 border-b border-matrix/20 px-4 py-2.5">
     <div class="max-w-7xl mx-auto flex items-center justify-between text-xs">
       <div class="flex items-center space-x-2 text-slate-300">
         <svg class="w-4 h-4 text-matrix flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
         </svg>
-        <span><strong class="text-matrix font-bold">AUDITORÍA EN TIEMPO REAL:</strong> Sistema de filtrado y detección de anomalías. Las métricas reflejan usuarios concurrentes activos obtenidos de los servidores oficiales sin adulteraciones.</span>
+        <span><strong class="text-matrix font-bold">AUDITORÍA ACTIVA DE TRÁFICO ARTIFICIAL:</strong> El sistema evalúa picos no orgánicos y descarta placas de espera, repeticiones o bucles sin audiencia real para mantener un ranking 100% fidedigno.</span>
       </div>
-      <span class="hidden lg:inline-block text-[11px] font-mono text-slate-400">Verificación: HTTP/2 TLS Handshake</span>
+      <span class="hidden md:inline-block text-[11px] font-mono text-slate-400">Buenos Aires ART</span>
     </div>
   </div>
 
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
     
     <!-- HERO LEADER (#1 DEL MOMENTO) -->
     <section id="hero-leader" class="w-full">
-      <div class="w-full h-72 rounded-2xl bg-[#0b1120] border border-[#162238] animate-pulse flex items-center justify-center text-slate-500 font-mono">
-        Sincronizando canal líder en Argentina...
+      <div class="w-full h-64 sm:h-72 rounded-2xl bg-[#0b1120] border border-[#162238] animate-pulse flex items-center justify-center text-slate-500 font-mono text-xs sm:text-sm">
+        Sincronizando canal líder orgánico de Argentina...
       </div>
     </section>
 
-    <!-- NAVEGACIÓN POR SOLAPAS Y DESPLEGABLES POR TEMAS -->
+    <!-- BUSCADOR INSTANTÁNEO DE CANALES -->
+    <section class="w-full">
+      <div class="relative w-full max-w-2xl mx-auto">
+        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+          <svg class="w-4 h-4 text-matrix" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+        </div>
+        <input 
+          type="text" 
+          id="channel-search-input" 
+          oninput="filtrarPorBusqueda(this.value)" 
+          placeholder="Buscar canal en vivo por nombre (ej: Olga, Luzu, TN, Davoo)..." 
+          class="w-full pl-10 pr-4 py-3 bg-[#0b1120] border border-[#162238] rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-matrix focus:shadow-matrixSoft transition-all"
+        >
+      </div>
+    </section>
+
+    <!-- NAVEGACIÓN Y FILTROS RESPONSIVE -->
     <section class="space-y-4">
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-[#162238] pb-4">
         
         <!-- Solapas Principales -->
         <div class="flex flex-wrap gap-2" id="tab-buttons">
-          <button onclick="cambiarSolapa('Todos')" class="tab-btn px-4 py-2 rounded-xl text-xs font-black transition-all bg-matrix text-black shadow-matrix">
-            🔥 General / Destacados
+          <button onclick="cambiarSolapa('Todos')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-matrix text-black shadow-matrix">
+            🔥 General
           </button>
-          <button onclick="cambiarSolapa('Entretenimiento')" class="tab-btn px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
+          <button onclick="cambiarSolapa('Entretenimiento')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
             🎭 Entretenimiento
           </button>
-          <button onclick="cambiarSolapa('Política')" class="tab-btn px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
+          <button onclick="cambiarSolapa('Política')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
             🏛️ Política
           </button>
-          <button onclick="cambiarSolapa('Deportes')" class="tab-btn px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
+          <button onclick="cambiarSolapa('Deportes')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
             ⚽ Deportes
           </button>
-          <button onclick="cambiarSolapa('Streamers')" class="tab-btn px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
+          <button onclick="cambiarSolapa('Streamers')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
             🎮 Streamers
           </button>
         </div>
 
-        <!-- Filtros Desplegables Avanzados -->
-        <div class="flex items-center space-x-3">
-          <div class="relative">
-            <select id="subtheme-dropdown" onchange="cambiarSubtema(this.value)" class="bg-[#0b1120] border border-[#162238] hover:border-matrix/40 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 focus:outline-none focus:border-matrix">
+        <!-- Desplegables de Subtemas y Estado -->
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div class="relative flex-1 sm:flex-initial">
+            <select id="subtheme-dropdown" onchange="cambiarSubtema(this.value)" class="w-full sm:w-auto bg-[#0b1120] border border-[#162238] hover:border-matrix/40 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 focus:outline-none focus:border-matrix">
               <option value="TODOS">Todos los subtemas</option>
             </select>
           </div>
 
-          <div class="relative">
-            <select id="status-dropdown" onchange="cambiarFiltroEstado(this.value)" class="bg-[#0b1120] border border-[#162238] hover:border-matrix/40 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 focus:outline-none focus:border-matrix">
+          <div class="relative flex-1 sm:flex-initial">
+            <select id="status-dropdown" onchange="cambiarFiltroEstado(this.value)" class="w-full sm:w-auto bg-[#0b1120] border border-[#162238] hover:border-matrix/40 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 focus:outline-none focus:border-matrix">
               <option value="TODOS">Todos los estados</option>
               <option value="SOLO_VIVO">🔴 Solo En Vivo</option>
               <option value="SOLO_OFFLINE">⚫ Solo Offline</option>
@@ -711,38 +827,38 @@ const HTML_APP = `<!DOCTYPE html>
     </section>
 
     <!-- CANALES EMERGENTES & NUEVAS PROMESAS -->
-    <section class="mt-12 bg-gradient-to-br from-[#0b1120] to-[#050811] rounded-2xl border border-[#162238] p-6 space-y-4">
+    <section class="mt-8 sm:mt-12 bg-gradient-to-br from-[#0b1120] to-[#050811] rounded-2xl border border-[#162238] p-5 sm:p-6 space-y-4">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-2">
           <span class="text-xl">🚀</span>
           <div>
-            <h2 class="text-base font-black text-white">Canales Emergentes & Nuevas Promesas</h2>
-            <p class="text-xs text-slate-400">Proyectos independientes, radios multimedia y nuevas voces del ecosistema digital argentino.</p>
+            <h2 class="text-sm sm:text-base font-black text-white">Canales Emergentes & Nuevas Promesas</h2>
+            <p class="text-xs text-slate-400">Comunidades en ascenso, proyectos independientes y radios digitales.</p>
           </div>
         </div>
-        <span class="text-xs font-mono font-bold text-matrix bg-matrix/10 border border-matrix/20 px-3 py-1 rounded-full">RADAR DIGITAL</span>
+        <span class="text-[10px] sm:text-xs font-mono font-bold text-matrix bg-matrix/10 border border-matrix/20 px-2.5 sm:px-3 py-1 rounded-full">RADAR ARG</span>
       </div>
 
       <div id="emerging-channels-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
       </div>
     </section>
 
-    <!-- BANNER SPONSOR / ESPACIO PUBLICITARIO -->
+    <!-- BANNER SPONSOR -->
     <section class="w-full">
-      <div class="relative w-full rounded-2xl bg-gradient-to-r from-emerald-950/20 via-[#0b1120] to-blue-950/20 border border-matrix/30 p-6 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+      <div class="relative w-full rounded-2xl bg-gradient-to-r from-emerald-950/20 via-[#0b1120] to-blue-950/20 border border-matrix/30 p-5 sm:p-6 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
         <div class="space-y-1">
-          <span class="text-[10px] font-mono tracking-widest text-matrix uppercase bg-matrix/10 px-2 py-0.5 rounded border border-matrix/20">ESPACIO DISPONIBLE PARA MARCAS</span>
-          <h3 class="text-lg font-black text-white">Llega a la audiencia del streaming en Argentina</h3>
-          <p class="text-xs text-slate-400">Patrocina el monitor de audiencias más consultado por agencias, streamers y medios de comunicación.</p>
+          <span class="text-[10px] font-mono tracking-widest text-matrix uppercase bg-matrix/10 px-2 py-0.5 rounded border border-matrix/20">ESPACIO PUBLICITARIO</span>
+          <h3 class="text-base sm:text-lg font-black text-white">Conecta con la industria del streaming argentino</h3>
+          <p class="text-xs text-slate-400">Presencia directa ante agencias, marcas y creadores de contenido.</p>
         </div>
-        <a href="mailto:contacto@streamrank.ar" class="px-5 py-2.5 rounded-xl bg-[#0b1120] hover:bg-matrix hover:text-black border border-matrix/40 text-matrix text-xs font-black transition-all shadow-matrixSoft">
+        <a href="mailto:contacto@streamrank.ar" class="px-5 py-2.5 rounded-xl bg-[#0b1120] hover:bg-matrix hover:text-black border border-matrix/40 text-matrix text-xs font-black transition-all shadow-matrixSoft flex-shrink-0">
           CONTACTAR PUBLICIDAD
         </a>
       </div>
     </section>
 
     <!-- AUTORIDAD Y TRANSPARENCIA METODOLÓGICA -->
-    <section class="bg-[#0b1120] rounded-2xl border border-[#162238] p-6 space-y-4 text-xs text-slate-400 leading-relaxed">
+    <section class="bg-[#0b1120] rounded-2xl border border-[#162238] p-5 sm:p-6 space-y-4 text-xs text-slate-400 leading-relaxed">
       <div class="flex items-center space-x-2 text-white font-bold text-sm">
         <svg class="w-5 h-5 text-matrix" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -752,16 +868,16 @@ const HTML_APP = `<!DOCTYPE html>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
         <div class="space-y-1.5">
-          <h4 class="font-bold text-slate-200">1. Telemetría Real Sin Intermediarios</h4>
-          <p>StreamRank ARG consulta de forma recurrente las capas públicas oficiales de YouTube Live, Twitch GQL y la API de Kick. No depende de estadísticas infladas posteriores, sino del pulso instantáneo de usuarios concurrentes.</p>
+          <h4 class="font-bold text-slate-200">1. Filtrado Estricto de Falsos Positivos</h4>
+          <p>Se omiten placas estáticas con textos como 'Hasta mañana', 'Próximamente' o emisiones programadas sin espectadores reales en curso.</p>
         </div>
         <div class="space-y-1.5">
-          <h4 class="font-bold text-slate-200">2. Mapeo Multiplataforma Simultáneo</h4>
-          <p>Los canales que transmiten en paralelo (por ejemplo YouTube + Twitch) suman sus audiencias verificadas en tiempo real para reflejar el share total verdadero que cada medio concentra en el país.</p>
+          <h4 class="font-bold text-slate-200">2. Detección Heurística de Bots</h4>
+          <p>Las subidas abruptas y anormales de audiencia sin correlación orgánica son auditadas y desacopladas del ranking general para preservar la transparencia.</p>
         </div>
         <div class="space-y-1.5">
-          <h4 class="font-bold text-slate-200">3. Prevención de Manipulación</h4>
-          <p>Se realizan validaciones de consistencia de streams. Si un canal programa una emisión futura sin estar en el aire, se descarta para no arrojar métricas fantasmas. Las peticiones son secuenciales y no saturan los servidores.</p>
+          <h4 class="font-bold text-slate-200">3. Telemetría Pública y Multiplataforma</h4>
+          <p>Consolidamos los directos de YouTube, Twitch y Kick sin sesgos editoriales ni estimaciones ficticias.</p>
         </div>
       </div>
     </section>
@@ -770,79 +886,79 @@ const HTML_APP = `<!DOCTYPE html>
 
   <!-- MODAL DUELO 1 VS 1 -->
   <div id="modal-duel" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden p-4">
-    <div class="bg-[#0b1120] border border-[#162238] rounded-2xl max-w-3xl w-full p-6 shadow-2xl relative overflow-hidden">
+    <div class="bg-[#0b1120] border border-[#162238] rounded-2xl max-w-3xl w-full p-5 sm:p-6 shadow-2xl relative overflow-hidden">
       
       <div class="flex items-center justify-between pb-4 border-b border-[#162238]">
         <div class="flex items-center space-x-2">
-          <span class="text-matrix font-extrabold text-lg">⚡ DUELO 1 VS 1</span>
-          <span class="text-xs text-slate-400">Comparativa directa de audiencia en vivo</span>
+          <span class="text-matrix font-extrabold text-base sm:text-lg">⚡ DUELO 1 VS 1</span>
+          <span class="text-xs text-slate-400">Comparativa directa en vivo</span>
         </div>
         <button onclick="cerrarModalDuelo()" class="text-slate-400 hover:text-white transition-colors text-2xl font-bold">&times;</button>
       </div>
 
-      <div class="grid grid-cols-2 gap-4 my-4">
+      <div class="grid grid-cols-2 gap-3 sm:gap-4 my-4">
         <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">CANAL A</label>
-          <select id="duel-select-a" onchange="renderizarContenidoDuelo()" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-matrix">
+          <label class="block text-[11px] sm:text-xs font-semibold text-slate-400 mb-1">CANAL A</label>
+          <select id="duel-select-a" onchange="renderizarContenidoDuelo()" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-2.5 sm:px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-matrix">
           </select>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">CANAL B</label>
-          <select id="duel-select-b" onchange="renderizarContenidoDuelo()" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-matrix">
+          <label class="block text-[11px] sm:text-xs font-semibold text-slate-400 mb-1">CANAL B</label>
+          <select id="duel-select-b" onchange="renderizarContenidoDuelo()" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-2.5 sm:px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-matrix">
           </select>
         </div>
       </div>
 
       <!-- PLACA PARA CAPTURA HTML2CANVAS -->
-      <div id="duel-capture-card" class="bg-[#050811] border border-matrix/30 rounded-2xl p-6 shadow-glow relative my-4">
+      <div id="duel-capture-card" class="bg-[#050811] border border-matrix/30 rounded-2xl p-4 sm:p-6 shadow-glow relative my-4">
         <div class="text-center mb-4">
-          <span class="text-[10px] font-black tracking-widest uppercase bg-matrix/10 text-matrix px-3 py-1 rounded-full border border-matrix/30">STREAMRANK ARG • TELEMETRÍA EN DIRECTO</span>
+          <span class="text-[9px] sm:text-[10px] font-black tracking-widest uppercase bg-matrix/10 text-matrix px-3 py-1 rounded-full border border-matrix/30">STREAMRANK ARG • TELEMETRÍA EN DIRECTO</span>
         </div>
 
-        <div class="grid grid-cols-2 gap-4 items-center">
-          <div class="text-center p-4 rounded-xl bg-[#0b1120]/80 border border-[#162238]">
-            <img id="duel-a-avatar" crossorigin="anonymous" src="" class="w-16 h-16 rounded-full mx-auto border-2 border-matrix object-cover shadow-matrixSoft mb-2" alt="A">
-            <h3 id="duel-a-name" class="font-extrabold text-white text-base truncate">--</h3>
-            <p id="duel-a-status" class="text-xs font-mono text-slate-400 mb-2">OFFLINE</p>
-            <div id="duel-a-viewers" class="text-2xl font-black font-mono text-matrix matrix-glow">0</div>
-            <div class="text-[10px] text-slate-400 uppercase tracking-wider">Espectadores</div>
+        <div class="grid grid-cols-2 gap-3 sm:gap-4 items-center">
+          <div class="text-center p-3 sm:p-4 rounded-xl bg-[#0b1120]/80 border border-[#162238]">
+            <img id="duel-a-avatar" crossorigin="anonymous" src="" class="w-14 h-14 sm:w-16 sm:h-16 rounded-full mx-auto border-2 border-matrix object-cover shadow-matrixSoft mb-2" alt="A">
+            <h3 id="duel-a-name" class="font-extrabold text-white text-sm sm:text-base truncate">--</h3>
+            <p id="duel-a-status" class="text-[10px] sm:text-xs font-mono text-slate-400 mb-2">OFFLINE</p>
+            <div id="duel-a-viewers" class="text-xl sm:text-2xl font-black font-mono text-matrix matrix-glow">0</div>
+            <div class="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider">Espectadores</div>
           </div>
 
-          <div class="text-center p-4 rounded-xl bg-[#0b1120]/80 border border-[#162238]">
-            <img id="duel-b-avatar" crossorigin="anonymous" src="" class="w-16 h-16 rounded-full mx-auto border-2 border-cyan-400 object-cover shadow-cyan-500/50 mb-2" alt="B">
-            <h3 id="duel-b-name" class="font-extrabold text-white text-base truncate">--</h3>
-            <p id="duel-b-status" class="text-xs font-mono text-slate-400 mb-2">OFFLINE</p>
-            <div id="duel-b-viewers" class="text-2xl font-black font-mono text-cyan-400">0</div>
-            <div class="text-[10px] text-slate-400 uppercase tracking-wider">Espectadores</div>
+          <div class="text-center p-3 sm:p-4 rounded-xl bg-[#0b1120]/80 border border-[#162238]">
+            <img id="duel-b-avatar" crossorigin="anonymous" src="" class="w-14 h-14 sm:w-16 sm:h-16 rounded-full mx-auto border-2 border-cyan-400 object-cover shadow-cyan-500/50 mb-2" alt="B">
+            <h3 id="duel-b-name" class="font-extrabold text-white text-sm sm:text-base truncate">--</h3>
+            <p id="duel-b-status" class="text-[10px] sm:text-xs font-mono text-slate-400 mb-2">OFFLINE</p>
+            <div id="duel-b-viewers" class="text-xl sm:text-2xl font-black font-mono text-cyan-400">0</div>
+            <div class="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider">Espectadores</div>
           </div>
         </div>
 
-        <div class="mt-6">
+        <div class="mt-4 sm:mt-6">
           <div class="flex justify-between text-xs font-mono font-bold mb-1">
             <span id="duel-pct-a" class="text-matrix">50%</span>
-            <span class="text-slate-500">SHARE CONJUNTO</span>
+            <span class="text-slate-500 text-[10px] sm:text-xs">SHARE CONJUNTO</span>
             <span id="duel-pct-b" class="text-cyan-400">50%</span>
           </div>
-          <div class="w-full h-4 bg-slate-900 rounded-full overflow-hidden flex border border-[#162238]">
+          <div class="w-full h-3.5 sm:h-4 bg-slate-900 rounded-full overflow-hidden flex border border-[#162238]">
             <div id="duel-bar-a" class="h-full bg-matrix transition-all duration-500 shadow-matrix" style="width: 50%"></div>
             <div id="duel-bar-b" class="h-full bg-cyan-400 transition-all duration-500 shadow-cyan-400" style="width: 50%"></div>
           </div>
         </div>
 
         <div class="mt-4 text-center">
-          <span class="text-[10px] font-mono text-slate-500" id="duel-timestamp">--</span>
+          <span class="text-[9px] sm:text-[10px] font-mono text-slate-500" id="duel-timestamp">--</span>
         </div>
       </div>
 
       <div class="flex items-center justify-end space-x-3 pt-4 border-t border-[#162238]">
-        <button onclick="cerrarModalDuelo()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-colors">
+        <button onclick="cerrarModalDuelo()" class="px-3 sm:px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-colors">
           Cerrar
         </button>
-        <button onclick="descargarDueloPNG()" class="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-matrix text-black hover:bg-emerald-400 transition-all shadow-matrix flex items-center">
-          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <button onclick="descargarDueloPNG()" class="px-4 sm:px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-matrix text-black hover:bg-emerald-400 transition-all shadow-matrix flex items-center">
+          <svg class="w-4 h-4 mr-1.5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
           </svg>
-          Descargar Placa HD (PNG)
+          Descargar Placa HD
         </button>
       </div>
 
@@ -862,8 +978,12 @@ const HTML_APP = `<!DOCTYPE html>
     </svg>
   </div>
 
-  <footer class="border-t border-[#162238] bg-[#050811] py-8 text-center text-xs text-slate-500 font-mono">
-    StreamRank ARG • Monitor en tiempo real de audiencias de streaming en Argentina • Actualización continua
+  <!-- FOOTER CON CRÉDITO EXACTO DE MODO IA -->
+  <footer class="border-t border-[#162238] bg-[#050811] py-8 text-center text-xs text-slate-500 font-mono space-y-2.5">
+    <div>StreamRank ARG • Monitor en Tiempo Real de Streaming de Argentina</div>
+    <div>
+      <a href="https://modoia.online" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-matrix underline transition-colors">Desarrollado por Modo IA</a>
+    </div>
   </footer>
 
   <!-- SCRIPT LOGICA CLIENTE -->
@@ -872,15 +992,25 @@ const HTML_APP = `<!DOCTYPE html>
     let solapaActiva = 'Todos';
     let subtemaActivo = 'TODOS';
     let filtroEstado = 'TODOS';
+    let busquedaTexto = '';
 
     const formatNum = (num) => new Intl.NumberFormat('es-AR').format(num || 0);
+
+    const getFallbackAvatar = (nombre) => {
+      return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(nombre) + '&background=0b1120&color=00ff66&bold=true';
+    };
+
+    const filtrarPorBusqueda = (texto) => {
+      busquedaTexto = (texto || '').toLowerCase().trim();
+      renderizarGrilla();
+    };
 
     const cambiarSolapa = (solapa) => {
       solapaActiva = solapa;
       subtemaActivo = 'TODOS';
       actualizarEstilosSolapas();
       actualizarDropdownSubtemas();
-      renderizarTodo();
+      renderizarGrilla();
     };
 
     const cambiarSubtema = (subtema) => {
@@ -896,9 +1026,9 @@ const HTML_APP = `<!DOCTYPE html>
     const actualizarEstilosSolapas = () => {
       document.querySelectorAll('.tab-btn').forEach(btn => {
         if (btn.innerText.includes(solapaActiva)) {
-          btn.className = 'tab-btn px-4 py-2 rounded-xl text-xs font-black transition-all bg-matrix text-black shadow-matrix';
+          btn.className = 'tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-matrix text-black shadow-matrix';
         } else {
-          btn.className = 'tab-btn px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50';
+          btn.className = 'tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50';
         }
       });
     };
@@ -979,43 +1109,43 @@ const HTML_APP = `<!DOCTYPE html>
       const container = document.getElementById('hero-leader');
       if (!canalesData.length) return;
 
-      const lider = canalesData[0];
+      const lider = canalesData.find(c => c.isLive && !c.decoupled) || canalesData[0];
       const isLive = lider.isLive;
 
-      let html = '<div class="relative w-full rounded-3xl bg-gradient-to-r from-[#0b1120] to-[#050811] border border-matrix/40 p-6 md:p-8 shadow-matrix overflow-hidden">';
+      let html = '<div class="relative w-full rounded-3xl bg-gradient-to-r from-[#0b1120] to-[#050811] border border-matrix/40 p-5 sm:p-8 shadow-matrix overflow-hidden">';
       html += '<div class="absolute -right-20 -bottom-20 w-80 h-80 rounded-full bg-matrix/10 blur-3xl pointer-events-none"></div>';
       html += '<div class="flex flex-col lg:flex-row items-center gap-6 relative z-10">';
 
       html += '<div class="w-full lg:w-3/5 aspect-video rounded-2xl overflow-hidden bg-black/60 relative border border-[#162238] flex items-center justify-center">';
       if (lider.thumbnail) {
-        html += '<img crossorigin="anonymous" src="' + lider.thumbnail + '" class="w-full h-full object-cover" alt="Líder">';
+        html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(lider.name) + '\\'" src="' + lider.thumbnail + '" class="w-full h-full object-cover" alt="Líder">';
       } else {
-        html += '<img crossorigin="anonymous" src="' + lider.avatar + '" class="w-24 h-24 rounded-full border border-matrix/40 object-cover shadow-matrixSoft" alt="Avatar">';
+        html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(lider.name) + '\\'" src="' + lider.avatar + '" class="w-20 h-20 sm:w-24 sm:h-24 rounded-full border border-matrix/40 object-cover shadow-matrixSoft" alt="Avatar">';
       }
 
       html += '<div class="absolute top-3 left-3 flex items-center space-x-2">';
-      html += '<span class="px-3 py-1 bg-black/80 backdrop-blur-md rounded-lg text-xs font-mono font-black text-matrix border border-matrix/40">#1 LÍDER ARGENTINA</span>';
+      html += '<span class="px-2.5 sm:px-3 py-1 bg-black/80 backdrop-blur-md rounded-lg text-[10px] sm:text-xs font-mono font-black text-matrix border border-matrix/40">#1 LÍDER ORGÁNICO</span>';
       if (isLive) {
-        html += '<span class="px-3 py-1 bg-matrix text-black font-black text-xs rounded-lg tracking-wider animate-pulse shadow-matrix">EN VIVO</span>';
+        html += '<span class="px-2.5 sm:px-3 py-1 bg-matrix text-black font-black text-[10px] sm:text-xs rounded-lg tracking-wider animate-pulse shadow-matrix">EN VIVO</span>';
       }
       html += '</div></div>';
 
       html += '<div class="w-full lg:w-2/5 flex flex-col justify-between space-y-4">';
       html += '<div class="flex items-center space-x-3">';
-      html += '<img crossorigin="anonymous" src="' + lider.avatar + '" class="w-14 h-14 rounded-full border-2 border-matrix object-cover shadow-matrixSoft">';
-      html += '<div>';
-      html += '<h2 class="text-2xl font-black text-white leading-tight">' + lider.name + '</h2>';
-      html += '<div class="flex items-center space-x-2 mt-0.5">';
-      html += '<span class="text-[11px] font-semibold px-2 py-0.5 rounded bg-[#162238] text-slate-300">' + lider.category + '</span>';
-      html += '<span class="text-[11px] font-mono text-matrix">' + lider.subtheme + '</span>';
+      html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(lider.name) + '\\'" src="' + lider.avatar + '" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-matrix object-cover shadow-matrixSoft flex-shrink-0">';
+      html += '<div class="min-w-0">';
+      html += '<h2 class="text-xl sm:text-2xl font-black text-white leading-tight truncate">' + lider.name + '</h2>';
+      html += '<div class="flex flex-wrap items-center gap-1.5 mt-0.5">';
+      html += '<span class="text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded bg-[#162238] text-slate-300">' + lider.category + '</span>';
+      html += '<span class="text-[10px] sm:text-[11px] font-mono text-matrix truncate">' + lider.subtheme + '</span>';
       html += '</div></div></div>';
 
-      html += '<p class="text-sm text-slate-300 line-clamp-2 italic">"' + lider.title + '"</p>';
+      html += '<p class="text-xs sm:text-sm text-slate-300 line-clamp-2 italic">"' + lider.title + '"</p>';
 
-      html += '<div class="p-4 rounded-xl bg-black/40 border border-[#162238]">';
+      html += '<div class="p-3.5 sm:p-4 rounded-xl bg-black/40 border border-[#162238]">';
       html += '<div class="text-[10px] font-mono text-slate-400 uppercase tracking-widest">Audiencia Concurrente Total</div>';
-      html += '<div class="text-4xl md:text-5xl font-black font-mono text-matrix matrix-glow mt-1">' + formatNum(lider.totalViewers) + '</div>';
-      html += '<div class="text-xs text-slate-400 mt-1 font-mono">espectadores en simultáneo</div>';
+      html += '<div class="text-3xl sm:text-5xl font-black font-mono text-matrix matrix-glow mt-1">' + formatNum(lider.totalViewers) + '</div>';
+      html += '<div class="text-xs text-slate-400 mt-0.5 font-mono">espectadores simultáneos</div>';
       html += '</div>';
 
       html += '<div class="grid grid-cols-3 gap-2">';
@@ -1048,8 +1178,12 @@ const HTML_APP = `<!DOCTYPE html>
         filtrados = filtrados.filter(c => !c.isLive);
       }
 
+      if (busquedaTexto) {
+        filtrados = filtrados.filter(c => c.name.toLowerCase().includes(busquedaTexto));
+      }
+
       if (!filtrados.length) {
-        container.innerHTML = '<div class="col-span-full py-16 text-center text-slate-500 font-mono">No se encontraron canales con los filtros seleccionados.</div>';
+        container.innerHTML = '<div class="col-span-full py-16 text-center text-slate-500 font-mono text-xs sm:text-sm">No se encontraron canales con los filtros seleccionados.</div>';
         return;
       }
 
@@ -1057,15 +1191,16 @@ const HTML_APP = `<!DOCTYPE html>
       filtrados.forEach((c) => {
         const puestoGlobal = canalesData.findIndex(item => item.id === c.id) + 1;
         const isLive = c.isLive;
+        const tieneBotAlert = c.botAlert === true;
 
-        html += '<div class="rounded-2xl bg-[#0b1120] border border-[#162238] hover:border-matrix/40 transition-all duration-300 p-4 flex flex-col justify-between group hover:shadow-matrixSoft">';
+        html += '<div class="rounded-2xl bg-[#0b1120] border ' + (tieneBotAlert ? 'border-amber-500/60 shadow-amber-950/40' : 'border-[#162238] hover:border-matrix/40 hover:shadow-matrixSoft') + ' transition-all duration-300 p-4 flex flex-col justify-between group">';
 
         html += '<div class="relative w-full aspect-video rounded-xl bg-black overflow-hidden mb-3 border border-[#162238]">';
         if (c.thumbnail) {
-          html += '<img crossorigin="anonymous" src="' + c.thumbnail + '" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="' + c.name + '">';
+          html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(c.name) + '\\'" src="' + c.thumbnail + '" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="' + c.name + '">';
         } else {
           html += '<div class="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-[#0b1120] to-black">';
-          html += '<img crossorigin="anonymous" src="' + c.avatar + '" class="w-12 h-12 rounded-full opacity-60 mb-2 object-cover border border-[#162238]">';
+          html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(c.name) + '\\'" src="' + c.avatar + '" class="w-12 h-12 rounded-full opacity-60 mb-2 object-cover border border-[#162238]">';
           html += '<span class="text-[10px] text-slate-500 font-mono tracking-widest">OFFLINE</span>';
           html += '</div>';
         }
@@ -1083,8 +1218,16 @@ const HTML_APP = `<!DOCTYPE html>
 
         html += '</div>';
 
+        if (tieneBotAlert) {
+          html += '<div class="mb-3 px-3 py-1.5 rounded-lg bg-amber-950/40 border border-amber-500/50 flex items-start space-x-2">';
+          html += '<span class="text-amber-400 text-sm">⚠️</span>';
+          html += '<div class="text-[10px] text-amber-200 leading-tight">';
+          html += '<strong class="font-bold text-amber-300">Alerta de Tráfico No Orgánico:</strong> Métrica bajo auditoría heurística. Datos desacoplados del liderazgo general.';
+          html += '</div></div>';
+        }
+
         html += '<div class="flex items-start space-x-3 mb-3">';
-        html += '<img crossorigin="anonymous" src="' + c.avatar + '" class="w-10 h-10 rounded-full border border-slate-700 object-cover flex-shrink-0 mt-0.5">';
+        html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(c.name) + '\\'" src="' + c.avatar + '" class="w-10 h-10 rounded-full border border-slate-700 object-cover flex-shrink-0 mt-0.5">';
         html += '<div class="flex-1 min-w-0">';
         html += '<div class="flex items-center justify-between">';
         html += '<h3 class="text-sm font-bold text-white truncate">' + c.name + '</h3>';
@@ -1096,7 +1239,7 @@ const HTML_APP = `<!DOCTYPE html>
 
         html += '<div class="flex items-end justify-between bg-black/30 rounded-xl p-2.5 mb-3 border border-[#162238]">';
         html += '<div><span class="text-[10px] uppercase font-mono text-slate-400">Total Viewers</span></div>';
-        html += '<div class="text-xl font-black font-mono ' + (isLive ? 'text-matrix matrix-glow' : 'text-slate-500') + '">' + formatNum(c.totalViewers) + '</div>';
+        html += '<div class="text-xl font-black font-mono ' + (tieneBotAlert ? 'text-amber-400' : (isLive ? 'text-matrix matrix-glow' : 'text-slate-500')) + '">' + formatNum(c.totalViewers) + '</div>';
         html += '</div>';
 
         html += '<div class="grid grid-cols-3 gap-1.5">';
@@ -1116,7 +1259,7 @@ const HTML_APP = `<!DOCTYPE html>
       const emergentes = canalesData.filter(c => c.isEmerging);
 
       if (!emergentes.length) {
-        container.innerHTML = '<div class="col-span-full text-slate-500 text-xs font-mono">No hay canales destacados actualmente.</div>';
+        container.innerHTML = '<div class="col-span-full text-slate-500 text-xs font-mono">No hay canales destacados en el radar actualmente.</div>';
         return;
       }
 
@@ -1124,7 +1267,7 @@ const HTML_APP = `<!DOCTYPE html>
       emergentes.forEach(c => {
         html += '<div class="p-3.5 rounded-xl bg-[#050811] border border-[#162238] flex items-center justify-between space-x-3">';
         html += '<div class="flex items-center space-x-3 min-w-0">';
-        html += '<img crossorigin="anonymous" src="' + c.avatar + '" class="w-10 h-10 rounded-full border border-matrix/30 object-cover flex-shrink-0">';
+        html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(c.name) + '\\'" src="' + c.avatar + '" class="w-10 h-10 rounded-full border border-matrix/30 object-cover flex-shrink-0">';
         html += '<div class="min-w-0">';
         html += '<h4 class="text-xs font-bold text-white truncate">' + c.name + '</h4>';
         html += '<p class="text-[10px] text-slate-400 truncate">' + c.subtheme + '</p>';
@@ -1139,14 +1282,8 @@ const HTML_APP = `<!DOCTYPE html>
       container.innerHTML = html;
     };
 
-    const renderizarTodo = () => {
-      renderizarHeroLeader();
-      renderizarGrilla();
-      renderizarEmergentes();
-    };
-
     // ========================================================================
-    // MODAL DE DUELO 1 VS 1 Y EXPORTACIÓN PNG
+    // MODAL DE DUELO 1 VS 1 Y EXPORTACIÓN PNG CON HTML2CANVAS
     // ========================================================================
     const poblarSelectoresDuelo = () => {
       const selA = document.getElementById('duel-select-a');
@@ -1261,7 +1398,6 @@ const HTML_APP = `<!DOCTYPE html>
       }
     };
 
-    // Inicialización y polling frontend cada 20 segundos
     fetchDatos();
     actualizarDropdownSubtemas();
     setInterval(fetchDatos, 20000);
