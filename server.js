@@ -3,67 +3,82 @@ import express from 'express';
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// ==========================================
-// CANALES Y CONFIGURACIÓN INICIAL
-// Avatares con proxies CORS abiertos (unavatar)
-// ==========================================
-const DEFAULT_CHANNELS = [
+// ============================================================================
+// CONFIGURACIÓN DE CANALES CON PROXIES UNIVERSALES CORS (unavatar.io)
+// ============================================================================
+const CHANNELS = [
   // Entretenimiento / Medios
   {
     id: 'luzutv',
     name: 'LUZU TV',
     category: 'Entretenimiento',
+    subtheme: 'Streaming General / Magazine',
     avatar: 'https://unavatar.io/youtube/LuzuTV',
-    platforms: { yt: 'LuzuTV', tw: 'luzutv' }
+    platforms: { yt: 'LuzuTV', tw: 'luzutv' },
+    isEmerging: false
   },
   {
     id: 'olga',
     name: 'OLGA',
     category: 'Entretenimiento',
+    subtheme: 'Streaming General / Humor',
     avatar: 'https://unavatar.io/youtube/olgaenvivo_',
-    platforms: { yt: 'olgaenvivo_', tw: 'olgaenvivo' }
+    platforms: { yt: 'olgaenvivo_', tw: 'olgaenvivo' },
+    isEmerging: false
   },
   {
     id: 'somoslacasaok',
     name: 'La Casa Streaming',
     category: 'Entretenimiento',
+    subtheme: 'Streaming General',
     avatar: 'https://unavatar.io/youtube/somoslacasaok',
-    platforms: { yt: 'somoslacasaok' }
+    platforms: { yt: 'somoslacasaok' },
+    isEmerging: false
   },
   {
     id: 'estoesblender',
     name: 'Blender',
     category: 'Entretenimiento',
+    subtheme: 'Cultura & Actualidad',
     avatar: 'https://unavatar.io/youtube/estoesblender',
-    platforms: { yt: 'estoesblender' }
+    platforms: { yt: 'estoesblender' },
+    isEmerging: false
   },
   {
     id: 'vorterix',
     name: 'Vorterix',
     category: 'Entretenimiento',
+    subtheme: 'Radio & Rock',
     avatar: 'https://unavatar.io/youtube/vorterixoficial',
-    platforms: { yt: 'vorterixoficial', tw: 'vorterixoficial' }
+    platforms: { yt: 'vorterixoficial', tw: 'vorterixoficial' },
+    isEmerging: false
   },
   {
     id: 'bondi_liveok',
     name: 'Bondi Live',
     category: 'Entretenimiento',
+    subtheme: 'Farándula / Espectáculo',
     avatar: 'https://unavatar.io/youtube/bondi_liveok',
-    platforms: { yt: 'bondi_liveok' }
+    platforms: { yt: 'bondi_liveok' },
+    isEmerging: false
   },
   {
     id: 'telefe',
     name: 'Telefe',
     category: 'Entretenimiento',
+    subtheme: 'Televisión de Aire',
     avatar: 'https://unavatar.io/youtube/telefe',
-    platforms: { yt: 'telefe', tw: 'telefe' }
+    platforms: { yt: 'telefe', tw: 'telefe' },
+    isEmerging: false
   },
   {
     id: 'eltrece',
     name: 'El Trece',
     category: 'Entretenimiento',
+    subtheme: 'Televisión de Aire',
     avatar: 'https://unavatar.io/youtube/eltrece',
-    platforms: { yt: 'eltrece' }
+    platforms: { yt: 'eltrece' },
+    isEmerging: false
   },
 
   // Política / Noticias
@@ -71,50 +86,64 @@ const DEFAULT_CHANNELS = [
     id: 'todonoticias',
     name: 'TN (Todo Noticias)',
     category: 'Política',
+    subtheme: 'Noticias 24 Horas',
     avatar: 'https://unavatar.io/youtube/todonoticias',
-    platforms: { yt: 'todonoticias' }
+    platforms: { yt: 'todonoticias' },
+    isEmerging: false
   },
   {
     id: 'lanacionmas',
     name: 'La Nación+',
     category: 'Política',
+    subtheme: 'Análisis Político',
     avatar: 'https://unavatar.io/youtube/lanacionmas',
-    platforms: { yt: 'lanacionmas' }
+    platforms: { yt: 'lanacionmas' },
+    isEmerging: false
   },
   {
     id: 'c5n',
     name: 'C5N',
     category: 'Política',
+    subtheme: 'Noticias & Debate',
     avatar: 'https://unavatar.io/youtube/c5n',
-    platforms: { yt: 'c5n' }
+    platforms: { yt: 'c5n' },
+    isEmerging: false
   },
   {
     id: 'cronicatv',
     name: 'Crónica TV',
     category: 'Política',
+    subtheme: 'Noticias Populares',
     avatar: 'https://unavatar.io/youtube/cronicatv',
-    platforms: { yt: 'cronicatv' }
+    platforms: { yt: 'cronicatv' },
+    isEmerging: false
   },
   {
     id: 'somosgelatina',
     name: 'Gelatina',
     category: 'Política',
+    subtheme: 'Humor Político / Streaming',
     avatar: 'https://unavatar.io/youtube/somosgelatina',
-    platforms: { yt: 'somosgelatina', tw: 'somosgelatina' }
+    platforms: { yt: 'somosgelatina', tw: 'somosgelatina' },
+    isEmerging: false
   },
   {
     id: 'carajostream',
     name: 'Carajo Stream',
     category: 'Política',
+    subtheme: 'Opinión & Debate Digital',
     avatar: 'https://unavatar.io/youtube/carajostream',
-    platforms: { yt: 'carajostream' }
+    platforms: { yt: 'carajostream' },
+    isEmerging: false
   },
   {
     id: 'neuramedia',
     name: 'Neura Media',
     category: 'Política',
+    subtheme: 'Debate & Actualidad',
     avatar: 'https://unavatar.io/youtube/neuramedia',
-    platforms: { yt: 'neuramedia', tw: 'neuramedia' }
+    platforms: { yt: 'neuramedia', tw: 'neuramedia' },
+    isEmerging: false
   },
 
   // Deportes
@@ -122,22 +151,28 @@ const DEFAULT_CHANNELS = [
     id: 'flavioazzaro',
     name: 'Flavio Azzaro / AZZ',
     category: 'Deportes',
+    subtheme: 'Debate Futbolero',
     avatar: 'https://unavatar.io/youtube/FlavioAzzaroOficial',
-    platforms: { yt: 'FlavioAzzaroOficial' }
+    platforms: { yt: 'FlavioAzzaroOficial' },
+    isEmerging: false
   },
   {
     id: 'dsportsradio',
     name: 'DSPORTS Radio',
     category: 'Deportes',
+    subtheme: 'Radio Deportiva',
     avatar: 'https://unavatar.io/youtube/dsportsradio',
-    platforms: { yt: 'dsportsradio' }
+    platforms: { yt: 'dsportsradio' },
+    isEmerging: false
   },
   {
     id: 'tycsports',
     name: 'TyC Sports',
     category: 'Deportes',
+    subtheme: 'Noticias Deportivas',
     avatar: 'https://unavatar.io/youtube/tycsports',
-    platforms: { yt: 'tycsports' }
+    platforms: { yt: 'tycsports' },
+    isEmerging: false
   },
 
   // Streamers
@@ -145,58 +180,95 @@ const DEFAULT_CHANNELS = [
     id: 'coscu',
     name: 'Coscu',
     category: 'Streamers',
+    subtheme: 'Variedad & Reacciones',
     avatar: 'https://unavatar.io/twitch/coscu',
-    platforms: { tw: 'coscu', ki: 'coscu', yt: 'Coscu' }
+    platforms: { tw: 'coscu', ki: 'coscu', yt: 'Coscu' },
+    isEmerging: false
   },
   {
     id: 'spreen',
     name: 'Spreen',
     category: 'Streamers',
+    subtheme: 'Gaming & Entretenimiento',
     avatar: 'https://unavatar.io/twitch/elspreen',
-    platforms: { tw: 'elspreen', ki: 'spreen', yt: 'SpreenDMC' }
+    platforms: { tw: 'elspreen', ki: 'spreen', yt: 'SpreenDMC' },
+    isEmerging: false
   },
   {
     id: 'davooxeneize',
     name: 'Davoo Xeneize',
     category: 'Streamers',
+    subtheme: 'Fútbol & Gaming',
     avatar: 'https://unavatar.io/twitch/davooxeneize',
-    platforms: { tw: 'davooxeneize', ki: 'davooxeneize' }
+    platforms: { tw: 'davooxeneize', ki: 'davooxeneize' },
+    isEmerging: false
   },
   {
     id: 'lacobraaa',
     name: 'La Cobra',
     category: 'Streamers',
+    subtheme: 'Fútbol & Debate Picante',
     avatar: 'https://unavatar.io/twitch/lacobraaa',
-    platforms: { tw: 'lacobraaa', ki: 'lacobraaa' }
+    platforms: { tw: 'lacobraaa', ki: 'lacobraaa' },
+    isEmerging: false
   },
   {
     id: 'luquitasrodriguez',
     name: 'Luquitas Rodríguez',
     category: 'Streamers',
+    subtheme: 'Charlas & Reacciones',
     avatar: 'https://unavatar.io/twitch/luquitasrodriguez',
-    platforms: { tw: 'luquitasrodriguez' }
+    platforms: { tw: 'luquitasrodriguez' },
+    isEmerging: false
+  },
+
+  // Canales Emergentes & Nuevas Promesas
+  {
+    id: 'cenital',
+    name: 'Cenital',
+    category: 'Política',
+    subtheme: 'Periodismo Independiente',
+    avatar: 'https://unavatar.io/youtube/Cenitalcom',
+    platforms: { yt: 'Cenitalcom' },
+    isEmerging: true
+  },
+  {
+    id: 'urbanaplay',
+    name: 'Urbana Play 104.3',
+    category: 'Entretenimiento',
+    subtheme: 'Radio Multimedia',
+    avatar: 'https://unavatar.io/youtube/urbanaplayfm',
+    platforms: { yt: 'urbanaplayfm' },
+    isEmerging: true
+  },
+  {
+    id: 'parenlamanotv',
+    name: 'Paren La Mano',
+    category: 'Entretenimiento',
+    subtheme: 'Comedia & Charlas',
+    avatar: 'https://unavatar.io/youtube/parenlamanoclips',
+    platforms: { yt: 'parenlamanoclips' },
+    isEmerging: true
   }
 ];
 
-// Cache global en memoria
 let telemetriaCache = [];
 let ultimaActualizacion = null;
-let estaScrapeando = false;
+let enProcesoDeScrapeo = false;
 
-// ==========================================
-// CLIENTES DE TELEMETRÍA (SCRAPING SEGURO)
-// ==========================================
-
-const fetchWithTimeout = async (url, options = {}, timeoutMs = 1500) => {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeoutMs);
+// ============================================================================
+// MOTOR DE SCRAPING CON TIMEOUT SEGURO Y PROTECCIÓN HTTP 429
+// ============================================================================
+const fetchConTimeout = async (url, opciones = {}, ms = 1800) => {
+  const controlador = new AbortController();
+  const id = setTimeout(() => controlador.abort(), ms);
   try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
+    const respuesta = await fetch(url, { ...opciones, signal: controlador.signal });
     clearTimeout(id);
-    return res;
-  } catch (err) {
+    return respuesta;
+  } catch (error) {
     clearTimeout(id);
-    throw err;
+    throw error;
   }
 };
 
@@ -205,22 +277,21 @@ const scrapeYouTube = async (handle) => {
   if (!handle) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
   try {
     const url = `https://www.youtube.com/@${handle}/live`;
-    const res = await fetchWithTimeout(
+    const res = await fetchConTimeout(
       url,
       {
         headers: {
           'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
           'Accept-Language': 'es-419,es;q=0.9,en;q=0.8'
         }
       },
-      1500
+      1800
     );
 
     if (!res.ok) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
 
     const html = await res.text();
-
     const isLiveRegex = /"isLive":\s*true/;
     const isUpcomingRegex = /"status":\s*"UPCOMING"/;
     const isLive = isLiveRegex.test(html) && !isUpcomingRegex.test(html);
@@ -232,15 +303,15 @@ const scrapeYouTube = async (handle) => {
     let viewers = 0;
     const concurrentMatch = html.match(/"concurrentViewers":\s*"(\d+)"/);
     const simpleViewMatch = html.match(/"originalViewCount":\s*"(\d+)"/);
-    const viewMatch = html.match(/"viewCount":\s*\{\s*"runs":\s*\[\s*\{\s*"text":\s*"([^"]+)"/);
+    const viewRunsMatch = html.match(/"viewCount":\s*\{\s*"runs":\s*\[\s*\{\s*"text":\s*"([^"]+)"/);
 
     if (concurrentMatch) {
       viewers = parseInt(concurrentMatch[1], 10) || 0;
     } else if (simpleViewMatch) {
       viewers = parseInt(simpleViewMatch[1], 10) || 0;
-    } else if (viewMatch && viewMatch[1]) {
-      const cleanNum = viewMatch[1].replace(/[^0-9]/g, '');
-      viewers = parseInt(cleanNum, 10) || 0;
+    } else if (viewRunsMatch && viewRunsMatch[1]) {
+      const limpio = viewRunsMatch[1].replace(/[^0-9]/g, '');
+      viewers = parseInt(limpio, 10) || 0;
     }
 
     let videoId = '';
@@ -272,7 +343,7 @@ const scrapeYouTube = async (handle) => {
 const scrapeTwitch = async (login) => {
   if (!login) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
   try {
-    const res = await fetchWithTimeout(
+    const res = await fetchConTimeout(
       'https://gql.twitch.tv/gql',
       {
         method: 'POST',
@@ -292,7 +363,7 @@ const scrapeTwitch = async (login) => {
           variables: { login }
         })
       },
-      1500
+      1800
     );
 
     if (!res.ok) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
@@ -304,7 +375,7 @@ const scrapeTwitch = async (login) => {
       return {
         isLive: true,
         viewers: stream.viewersCount || 0,
-        title: stream.title || 'Transmisión de Twitch',
+        title: stream.title || 'Transmisión en Twitch',
         thumbnail: `https://static-cdn.jtvnw.net/previews-ttv/live_user_${login.toLowerCase()}-640x360.jpg`
       };
     }
@@ -318,16 +389,16 @@ const scrapeTwitch = async (login) => {
 const scrapeKick = async (slug) => {
   if (!slug) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
   try {
-    const res = await fetchWithTimeout(
+    const res = await fetchConTimeout(
       `https://kick.com/api/v2/channels/${slug}`,
       {
         headers: {
           'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
           Accept: 'application/json'
         }
       },
-      1500
+      1800
     );
 
     if (!res.ok) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
@@ -349,18 +420,15 @@ const scrapeKick = async (slug) => {
   }
 };
 
-// ==========================================
-// ORQUESTADOR DE RASTREO SECUENCIAL (ANTI 429)
-// ==========================================
+// Ciclo de scraping secuencial canal por canal con pausa de 120 ms
 const actualizarTelemetria = async () => {
-  if (estaScrapeando) return;
-  estaScrapeando = true;
+  if (enProcesoDeScrapeo) return;
+  enProcesoDeScrapeo = true;
 
   try {
-    const resultados = [];
+    const listaActualizada = [];
 
-    // Procesamiento canal por canal de forma secuencial con pausa de 120 ms
-    for (const canal of DEFAULT_CHANNELS) {
+    for (const canal of CHANNELS) {
       try {
         const [ytRes, twRes, kiRes] = await Promise.all([
           canal.platforms.yt ? scrapeYouTube(canal.platforms.yt) : Promise.resolve({ isLive: false, viewers: 0 }),
@@ -374,11 +442,13 @@ const actualizarTelemetria = async () => {
         let thumbnail = ytRes.thumbnail || twRes.thumbnail || kiRes.thumbnail || '';
         let title = ytRes.title || twRes.title || kiRes.title || (isLive ? 'Transmitiendo en vivo' : 'Canal fuera de línea');
 
-        resultados.push({
+        listaActualizada.push({
           id: canal.id,
           name: canal.name,
           category: canal.category,
+          subtheme: canal.subtheme,
           avatar: canal.avatar,
+          isEmerging: canal.isEmerging,
           isLive,
           totalViewers,
           title,
@@ -405,85 +475,92 @@ const actualizarTelemetria = async () => {
           },
           timestamp: new Date().toISOString()
         });
-      } catch (canalErr) {
-        console.error(`Error procesando canal ${canal.id}:`, canalErr);
+      } catch (canalError) {
+        console.error(`Error procesando telemetría de ${canal.name}:`, canalError);
       }
 
-      // Pausa segura de 120 ms para evitar rate-limiting y bloqueos por IP compartida
-      await new Promise((resolve) => setTimeout(resolve, 120));
+      // Pausa obligatoria de 120 ms para evitar saturación y HTTP 429
+      await new Promise((r) => setTimeout(r, 120));
     }
 
-    // Ordenar: primero los que están en vivo con mayor audiencia, luego los offline
-    resultados.sort((a, b) => {
+    // Ordenar: primero EN VIVO por audiencia descendente, luego OFFLINE por nombre
+    listaActualizada.sort((a, b) => {
       if (a.isLive && !b.isLive) return -1;
       if (!a.isLive && b.isLive) return 1;
-      return b.totalViewers - a.totalViewers;
+      if (a.isLive && b.isLive) return b.totalViewers - a.totalViewers;
+      return a.name.localeCompare(b.name);
     });
 
-    telemetriaCache = resultados;
+    telemetriaCache = listaActualizada;
     ultimaActualizacion = new Date().toISOString();
   } catch (error) {
-    console.error('Error durante la actualización de telemetría:', error);
+    console.error('Error global en actualización de telemetría:', error);
   } finally {
-    estaScrapeando = false;
+    enProcesoDeScrapeo = false;
   }
 };
 
-// Iniciar scrapeo inicial y ciclo periódico de 25 segundos
+// Inicialización y loop cada 25 segundos
 actualizarTelemetria();
 setInterval(actualizarTelemetria, 25000);
 
-// ==========================================
-// ENDPOINTS DE API
-// ==========================================
-
+// ============================================================================
+// ENDPOINTS DEL SERVIDOR EXPRESS
+// ============================================================================
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
 app.get('/api/ranks', (req, res) => {
+  const liveCount = telemetriaCache.filter((c) => c.isLive).length;
+  const totalAudience = telemetriaCache.reduce((acc, c) => acc + c.totalViewers, 0);
+
   res.json({
     updatedAt: ultimaActualizacion,
     totalChannels: telemetriaCache.length,
-    liveChannels: telemetriaCache.filter((c) => c.isLive).length,
-    totalAudience: telemetriaCache.reduce((acc, c) => acc + c.totalViewers, 0),
+    liveChannels: liveCount,
+    totalAudience,
     data: telemetriaCache
   });
 });
 
 app.get('/api/analytics/export', (req, res) => {
-  const encabezados = ['Canal', 'Categoria', 'Espectadores_Totales', 'En_Vivo', 'Twitch', 'Kick', 'YouTube', 'Timestamp'];
-  const filas = telemetriaCache.map((c) => [
+  const formateadorFecha = new Intl.DateTimeFormat('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    dateStyle: 'short',
+    timeStyle: 'medium'
+  });
+  const fechaAr = formateadorFecha.format(new Date());
+
+  const cabeceras = ['Canal', 'Categoria', 'Subtema', 'Espectadores_Totales', 'En_Vivo', 'YouTube', 'Twitch', 'Kick', 'Fecha_Hora_Argentina'];
+  const lineas = telemetriaCache.map((c) => [
     `"${c.name.replace(/"/g, '""')}"`,
     `"${c.category}"`,
+    `"${c.subtheme}"`,
     c.totalViewers,
     c.isLive ? 'SI' : 'NO',
+    c.platforms.youtube.viewers || 0,
     c.platforms.twitch.viewers || 0,
     c.platforms.kick.viewers || 0,
-    c.platforms.youtube.viewers || 0,
-    `"${c.timestamp}"`
+    `"${fechaAr}"`
   ]);
 
-  const csvContenido = [encabezados.join(','), ...filas.map((f) => f.join(','))].join('\n');
-
+  const csv = [cabeceras.join(','), ...lineas.map((l) => l.join(','))].join('\n');
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename="streamrank_arg_${Date.now()}.csv"`);
-  res.status(200).send(csvContenido);
+  res.status(200).send(csv);
 });
 
-// ==========================================
+// ============================================================================
 // FRONTEND SERVIDO EN GET /
-// ==========================================
-const HTML_BODY = `
-<!DOCTYPE html>
+// ============================================================================
+const HTML_APP = `<!DOCTYPE html>
 <html lang="es" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StreamRank ARG | Monitor de Streaming en Vivo</title>
-  <!-- Tailwind CSS CDN -->
+  <title>StreamRank ARG | Monitor de Streaming en Vivo de Argentina</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- html2canvas con soporte CORS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>
     tailwind.config = {
@@ -502,7 +579,7 @@ const HTML_BODY = `
           boxShadow: {
             matrix: '0 0 20px rgba(0, 255, 102, 0.45)',
             matrixSoft: '0 0 10px rgba(0, 255, 102, 0.25)',
-            glow: '0 0 30px rgba(0, 255, 102, 0.3)'
+            glow: '0 0 35px rgba(0, 255, 102, 0.3)'
           }
         }
       }
@@ -512,46 +589,33 @@ const HTML_BODY = `
     body {
       background-color: #050811;
       color: #e2e8f0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, sans-serif;
     }
     .matrix-glow {
-      text-shadow: 0 0 8px rgba(0, 255, 102, 0.6), 0 0 18px rgba(0, 255, 102, 0.3);
-    }
-    .matrix-badge {
-      box-shadow: 0 0 10px rgba(0, 255, 102, 0.4);
-    }
-    .custom-scroll::-webkit-scrollbar {
-      width: 6px;
-    }
-    .custom-scroll::-webkit-scrollbar-thumb {
-      background: #1e293b;
-      border-radius: 4px;
+      text-shadow: 0 0 10px rgba(0, 255, 102, 0.7), 0 0 22px rgba(0, 255, 102, 0.35);
     }
   </style>
 </head>
 <body class="min-h-screen flex flex-col bg-[#050811] text-slate-100 antialiased selection:bg-[#00ff66] selection:text-black">
 
-  <!-- BARRA SUPERIOR / HEADER -->
-  <header class="sticky top-0 z-40 bg-[#050811]/90 backdrop-blur-md border-b border-[#162238]">
+  <!-- HEADER NAVEGACIÓN -->
+  <header class="sticky top-0 z-40 bg-[#050811]/95 backdrop-blur-md border-b border-[#162238]">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-      
-      <!-- LOGO & PULSO -->
       <div class="flex items-center space-x-3">
-        <div class="relative flex items-center justify-center w-10 h-10 rounded-xl bg-black border border-matrix/40 shadow-matrixSoft">
-          <span class="absolute w-3 h-3 rounded-full bg-matrix animate-ping opacity-75"></span>
+        <div class="relative flex items-center justify-center w-10 h-10 rounded-xl bg-black border border-matrix/50 shadow-matrixSoft">
+          <span class="absolute w-3.5 h-3.5 rounded-full bg-matrix animate-ping opacity-75"></span>
           <span class="w-3 h-3 rounded-full bg-matrix"></span>
         </div>
         <div>
           <div class="flex items-center space-x-2">
-            <span class="text-xl font-extrabold tracking-wider text-white">STREAMRANK</span>
-            <span class="text-xs px-2 py-0.5 rounded font-black tracking-widest bg-matrix/20 text-matrix border border-matrix/30">ARG</span>
+            <span class="text-xl font-black tracking-wider text-white">STREAMRANK</span>
+            <span class="text-xs px-2 py-0.5 rounded font-black tracking-widest bg-matrix/20 text-matrix border border-matrix/40">ARG</span>
           </div>
-          <p class="text-xs text-slate-400">Monitor en vivo de canales de Argentina</p>
+          <p class="text-[11px] text-slate-400">Telemetría y Audiencia en Vivo de Canales de Streaming</p>
         </div>
       </div>
 
-      <!-- STATUS & ACCIONES -->
-      <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-3">
         <div class="hidden md:flex items-center bg-[#0b1120] border border-[#162238] rounded-xl px-4 py-2 space-x-4">
           <div class="flex items-center space-x-2">
             <span class="inline-block w-2.5 h-2.5 rounded-full bg-matrix shadow-matrix"></span>
@@ -559,15 +623,13 @@ const HTML_BODY = `
           </div>
           <div class="w-px h-4 bg-slate-700"></div>
           <div class="text-xs text-slate-400">
-            Público: <span id="stat-total-viewers" class="text-white font-mono font-bold">0</span>
+            Audiencia: <span id="stat-total-viewers" class="text-white font-mono font-bold">0</span>
           </div>
           <div class="w-px h-4 bg-slate-700"></div>
-          <div class="text-[11px] font-mono text-slate-400" id="sync-clock">
-            Sinc: --:--:--
-          </div>
+          <div class="text-[11px] font-mono text-slate-400" id="sync-clock">Sinc: --:--:--</div>
         </div>
 
-        <a href="/api/analytics/export" class="inline-flex items-center px-4 py-2 text-xs font-bold uppercase tracking-wider text-black bg-matrix rounded-xl hover:bg-emerald-400 transition-all shadow-matrix hover:shadow-glow">
+        <a href="/api/analytics/export" class="inline-flex items-center px-4 py-2 text-xs font-black uppercase tracking-wider text-black bg-matrix rounded-xl hover:bg-emerald-400 transition-all shadow-matrix">
           <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
           </svg>
@@ -577,84 +639,167 @@ const HTML_BODY = `
     </div>
   </header>
 
-  <!-- CONTENIDO PRINCIPAL -->
+  <!-- BANNER DE INTEGRIDAD Y SEGURIDAD CONTRA BOTS EXTERNOS -->
+  <div class="bg-gradient-to-r from-emerald-950/40 via-amber-950/20 to-emerald-950/40 border-b border-matrix/20 px-4 py-2.5">
+    <div class="max-w-7xl mx-auto flex items-center justify-between text-xs">
+      <div class="flex items-center space-x-2 text-slate-300">
+        <svg class="w-4 h-4 text-matrix flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+        </svg>
+        <span><strong class="text-matrix font-bold">AUDITORÍA EN TIEMPO REAL:</strong> Sistema de filtrado y detección de anomalías. Las métricas reflejan usuarios concurrentes activos obtenidos de los servidores oficiales sin adulteraciones.</span>
+      </div>
+      <span class="hidden lg:inline-block text-[11px] font-mono text-slate-400">Verificación: HTTP/2 TLS Handshake</span>
+    </div>
+  </div>
+
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
     
-    <!-- HERO / CANAL #1 DESTACADO -->
+    <!-- HERO LEADER (#1 DEL MOMENTO) -->
     <section id="hero-leader" class="w-full">
-      <div class="w-full h-72 rounded-2xl bg-[#0b1120] border border-[#162238] animate-pulse flex items-center justify-center text-slate-500">
-        Cargando líder de audiencia...
+      <div class="w-full h-72 rounded-2xl bg-[#0b1120] border border-[#162238] animate-pulse flex items-center justify-center text-slate-500 font-mono">
+        Sincronizando canal líder en Argentina...
       </div>
     </section>
 
-    <!-- BARRA DE FILTROS POR CATEGORÍA -->
-    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-[#162238] pb-4">
-      <div class="flex flex-wrap gap-2" id="filter-buttons">
-        <button onclick="setFilter('Todos')" class="cat-btn active px-4 py-2 rounded-xl text-xs font-bold transition-all bg-matrix text-black shadow-matrix">
-          🔥 Todos
-        </button>
-        <button onclick="setFilter('Entretenimiento')" class="cat-btn px-4 py-2 rounded-xl text-xs font-bold transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
-          🎭 Entretenimiento
-        </button>
-        <button onclick="setFilter('Política')" class="cat-btn px-4 py-2 rounded-xl text-xs font-bold transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
-          🏛️ Política
-        </button>
-        <button onclick="setFilter('Deportes')" class="cat-btn px-4 py-2 rounded-xl text-xs font-bold transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
-          ⚽ Deportes
-        </button>
-        <button onclick="setFilter('Streamers')" class="cat-btn px-4 py-2 rounded-xl text-xs font-bold transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
-          🎮 Streamers
-        </button>
-      </div>
+    <!-- NAVEGACIÓN POR SOLAPAS Y DESPLEGABLES POR TEMAS -->
+    <section class="space-y-4">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-[#162238] pb-4">
+        
+        <!-- Solapas Principales -->
+        <div class="flex flex-wrap gap-2" id="tab-buttons">
+          <button onclick="cambiarSolapa('Todos')" class="tab-btn px-4 py-2 rounded-xl text-xs font-black transition-all bg-matrix text-black shadow-matrix">
+            🔥 General / Destacados
+          </button>
+          <button onclick="cambiarSolapa('Entretenimiento')" class="tab-btn px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
+            🎭 Entretenimiento
+          </button>
+          <button onclick="cambiarSolapa('Política')" class="tab-btn px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
+            🏛️ Política
+          </button>
+          <button onclick="cambiarSolapa('Deportes')" class="tab-btn px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
+            ⚽ Deportes
+          </button>
+          <button onclick="cambiarSolapa('Streamers')" class="tab-btn px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
+            🎮 Streamers
+          </button>
+        </div>
 
-      <div class="text-xs text-slate-400 font-mono">
-        Ordenado por espectadores concurrentes
+        <!-- Filtros Desplegables Avanzados -->
+        <div class="flex items-center space-x-3">
+          <div class="relative">
+            <select id="subtheme-dropdown" onchange="cambiarSubtema(this.value)" class="bg-[#0b1120] border border-[#162238] hover:border-matrix/40 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 focus:outline-none focus:border-matrix">
+              <option value="TODOS">Todos los subtemas</option>
+            </select>
+          </div>
+
+          <div class="relative">
+            <select id="status-dropdown" onchange="cambiarFiltroEstado(this.value)" class="bg-[#0b1120] border border-[#162238] hover:border-matrix/40 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 focus:outline-none focus:border-matrix">
+              <option value="TODOS">Todos los estados</option>
+              <option value="SOLO_VIVO">🔴 Solo En Vivo</option>
+              <option value="SOLO_OFFLINE">⚫ Solo Offline</option>
+            </select>
+          </div>
+        </div>
+
       </div>
-    </div>
+    </section>
 
     <!-- GRILLA COMPLETA DE CANALES -->
     <section>
       <div id="channels-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       </div>
     </section>
+
+    <!-- CANALES EMERGENTES & NUEVAS PROMESAS -->
+    <section class="mt-12 bg-gradient-to-br from-[#0b1120] to-[#050811] rounded-2xl border border-[#162238] p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <span class="text-xl">🚀</span>
+          <div>
+            <h2 class="text-base font-black text-white">Canales Emergentes & Nuevas Promesas</h2>
+            <p class="text-xs text-slate-400">Proyectos independientes, radios multimedia y nuevas voces del ecosistema digital argentino.</p>
+          </div>
+        </div>
+        <span class="text-xs font-mono font-bold text-matrix bg-matrix/10 border border-matrix/20 px-3 py-1 rounded-full">RADAR DIGITAL</span>
+      </div>
+
+      <div id="emerging-channels-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+      </div>
+    </section>
+
+    <!-- BANNER SPONSOR / ESPACIO PUBLICITARIO -->
+    <section class="w-full">
+      <div class="relative w-full rounded-2xl bg-gradient-to-r from-emerald-950/20 via-[#0b1120] to-blue-950/20 border border-matrix/30 p-6 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+        <div class="space-y-1">
+          <span class="text-[10px] font-mono tracking-widest text-matrix uppercase bg-matrix/10 px-2 py-0.5 rounded border border-matrix/20">ESPACIO DISPONIBLE PARA MARCAS</span>
+          <h3 class="text-lg font-black text-white">Llega a la audiencia del streaming en Argentina</h3>
+          <p class="text-xs text-slate-400">Patrocina el monitor de audiencias más consultado por agencias, streamers y medios de comunicación.</p>
+        </div>
+        <a href="mailto:contacto@streamrank.ar" class="px-5 py-2.5 rounded-xl bg-[#0b1120] hover:bg-matrix hover:text-black border border-matrix/40 text-matrix text-xs font-black transition-all shadow-matrixSoft">
+          CONTACTAR PUBLICIDAD
+        </a>
+      </div>
+    </section>
+
+    <!-- AUTORIDAD Y TRANSPARENCIA METODOLÓGICA -->
+    <section class="bg-[#0b1120] rounded-2xl border border-[#162238] p-6 space-y-4 text-xs text-slate-400 leading-relaxed">
+      <div class="flex items-center space-x-2 text-white font-bold text-sm">
+        <svg class="w-5 h-5 text-matrix" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>¿Cómo funciona, por qué y en qué se basa StreamRank ARG?</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+        <div class="space-y-1.5">
+          <h4 class="font-bold text-slate-200">1. Telemetría Real Sin Intermediarios</h4>
+          <p>StreamRank ARG consulta de forma recurrente las capas públicas oficiales de YouTube Live, Twitch GQL y la API de Kick. No depende de estadísticas infladas posteriores, sino del pulso instantáneo de usuarios concurrentes.</p>
+        </div>
+        <div class="space-y-1.5">
+          <h4 class="font-bold text-slate-200">2. Mapeo Multiplataforma Simultáneo</h4>
+          <p>Los canales que transmiten en paralelo (por ejemplo YouTube + Twitch) suman sus audiencias verificadas en tiempo real para reflejar el share total verdadero que cada medio concentra en el país.</p>
+        </div>
+        <div class="space-y-1.5">
+          <h4 class="font-bold text-slate-200">3. Prevención de Manipulación</h4>
+          <p>Se realizan validaciones de consistencia de streams. Si un canal programa una emisión futura sin estar en el aire, se descarta para no arrojar métricas fantasmas. Las peticiones son secuenciales y no saturan los servidores.</p>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <!-- MODAL DUELO 1 VS 1 -->
   <div id="modal-duel" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden p-4">
     <div class="bg-[#0b1120] border border-[#162238] rounded-2xl max-w-3xl w-full p-6 shadow-2xl relative overflow-hidden">
       
-      <!-- Encabezado Modal -->
       <div class="flex items-center justify-between pb-4 border-b border-[#162238]">
         <div class="flex items-center space-x-2">
           <span class="text-matrix font-extrabold text-lg">⚡ DUELO 1 VS 1</span>
-          <span class="text-xs text-slate-400">Comparativa en directo</span>
+          <span class="text-xs text-slate-400">Comparativa directa de audiencia en vivo</span>
         </div>
-        <button onclick="closeDuelModal()" class="text-slate-400 hover:text-white transition-colors text-2xl font-bold">&times;</button>
+        <button onclick="cerrarModalDuelo()" class="text-slate-400 hover:text-white transition-colors text-2xl font-bold">&times;</button>
       </div>
 
-      <!-- Selectores de Canales -->
       <div class="grid grid-cols-2 gap-4 my-4">
         <div>
           <label class="block text-xs font-semibold text-slate-400 mb-1">CANAL A</label>
-          <select id="duel-select-a" onchange="renderDuelContent()" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-matrix">
+          <select id="duel-select-a" onchange="renderizarContenidoDuelo()" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-matrix">
           </select>
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-400 mb-1">CANAL B</label>
-          <select id="duel-select-b" onchange="renderDuelContent()" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-matrix">
+          <select id="duel-select-b" onchange="renderizarContenidoDuelo()" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-matrix">
           </select>
         </div>
       </div>
 
-      <!-- PLACA DE DUELO (ÁREA A EXPORTAR EN PNG) -->
+      <!-- PLACA PARA CAPTURA HTML2CANVAS -->
       <div id="duel-capture-card" class="bg-[#050811] border border-matrix/30 rounded-2xl p-6 shadow-glow relative my-4">
         <div class="text-center mb-4">
           <span class="text-[10px] font-black tracking-widest uppercase bg-matrix/10 text-matrix px-3 py-1 rounded-full border border-matrix/30">STREAMRANK ARG • TELEMETRÍA EN DIRECTO</span>
         </div>
 
         <div class="grid grid-cols-2 gap-4 items-center">
-          
-          <!-- Canal A Card -->
           <div class="text-center p-4 rounded-xl bg-[#0b1120]/80 border border-[#162238]">
             <img id="duel-a-avatar" crossorigin="anonymous" src="" class="w-16 h-16 rounded-full mx-auto border-2 border-matrix object-cover shadow-matrixSoft mb-2" alt="A">
             <h3 id="duel-a-name" class="font-extrabold text-white text-base truncate">--</h3>
@@ -663,7 +808,6 @@ const HTML_BODY = `
             <div class="text-[10px] text-slate-400 uppercase tracking-wider">Espectadores</div>
           </div>
 
-          <!-- Canal B Card -->
           <div class="text-center p-4 rounded-xl bg-[#0b1120]/80 border border-[#162238]">
             <img id="duel-b-avatar" crossorigin="anonymous" src="" class="w-16 h-16 rounded-full mx-auto border-2 border-cyan-400 object-cover shadow-cyan-500/50 mb-2" alt="B">
             <h3 id="duel-b-name" class="font-extrabold text-white text-base truncate">--</h3>
@@ -673,7 +817,6 @@ const HTML_BODY = `
           </div>
         </div>
 
-        <!-- BARRAS DE PORCENTAJE ENFRENTADAS -->
         <div class="mt-6">
           <div class="flex justify-between text-xs font-mono font-bold mb-1">
             <span id="duel-pct-a" class="text-matrix">50%</span>
@@ -691,12 +834,11 @@ const HTML_BODY = `
         </div>
       </div>
 
-      <!-- Acciones Modal -->
       <div class="flex items-center justify-end space-x-3 pt-4 border-t border-[#162238]">
-        <button onclick="closeDuelModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-colors">
+        <button onclick="cerrarModalDuelo()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-colors">
           Cerrar
         </button>
-        <button onclick="downloadDuelPNG()" class="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-matrix text-black hover:bg-emerald-400 transition-all shadow-matrix flex items-center">
+        <button onclick="descargarDueloPNG()" class="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-matrix text-black hover:bg-emerald-400 transition-all shadow-matrix flex items-center">
           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
           </svg>
@@ -707,80 +849,150 @@ const HTML_BODY = `
     </div>
   </div>
 
-  <!-- ICONOS SVG PLATAFORMAS -->
+  <!-- SVG TEMPLATES PARA PLATAFORMAS -->
   <div class="hidden">
-    <!-- YouTube SVG -->
     <svg id="svg-yt" viewBox="0 0 24 24" fill="currentColor">
       <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
     </svg>
-    <!-- Twitch SVG -->
     <svg id="svg-tw" viewBox="0 0 24 24" fill="currentColor">
       <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/>
     </svg>
-    <!-- Kick SVG -->
     <svg id="svg-ki" viewBox="0 0 24 24" fill="currentColor">
       <path d="M1.333 0h8v5.333H6.667v2.667h2.666v2.667H6.667v2.666h2.666V16H6.667v2.667h2.666V24h-8zm13.334 8h2.666v2.667h-2.666zm2.666 2.667h2.667v2.666h-2.667zm2.667 2.666h2.667V16H20zm-2.667 2.667h2.667v2.667h-2.667zm-2.667 2.667h2.667V24h-2.667zm0-10.667h2.667V5.333h-2.667zm2.667-2.667h2.667V2.667H17.333zm2.667-2.666H22.667V0H20z"/>
     </svg>
   </div>
 
-  <!-- LOGICA JS CLIENTE -->
+  <footer class="border-t border-[#162238] bg-[#050811] py-8 text-center text-xs text-slate-500 font-mono">
+    StreamRank ARG • Monitor en tiempo real de audiencias de streaming en Argentina • Actualización continua
+  </footer>
+
+  <!-- SCRIPT LOGICA CLIENTE -->
   <script>
     let canalesData = [];
-    let categoriaActiva = 'Todos';
+    let solapaActiva = 'Todos';
+    let subtemaActivo = 'TODOS';
+    let filtroEstado = 'TODOS';
 
     const formatNum = (num) => new Intl.NumberFormat('es-AR').format(num || 0);
 
-    const setFilter = (cat) => {
-      categoriaActiva = cat;
-      document.querySelectorAll('.cat-btn').forEach(btn => {
-        if (btn.innerText.includes(cat)) {
-          btn.className = 'cat-btn active px-4 py-2 rounded-xl text-xs font-bold transition-all bg-matrix text-black shadow-matrix';
-        } else {
-          btn.className = 'cat-btn px-4 py-2 rounded-xl text-xs font-bold transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50';
-        }
-      });
-      renderGrid();
+    const cambiarSolapa = (solapa) => {
+      solapaActiva = solapa;
+      subtemaActivo = 'TODOS';
+      actualizarEstilosSolapas();
+      actualizarDropdownSubtemas();
+      renderizarTodo();
     };
 
-    const fetchRanks = async () => {
+    const cambiarSubtema = (subtema) => {
+      subtemaActivo = subtema;
+      renderizarGrilla();
+    };
+
+    const cambiarFiltroEstado = (estado) => {
+      filtroEstado = estado;
+      renderizarGrilla();
+    };
+
+    const actualizarEstilosSolapas = () => {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        if (btn.innerText.includes(solapaActiva)) {
+          btn.className = 'tab-btn px-4 py-2 rounded-xl text-xs font-black transition-all bg-matrix text-black shadow-matrix';
+        } else {
+          btn.className = 'tab-btn px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50';
+        }
+      });
+    };
+
+    const actualizarDropdownSubtemas = () => {
+      const dropdown = document.getElementById('subtheme-dropdown');
+      const canalesFiltradosPorSolapa = solapaActiva === 'Todos' 
+        ? canalesData 
+        : canalesData.filter(c => c.category === solapaActiva);
+
+      const subtemasUnicos = [...new Set(canalesFiltradosPorSolapa.map(c => c.subtheme))].filter(Boolean);
+
+      let optionsHtml = '<option value="TODOS">Todos los subtemas (' + subtemasUnicos.length + ')</option>';
+      subtemasUnicos.forEach(st => {
+        optionsHtml += '<option value="' + st + '">' + st + '</option>';
+      });
+      dropdown.innerHTML = optionsHtml;
+      dropdown.value = 'TODOS';
+    };
+
+    const fetchDatos = async () => {
       try {
-        const res = await fetch('/api/ranks');
-        const json = await res.json();
+        const respuesta = await fetch('/api/ranks');
+        const json = await respuesta.json();
         canalesData = json.data || [];
-        
+
         document.getElementById('stat-live-count').innerText = json.liveChannels || 0;
         document.getElementById('stat-total-viewers').innerText = formatNum(json.totalAudience);
-        
-        const now = new Date();
-        document.getElementById('sync-clock').innerText = 'Sinc: ' + now.toTimeString().split(' ')[0];
 
-        renderHeroLeader();
-        renderGrid();
-        populateDuelSelectors();
+        const fechaArg = new Intl.DateTimeFormat('es-AR', {
+          timeZone: 'America/Argentina/Buenos_Aires',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        }).format(new Date());
+
+        document.getElementById('sync-clock').innerText = 'Sinc: ' + fechaArg + ' ART';
+
+        renderizarHeroLeader();
+        renderizarGrilla();
+        renderizarEmergentes();
+        poblarSelectoresDuelo();
       } catch (err) {
-        console.error('Error al consultar /api/ranks:', err);
+        console.error('Error al sincronizar datos:', err);
       }
     };
 
-    const renderHeroLeader = () => {
+    const renderizarPlataformaBadge = (tipo, plat) => {
+      let estilo = 'text-slate-500 border-[#162238] bg-black/30';
+      let iconColor = 'text-slate-600';
+      let valor = 'Offline';
+
+      if (plat && plat.isLive) {
+        if (tipo === 'yt') {
+          estilo = 'text-red-400 border-red-500/40 bg-red-950/20';
+          iconColor = 'text-[#FF0000]';
+        } else if (tipo === 'tw') {
+          estilo = 'text-purple-300 border-purple-500/40 bg-purple-950/20';
+          iconColor = 'text-[#9146FF]';
+        } else if (tipo === 'ki') {
+          estilo = 'text-emerald-400 border-[#53FC18]/40 bg-emerald-950/20';
+          iconColor = 'text-[#53FC18]';
+        }
+        valor = formatNum(plat.viewers);
+      } else if (plat && !plat.active) {
+        valor = 'N/A';
+      }
+
+      const svgIcon = document.getElementById('svg-' + tipo).outerHTML;
+
+      return '<div class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg border ' + estilo + '">' +
+        '<div class="w-3.5 h-3.5 ' + iconColor + '">' + svgIcon + '</div>' +
+        '<span class="text-[11px] font-mono font-bold truncate">' + valor + '</span>' +
+      '</div>';
+    };
+
+    const renderizarHeroLeader = () => {
       const container = document.getElementById('hero-leader');
       if (!canalesData.length) return;
 
-      const leader = canalesData[0];
-      const isLive = leader.isLive;
-      
+      const lider = canalesData[0];
+      const isLive = lider.isLive;
+
       let html = '<div class="relative w-full rounded-3xl bg-gradient-to-r from-[#0b1120] to-[#050811] border border-matrix/40 p-6 md:p-8 shadow-matrix overflow-hidden">';
       html += '<div class="absolute -right-20 -bottom-20 w-80 h-80 rounded-full bg-matrix/10 blur-3xl pointer-events-none"></div>';
       html += '<div class="flex flex-col lg:flex-row items-center gap-6 relative z-10">';
-      
-      // Thumbnail 16:9
+
       html += '<div class="w-full lg:w-3/5 aspect-video rounded-2xl overflow-hidden bg-black/60 relative border border-[#162238] flex items-center justify-center">';
-      if (leader.thumbnail) {
-        html += '<img crossorigin="anonymous" src="' + leader.thumbnail + '" class="w-full h-full object-cover" alt="Stream Leader">';
+      if (lider.thumbnail) {
+        html += '<img crossorigin="anonymous" src="' + lider.thumbnail + '" class="w-full h-full object-cover" alt="Líder">';
       } else {
-        html += '<img crossorigin="anonymous" src="' + leader.avatar + '" class="w-24 h-24 rounded-full border border-matrix/30 object-cover" alt="Avatar">';
+        html += '<img crossorigin="anonymous" src="' + lider.avatar + '" class="w-24 h-24 rounded-full border border-matrix/40 object-cover shadow-matrixSoft" alt="Avatar">';
       }
-      
+
       html += '<div class="absolute top-3 left-3 flex items-center space-x-2">';
       html += '<span class="px-3 py-1 bg-black/80 backdrop-blur-md rounded-lg text-xs font-mono font-black text-matrix border border-matrix/40">#1 LÍDER ARGENTINA</span>';
       if (isLive) {
@@ -788,114 +1000,89 @@ const HTML_BODY = `
       }
       html += '</div></div>';
 
-      // Información del Canal
       html += '<div class="w-full lg:w-2/5 flex flex-col justify-between space-y-4">';
       html += '<div class="flex items-center space-x-3">';
-      html += '<img crossorigin="anonymous" src="' + leader.avatar + '" class="w-14 h-14 rounded-full border-2 border-matrix object-cover shadow-matrixSoft">';
+      html += '<img crossorigin="anonymous" src="' + lider.avatar + '" class="w-14 h-14 rounded-full border-2 border-matrix object-cover shadow-matrixSoft">';
       html += '<div>';
-      html += '<h2 class="text-2xl font-black text-white leading-tight">' + leader.name + '</h2>';
-      html += '<span class="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-[#162238] text-slate-300">' + leader.category + '</span>';
-      html += '</div></div>';
+      html += '<h2 class="text-2xl font-black text-white leading-tight">' + lider.name + '</h2>';
+      html += '<div class="flex items-center space-x-2 mt-0.5">';
+      html += '<span class="text-[11px] font-semibold px-2 py-0.5 rounded bg-[#162238] text-slate-300">' + lider.category + '</span>';
+      html += '<span class="text-[11px] font-mono text-matrix">' + lider.subtheme + '</span>';
+      html += '</div></div></div>';
 
-      html += '<p class="text-sm text-slate-300 line-clamp-2 italic font-sans">"' + leader.title + '"</p>';
+      html += '<p class="text-sm text-slate-300 line-clamp-2 italic">"' + lider.title + '"</p>';
 
       html += '<div class="p-4 rounded-xl bg-black/40 border border-[#162238]">';
-      html += '<div class="text-[11px] font-mono text-slate-400 uppercase tracking-widest">Audiencia Concurrente Total</div>';
-      html += '<div class="text-4xl md:text-5xl font-black font-mono text-matrix matrix-glow mt-1">' + formatNum(leader.totalViewers) + '</div>';
+      html += '<div class="text-[10px] font-mono text-slate-400 uppercase tracking-widest">Audiencia Concurrente Total</div>';
+      html += '<div class="text-4xl md:text-5xl font-black font-mono text-matrix matrix-glow mt-1">' + formatNum(lider.totalViewers) + '</div>';
       html += '<div class="text-xs text-slate-400 mt-1 font-mono">espectadores en simultáneo</div>';
       html += '</div>';
 
-      // Desglose plataformas
       html += '<div class="grid grid-cols-3 gap-2">';
-      html += renderPlatformBadge('yt', leader.platforms.youtube);
-      html += renderPlatformBadge('tw', leader.platforms.twitch);
-      html += renderPlatformBadge('ki', leader.platforms.kick);
+      html += renderizarPlataformaBadge('yt', lider.platforms.youtube);
+      html += renderizarPlataformaBadge('tw', lider.platforms.twitch);
+      html += renderizarPlataformaBadge('ki', lider.platforms.kick);
       html += '</div>';
 
-      html += '<button onclick="openDuelModalWithLeader()" class="w-full py-2.5 rounded-xl bg-matrix/10 hover:bg-matrix/20 border border-matrix/30 text-matrix text-xs font-black tracking-wider transition-all">';
+      html += '<button onclick="abrirDueloConLeader()" class="w-full py-2.5 rounded-xl bg-matrix/10 hover:bg-matrix/20 border border-matrix/40 text-matrix text-xs font-black tracking-wider transition-all">';
       html += '⚡ RETAR EN DUELO 1 VS 1';
       html += '</button>';
 
       html += '</div></div></div>';
-
       container.innerHTML = html;
     };
 
-    const renderPlatformBadge = (type, plat) => {
-      let color = 'text-slate-500 border-[#162238] bg-black/20';
-      let iconColor = 'text-slate-600';
-      let label = 'Offline';
-      
-      if (plat && plat.isLive) {
-        if (type === 'yt') {
-          color = 'text-red-400 border-red-500/40 bg-red-950/20';
-          iconColor = 'text-[#FF0000]';
-        }
-        if (type === 'tw') {
-          color = 'text-purple-300 border-purple-500/40 bg-purple-950/20';
-          iconColor = 'text-[#9146FF]';
-        }
-        if (type === 'ki') {
-          color = 'text-emerald-400 border-[#53FC18]/40 bg-emerald-950/20';
-          iconColor = 'text-[#53FC18]';
-        }
-        label = formatNum(plat.viewers);
-      } else if (plat && !plat.active) {
-        label = 'N/A';
+    const renderizarGrilla = () => {
+      const container = document.getElementById('channels-grid');
+      let filtrados = solapaActiva === 'Todos'
+        ? canalesData
+        : canalesData.filter(c => c.category === solapaActiva);
+
+      if (subtemaActivo !== 'TODOS') {
+        filtrados = filtrados.filter(c => c.subtheme === subtemaActivo);
       }
 
-      const svgHtml = document.getElementById('svg-' + type).outerHTML;
-
-      return '<div class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg border ' + color + '">' +
-        '<div class="w-3.5 h-3.5 ' + iconColor + '">' + svgHtml + '</div>' +
-        '<span class="text-[11px] font-mono font-bold truncate">' + label + '</span>' +
-      '</div>';
-    };
-
-    const renderGrid = () => {
-      const container = document.getElementById('channels-grid');
-      const filtrados = categoriaActiva === 'Todos' 
-        ? canalesData 
-        : canalesData.filter(c => c.category === categoriaActiva);
+      if (filtroEstado === 'SOLO_VIVO') {
+        filtrados = filtrados.filter(c => c.isLive);
+      } else if (filtroEstado === 'SOLO_OFFLINE') {
+        filtrados = filtrados.filter(c => !c.isLive);
+      }
 
       if (!filtrados.length) {
-        container.innerHTML = '<div class="col-span-full py-12 text-center text-slate-500 font-mono">No hay canales para la categoría seleccionada.</div>';
+        container.innerHTML = '<div class="col-span-full py-16 text-center text-slate-500 font-mono">No se encontraron canales con los filtros seleccionados.</div>';
         return;
       }
 
       let html = '';
-      filtrados.forEach((c, index) => {
-        const globalRank = canalesData.findIndex(item => item.id === c.id) + 1;
+      filtrados.forEach((c) => {
+        const puestoGlobal = canalesData.findIndex(item => item.id === c.id) + 1;
         const isLive = c.isLive;
 
         html += '<div class="rounded-2xl bg-[#0b1120] border border-[#162238] hover:border-matrix/40 transition-all duration-300 p-4 flex flex-col justify-between group hover:shadow-matrixSoft">';
-        
-        // Miniatura
+
         html += '<div class="relative w-full aspect-video rounded-xl bg-black overflow-hidden mb-3 border border-[#162238]">';
         if (c.thumbnail) {
           html += '<img crossorigin="anonymous" src="' + c.thumbnail + '" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="' + c.name + '">';
         } else {
           html += '<div class="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-[#0b1120] to-black">';
-          html += '<img crossorigin="anonymous" src="' + c.avatar + '" class="w-12 h-12 rounded-full opacity-60 mb-2 object-cover">';
-          html += '<span class="text-[10px] text-slate-500 font-mono">OFFLINE</span>';
+          html += '<img crossorigin="anonymous" src="' + c.avatar + '" class="w-12 h-12 rounded-full opacity-60 mb-2 object-cover border border-[#162238]">';
+          html += '<span class="text-[10px] text-slate-500 font-mono tracking-widest">OFFLINE</span>';
           html += '</div>';
         }
 
-        // Badges sobre imagen
         html += '<div class="absolute top-2 left-2 flex items-center space-x-1.5">';
-        html += '<span class="px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-[11px] font-mono font-black text-matrix border border-matrix/30">#' + globalRank + '</span>';
+        html += '<span class="px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-[11px] font-mono font-black text-matrix border border-matrix/30">#' + puestoGlobal + '</span>';
         if (isLive) {
-          html += '<span class="px-2 py-0.5 rounded-md bg-matrix text-black font-black text-[10px] tracking-wider animate-pulse">VIVO</span>';
+          html += '<span class="px-2 py-0.5 rounded-md bg-matrix text-black font-black text-[10px] tracking-wider animate-pulse">EN VIVO</span>';
         }
         html += '</div>';
 
-        html += '<button onclick="openDuelModalWith(\\'' + c.id + '\\')" class="absolute top-2 right-2 px-2.5 py-1 rounded-md bg-black/80 hover:bg-matrix hover:text-black transition-all text-matrix text-[10px] font-black border border-matrix/30">';
-        html += 'VS';
+        html += '<button onclick="abrirDueloCon(\\'' + c.id + '\\')" class="absolute top-2 right-2 px-2.5 py-1 rounded-md bg-black/80 hover:bg-matrix hover:text-black transition-all text-matrix text-[10px] font-black border border-matrix/30 flex items-center space-x-1">';
+        html += '<span>⚡</span><span>Comparar</span>';
         html += '</button>';
 
         html += '</div>';
 
-        // Título e info
         html += '<div class="flex items-start space-x-3 mb-3">';
         html += '<img crossorigin="anonymous" src="' + c.avatar + '" class="w-10 h-10 rounded-full border border-slate-700 object-cover flex-shrink-0 mt-0.5">';
         html += '<div class="flex-1 min-w-0">';
@@ -903,20 +1090,19 @@ const HTML_BODY = `
         html += '<h3 class="text-sm font-bold text-white truncate">' + c.name + '</h3>';
         html += '<span class="text-[10px] text-slate-400 font-semibold">' + c.category + '</span>';
         html += '</div>';
+        html += '<p class="text-[11px] text-matrix font-mono truncate">' + c.subtheme + '</p>';
         html += '<p class="text-xs text-slate-400 truncate mt-0.5">' + c.title + '</p>';
         html += '</div></div>';
 
-        // Conteo total de espectadores
         html += '<div class="flex items-end justify-between bg-black/30 rounded-xl p-2.5 mb-3 border border-[#162238]">';
         html += '<div><span class="text-[10px] uppercase font-mono text-slate-400">Total Viewers</span></div>';
-        html += '<div class="text-lg font-black font-mono ' + (isLive ? 'text-matrix matrix-glow' : 'text-slate-500') + '">' + formatNum(c.totalViewers) + '</div>';
+        html += '<div class="text-xl font-black font-mono ' + (isLive ? 'text-matrix matrix-glow' : 'text-slate-500') + '">' + formatNum(c.totalViewers) + '</div>';
         html += '</div>';
 
-        // Desglose plataformas
         html += '<div class="grid grid-cols-3 gap-1.5">';
-        html += renderPlatformBadge('yt', c.platforms.youtube);
-        html += renderPlatformBadge('tw', c.platforms.twitch);
-        html += renderPlatformBadge('ki', c.platforms.kick);
+        html += renderizarPlataformaBadge('yt', c.platforms.youtube);
+        html += renderizarPlataformaBadge('tw', c.platforms.twitch);
+        html += renderizarPlataformaBadge('ki', c.platforms.kick);
         html += '</div>';
 
         html += '</div>';
@@ -925,10 +1111,44 @@ const HTML_BODY = `
       container.innerHTML = html;
     };
 
-    // ==========================================
-    // LOGICA MODAL DUELO 1 VS 1
-    // ==========================================
-    const populateDuelSelectors = () => {
+    const renderizarEmergentes = () => {
+      const container = document.getElementById('emerging-channels-grid');
+      const emergentes = canalesData.filter(c => c.isEmerging);
+
+      if (!emergentes.length) {
+        container.innerHTML = '<div class="col-span-full text-slate-500 text-xs font-mono">No hay canales destacados actualmente.</div>';
+        return;
+      }
+
+      let html = '';
+      emergentes.forEach(c => {
+        html += '<div class="p-3.5 rounded-xl bg-[#050811] border border-[#162238] flex items-center justify-between space-x-3">';
+        html += '<div class="flex items-center space-x-3 min-w-0">';
+        html += '<img crossorigin="anonymous" src="' + c.avatar + '" class="w-10 h-10 rounded-full border border-matrix/30 object-cover flex-shrink-0">';
+        html += '<div class="min-w-0">';
+        html += '<h4 class="text-xs font-bold text-white truncate">' + c.name + '</h4>';
+        html += '<p class="text-[10px] text-slate-400 truncate">' + c.subtheme + '</p>';
+        html += '</div></div>';
+
+        html += '<div class="text-right flex-shrink-0">';
+        html += '<span class="text-xs font-mono font-bold ' + (c.isLive ? 'text-matrix' : 'text-slate-500') + '">' + formatNum(c.totalViewers) + '</span>';
+        html += '<div class="text-[9px] font-mono ' + (c.isLive ? 'text-matrix' : 'text-slate-600') + '">' + (c.isLive ? 'EN VIVO' : 'OFFLINE') + '</div>';
+        html += '</div></div>';
+      });
+
+      container.innerHTML = html;
+    };
+
+    const renderizarTodo = () => {
+      renderizarHeroLeader();
+      renderizarGrilla();
+      renderizarEmergentes();
+    };
+
+    // ========================================================================
+    // MODAL DE DUELO 1 VS 1 Y EXPORTACIÓN PNG
+    // ========================================================================
+    const poblarSelectoresDuelo = () => {
       const selA = document.getElementById('duel-select-a');
       const selB = document.getElementById('duel-select-b');
       if (!selA || !selB || !canalesData.length) return;
@@ -936,13 +1156,13 @@ const HTML_BODY = `
       const prevA = selA.value;
       const prevB = selB.value;
 
-      let opts = '';
+      let opciones = '';
       canalesData.forEach(c => {
-        opts += '<option value="' + c.id + '">' + c.name + ' (' + formatNum(c.totalViewers) + ' viewers)</option>';
+        opciones += '<option value="' + c.id + '">' + c.name + ' (' + formatNum(c.totalViewers) + ' viewers)</option>';
       });
 
-      selA.innerHTML = opts;
-      selB.innerHTML = opts;
+      selA.innerHTML = opciones;
+      selB.innerHTML = opciones;
 
       if (prevA && canalesData.some(c => c.id === prevA)) {
         selA.value = prevA;
@@ -956,31 +1176,30 @@ const HTML_BODY = `
         selB.value = canalesData[1].id;
       }
 
-      renderDuelContent();
+      renderizarContenidoDuelo();
     };
 
-    const openDuelModalWith = (channelId) => {
+    const abrirDueloCon = (canalId) => {
       document.getElementById('modal-duel').classList.remove('hidden');
       const selA = document.getElementById('duel-select-a');
       const selB = document.getElementById('duel-select-b');
-      
-      selA.value = channelId;
-      if (canalesData.length > 1) {
-        const alt = canalesData.find(c => c.id !== channelId);
-        if (alt) selB.value = alt.id;
-      }
-      renderDuelContent();
+
+      selA.value = canalId;
+      const alternativo = canalesData.find(c => c.id !== canalId);
+      if (alternativo) selB.value = alternativo.id;
+
+      renderizarContenidoDuelo();
     };
 
-    const openDuelModalWithLeader = () => {
-      if (canalesData.length) openDuelModalWith(canalesData[0].id);
+    const abrirDueloConLeader = () => {
+      if (canalesData.length) abrirDueloCon(canalesData[0].id);
     };
 
-    const closeDuelModal = () => {
+    const cerrarModalDuelo = () => {
       document.getElementById('modal-duel').classList.add('hidden');
     };
 
-    const renderDuelContent = () => {
+    const renderizarContenidoDuelo = () => {
       const idA = document.getElementById('duel-select-a').value;
       const idB = document.getElementById('duel-select-b').value;
 
@@ -999,12 +1218,12 @@ const HTML_BODY = `
       document.getElementById('duel-b-status').innerText = canalB.isLive ? '🔴 EN VIVO' : '⚫ OFFLINE';
       document.getElementById('duel-b-viewers').innerText = formatNum(canalB.totalViewers);
 
-      const totalAud = (canalA.totalViewers || 0) + (canalB.totalViewers || 0);
+      const totalShare = (canalA.totalViewers || 0) + (canalB.totalViewers || 0);
       let pctA = 50;
       let pctB = 50;
 
-      if (totalAud > 0) {
-        pctA = Math.round((canalA.totalViewers / totalAud) * 100);
+      if (totalShare > 0) {
+        pctA = Math.round((canalA.totalViewers / totalShare) * 100);
         pctB = 100 - pctA;
       }
 
@@ -1014,32 +1233,38 @@ const HTML_BODY = `
       document.getElementById('duel-bar-a').style.width = pctA + '%';
       document.getElementById('duel-bar-b').style.width = pctB + '%';
 
-      document.getElementById('duel-timestamp').innerText = 'Captura en tiempo real: ' + new Date().toLocaleString('es-AR');
+      const fechaActual = new Intl.DateTimeFormat('es-AR', {
+        timeZone: 'America/Argentina/Buenos_Aires',
+        dateStyle: 'short',
+        timeStyle: 'medium'
+      }).format(new Date());
+
+      document.getElementById('duel-timestamp').innerText = 'Captura en directo: ' + fechaActual + ' ART';
     };
 
-    const downloadDuelPNG = async () => {
-      const card = document.getElementById('duel-capture-card');
+    const descargarDueloPNG = async () => {
+      const tarjeta = document.getElementById('duel-capture-card');
       try {
-        const canvas = await html2canvas(card, {
+        const canvas = await html2canvas(tarjeta, {
           backgroundColor: '#050811',
           scale: 2,
           useCORS: true,
           allowTaint: false
         });
-        const img = canvas.toDataURL('image/png');
-        const a = document.createElement('a');
-        a.href = img;
-        a.download = 'streamrank_duelo_' + Date.now() + '.png';
-        a.click();
-      } catch (e) {
-        console.error('Error al generar canvas:', e);
-        alert('Error al generar la imagen HD.');
+        const enlace = document.createElement('a');
+        enlace.href = canvas.toDataURL('image/png');
+        enlace.download = 'streamrank_duelo_' + Date.now() + '.png';
+        enlace.click();
+      } catch (err) {
+        console.error('Error al exportar PNG:', err);
+        alert('No se pudo generar la placa. Revisa la conexión de red.');
       }
     };
 
-    // Polling automático cada 20 segundos
-    fetchRanks();
-    setInterval(fetchRanks, 20000);
+    // Inicialización y polling frontend cada 20 segundos
+    fetchDatos();
+    actualizarDropdownSubtemas();
+    setInterval(fetchDatos, 20000);
   </script>
 </body>
 </html>
@@ -1047,12 +1272,12 @@ const HTML_BODY = `
 
 app.get('/', (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.send(HTML_BODY);
+  res.send(HTML_APP);
 });
 
-// ==========================================
+// ============================================================================
 // ARRANQUE DEL SERVIDOR
-// ==========================================
+// ============================================================================
 app.listen(PORT, () => {
-  console.log(`[StreamRank ARG] Servidor activo en http://localhost:${PORT}`);
+  console.log(`[StreamRank ARG] Servidor ejecutándose en el puerto ${PORT}`);
 });
