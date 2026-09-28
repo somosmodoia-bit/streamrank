@@ -1,0 +1,162 @@
+[
+  {
+    "id": "olga",
+    "name": "OLGA",
+    "avatar": "https://unavatar.io/youtube/olgaenvivo_",
+    "channels": {
+      "twitch": "olgaenvivo",
+      "kick": null,
+      "youtube": "olgaenvivo_"
+    }
+  },
+  {
+    "id": "luzutv",
+    "name": "LUZU TV",
+    "avatar": "https://unavatar.io/youtube/luzutv",
+    "channels": {
+      "twitch": "luzutv",
+      "kick": null,
+      "youtube": "luzutv"
+    }
+  },
+  {
+    "id": "sincodificar",
+    "name": "Sin Codificar / Posibl",
+    "avatar": "https://unavatar.io/youtube/posiblmedia",
+    "channels": {
+      "twitch": "sincodificaroficial",
+      "kick": null,
+      "youtube": "posiblmedia"
+    }
+  },
+  {
+    "id": "lacasastreaming",
+    "name": "La Casa Streaming",
+    "avatar": "https://unavatar.io/youtube/lacasastreaming",
+    "channels": {
+      "twitch": "lacasastreaming",
+      "kick": null,
+      "youtube": "lacasastreaming"
+    }
+  },
+  {
+    "id": "blender",
+    "name": "Esto es Blender",
+    "avatar": "https://unavatar.io/youtube/estoesblender",
+    "channels": {
+      "twitch": "estoesblender",
+      "kick": null,
+      "youtube": "estoesblender"
+    }
+  },
+  {
+    "id": "azz",
+    "name": "AZZ / Flavio Azzaro",
+    "avatar": "https://unavatar.io/youtube/FlavioAzzaroOK",
+    "channels": {
+      "twitch": null,
+      "kick": null,
+      "youtube": "FlavioAzzaroOK"
+    }
+  },
+  {
+    "id": "bondilive",
+    "name": "Bondi Live",
+    "avatar": "https://unavatar.io/youtube/bondi_liveok",
+    "channels": {
+      "twitch": null,
+      "kick": null,
+      "youtube": "bondi_liveok"
+    }
+  },
+  {
+    "id": "carajostream",
+    "name": "Carajo Stream",
+    "avatar": "https://unavatar.io/youtube/carajostream",
+    "channels": {
+      "twitch": null,
+      "kick": null,
+      "youtube": "carajostream"
+    }
+  },
+  {
+    "id": "gelatina",
+    "name": "Gelatina",
+    "avatar": "https://unavatar.io/youtube/somosgelatina",
+    "channels": {
+      "twitch": "somosgelatina",
+      "kick": null,
+      "youtube": "somosgelatina"
+    }
+  },
+  {
+    "id": "dsports",
+    "name": "DSPORTS Radio / DirecTV",
+    "avatar": "https://unavatar.io/youtube/dsportsradio",
+    "channels": {
+      "twitch": "dsportsradio",
+      "kick": null,
+      "youtube": "dsportsradio"
+    }
+  },
+  {
+    "id": "vorterix",
+    "name": "Vorterix",
+    "avatar": "https://unavatar.io/youtube/VorterixOficial",
+    "channels": {
+      "twitch": "vorterixoficial",
+      "kick": null,
+      "youtube": "VorterixOficial"
+    }
+  },
+  {
+    "id": "spreen",
+    "name": "Spreen",
+    "avatar": "https://unavatar.io/twitch/spreen",
+    "channels": {
+      "twitch": "spreen",
+      "kick": "spreen",
+      "youtube": "Spreen"
+    }
+  },
+  {
+    "id": "davooxeneize",
+    "name": "Davoo Xeneize",
+    "avatar": "https://unavatar.io/twitch/davooxeneize",
+    "channels": {
+      "twitch": "davooxeneize",
+      "kick": "davooxeneize",
+      "youtube": null
+    }
+  },
+  {
+    "id": "lacobraa",
+    "name": "La Cobra",
+    "avatar": "https://unavatar.io/twitch/lacobraaa",
+    "channels": {
+      "twitch": "lacobraaa",
+      "kick": "lacobraa",
+      "youtube": null
+    }
+  },
+  {
+    "id": "luquitasrodriguez",
+    "name": "Luquitas Rodriguez / Paren la Mano",
+    "avatar": "https://unavatar.io/twitch/luquitasrodriguez",
+    "channels": {
+      "twitch": "luquitasrodriguez",
+      "kick": null,
+      "youtube": "ParenlaMano"
+    }
+  },
+  {
+    "id": "coscu",
+    "name": "Coscu",
+    "avatar": "https://unavatar.io/kick/coscu",
+    "channels": {
+      "twitch": "coscu",
+      "kick": "coscu",
+      "youtube": null
+    }
+  }
+]
