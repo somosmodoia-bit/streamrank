@@ -185,7 +185,7 @@ app.get('/api/analytics/export', (req, res) => {
   res.send(csvRows.join('\n'));
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log('StreamRank online en puerto ' + PORT);
   runLoop();
   setInterval(runLoop, 20000);
