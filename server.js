@@ -47,17 +47,17 @@ async function fetchTwitch(login) {
         'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ query, variables: { login: login.toLowerCase() } }),
+      body: JSON.stringify({ query: query, variables: { login: login.toLowerCase() } }),
       signal: AbortSignal.timeout(2500)
     });
     if (!res.ok) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
-    const { data } = await res.json();
-    const stream = data?.user?.stream;
+    const json = await res.json();
+    const stream = json.data && json.data.user ? json.data.user.stream : null;
     return stream ? {
       isLive: true,
       viewers: stream.viewersCount || 0,
       title: stream.title || 'Twitch Live',
-      thumbnail: `https://static-cdn.jtvnw.net/previews-ttv/live_user_${login.toLowerCase()}-640x360.jpg`
+      thumbnail: 'https://static-cdn.jtvnw.net/previews-ttv/live_user_' + login.toLowerCase() + '-640x360.jpg'
     } : { isLive: false, viewers: 0, title: '', thumbnail: '' };
   } catch {
     return { isLive: false, viewers: 0, title: '', thumbnail: '' };
@@ -67,18 +67,18 @@ async function fetchTwitch(login) {
 async function fetchKick(slug) {
   if (!slug) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
   try {
-    const res = await fetch(`https://kick.com/api/v2/channels/${slug.toLowerCase()}`, {
+    const res = await fetch('https://kick.com/api/v2/channels/' + slug.toLowerCase(), {
       headers: { 'User-Agent': 'Mozilla/5.0' },
       signal: AbortSignal.timeout(2500)
     });
     if (!res.ok) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
     const data = await res.json();
-    const s = data?.livestream;
+    const s = data && data.livestream ? data.livestream : null;
     return (s && s.is_live) ? {
       isLive: true,
       viewers: s.viewer_count || 0,
       title: s.session_title || 'Kick Live',
-      thumbnail: s.thumbnail?.url || ''
+      thumbnail: (s.thumbnail && s.thumbnail.url) ? s.thumbnail.url : ''
     } : { isLive: false, viewers: 0, title: '', thumbnail: '' };
   } catch {
     return { isLive: false, viewers: 0, title: '', thumbnail: '' };
@@ -89,7 +89,7 @@ async function fetchYouTube(handle) {
   if (!handle) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
   try {
     const clean = handle.replace('@', '');
-    const res = await fetch(`https://www.youtube.com/@${clean}/live`, {
+    const res = await fetch('https://www.youtube.com/@' + clean + '/live', {
       headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
       signal: AbortSignal.timeout(2500)
     });
@@ -111,7 +111,7 @@ async function fetchYouTube(handle) {
     let thumbnail = '';
     const matchId = html.match(/"videoId":"([^"]+)"/);
     if (matchId && matchId[1]) {
-      thumbnail = `https://i.ytimg.com/vi/${matchId[1]}/hqdefault.jpg`;
+      thumbnail = 'https://i.ytimg.com/vi/' + matchId[1] + '/hqdefault.jpg';
     }
 
     let title = 'Transmisión en Vivo';
@@ -120,7 +120,7 @@ async function fetchYouTube(handle) {
       title = matchTitle[1].replace(' - YouTube', '').trim();
     }
 
-    return { isLive: true, viewers, title, thumbnail };
+    return { isLive: true, viewers: viewers, title: title, thumbnail: thumbnail };
   } catch {
     return { isLive: false, viewers: 0, title: '', thumbnail: '' };
   }
@@ -162,7 +162,7 @@ async function runLoop() {
     }
 
     latestRanks = list.sort((a, b) => (b.isLive - a.isLive) || (b.totalViewers - a.totalViewers));
-    console.log(`[StreamRank] Telemetria OK | En vivo: ${latestRanks.filter(x => x.isLive).length}`);
+    console.log('[StreamRank] Telemetria OK | En vivo: ' + latestRanks.filter(x => x.isLive).length);
   } catch (err) {
     console.error('[StreamRank] Error:', err.message);
   } finally {
@@ -177,7 +177,8 @@ app.get('/api/ranks', (req, res) => {
 app.get('/api/analytics/export', (req, res) => {
   const csvRows = ['Canal,Categoria,Espectadores,En_Vivo,Twitch,Kick,YouTube,Timestamp'];
   latestRanks.forEach(r => {
-    csvRows.push(`"\({r.name}","\){r.category}",\({r.totalViewers},\){r.isLive},\({r.platforms.twitch.viewers},\){r.platforms.kick.viewers},\({r.platforms.youtube.viewers},"\){new Date().toISOString()}"`);
+    const row = '"' + r.name + '","' + r.category + '",' + r.totalViewers + ',' + r.isLive + ',' + r.platforms.twitch.viewers + ',' + r.platforms.kick.viewers + ',' + r.platforms.youtube.viewers + ',"' + new Date().toISOString() + '"';
+    csvRows.push(row);
   });
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename=StreamRank_Auditoria.csv');
@@ -185,7 +186,7 @@ app.get('/api/analytics/export', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`StreamRank online en puerto ${PORT}`);
+  console.log('StreamRank online en puerto ' + PORT);
   runLoop();
   setInterval(runLoop, 20000);
 });
