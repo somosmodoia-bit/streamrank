@@ -13,13 +13,11 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 10000;
 
-// Carga segura de canales con fallback de emergencia
 let channels = [];
 try {
   const raw = fs.readFileSync(path.join(__dirname, 'channels.json'), 'utf-8');
   channels = JSON.parse(raw);
 } catch (e) {
-  console.error('[StreamRank] Error leyendo channels.json:', e.message);
   channels = [
     { id: 'luzutv', name: 'LUZU TV', category: 'entretenimiento', avatar: 'https://unavatar.io/youtube/LuzuTV', channels: { youtube: 'LuzuTV', twitch: 'luzutv', kick: '' } },
     { id: 'olga', name: 'OLGA', category: 'entretenimiento', avatar: 'https://unavatar.io/youtube/olgaenvivo', channels: { youtube: 'olgaenvivo', twitch: 'olgaenvivo', kick: '' } },
@@ -43,20 +41,9 @@ let latestRanks = channels.map(c => ({
   }
 }));
 
-// Servir archivos estáticos de la carpeta public
-app.use(express.static(path.join(__dirname, 'public')));
+app.get('/health', (req, res) => res.status(200).send('OK'));
+app.get('/api/ranks', (req, res) => res.json({ status: 'ok', data: latestRanks }));
 
-// Ruta de healthcheck para el balanceador de Render
-app.get('/health', (req, res) => {
-  res.status(200).send('OK');
-});
-
-// Endpoint de telemetría en tiempo real
-app.get('/api/ranks', (req, res) => {
-  res.json({ status: 'ok', data: latestRanks });
-});
-
-// Endpoint de exportación analítica para agencias (CSV)
 app.get('/api/analytics/export', (req, res) => {
   const csvRows = ['Canal,Categoria,Espectadores,En_Vivo,Twitch,Kick,YouTube,Timestamp'];
   latestRanks.forEach(r => {
@@ -68,20 +55,21 @@ app.get('/api/analytics/export', (req, res) => {
   res.send(csvRows.join('\n'));
 });
 
-// Fallback universal: garantiza responder siempre con index.html para evitar el 502
-app.get('*', (req, res) => {
-  const indexPath = path.join(__dirname, 'public', 'index.html');
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.send('<!DOCTYPE html><html><body style="background:#080b11;color:#fff;font-family:sans-serif;padding:2rem;"><h2>StreamRank ARG en línea</h2><p>El backend está operativo. Verificando interfaz pública...</p></body></html>');
-  }
+// Frontend servido en Base64 para que NUNCA se rompa el chat ni dependa de archivos externos
+const clientHTML = Buffer.from(
+  'PCFET0NUWVBFIGh0bWw+PGh0bWwgbGFuZz0iZXMiPjxoZWFkPjxtZXRhIGNoYXJzZXQ9IlVURi04Ij48bWV0YSBuYW1lPSJ2aWV3cG9ydCIgY29udGVudD0id2lkdGg9ZGV2aWNlLXdpZHRoLCBpbml0aWFsLXNjYWxlPTEuMCI+PHRpdGxlPlN0cmVhbVJhbmsgQXJnZW50aW5hPC90aXRsZT48c2NyaXB0IHNyYz0iaHR0cHM6Ly9jZG4udGFpbHdpbmRjc3MuY29tIj48L3NjcmlwdD48L2hlYWQ+PGJvZHkgY2xhc3M9ImJnLXNsYXRlLTk1MCB0ZXh0LXNsYXRlLTEwMCBtaW4taC1zY3JlZW4gcC00IHNtOnAtNiBmb250LXNhbnMiPjxkaXYgY2xhc3M9Im1heC13LTV4bCBteC1hdXRvIHNwYWNlLXktNiI+PGhlYWRlciBjbGFzcz0iZmxleCBpdGVtcy1jZW50ZXIganVzdGlmeS1iZXR3ZWVuIGJvcmRlci1iIGJvcmRlci1zbGF0ZS04MDAgcGItNCI+PGRpdiBjbGFzcz0iZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTMiPjxzcGFuIGNsYXNzPSJ3LTMgaC0zIHJvdW5kZWQtZnVsbCBiZy1lbWVyYWxkLTUwMCBhbmltYXRlLXB1bHNlIj48L3NwYW4+PGgxIGNsYXNzPSJ0ZXh0LXhsIGZvbnQtYmxhY2siPlN0cmVhbVJhbmsgPHNwYW4gY2xhc3M9InRleHQteHMgYmctaW5kaWdvLTk1MCB0ZXh0LWluZGlnby00MDAgcHgtMiBweS0wLjUgcm91bmRlZCBib3JkZXIgYm9yZGVyLWluZGlnby04MDAiPkFSRzwvc3Bhbj48L2gxPjwvZGl2PjxkaXYgaWQ9InN0YXR1cyIgY2xhc3M9InRleHQteHMgdGV4dC1lbWVyYWxkLTQwMCBmb250LXNlbWlib2xkIGJnLXNsYXRlLTkwMCBib3JkZXIgYm9yZGVyLXNsYXRlLTgwMCBweC0zIHB5LTEuNSByb3VuZGVkLWZ1bGwiPlNpbmNyb25pemFuZG8uLi48L2Rpdj48L2hlYWRlcj48ZGl2IGNsYXNzPSJwLTQgcm91bmRlZC14bCBib3JkZXIgYm9yZGVyLWluZGlnby05MDAvNDAgYmctc2xhdGUtOTAwLzQwIHRleHQteHMgdGV4dC1zbGF0ZS0zMDAiPjxwIGNsYXNzPSJmb250LWJvbGQgdGV4dC13aGl0ZSBtYi0xIj5UZWxlbWV0cmlhIERpcmVjdGEgY2FkYSAyMCBzZWd1bmRvczwvcD48cCBjbGFzcz0idGV4dC1zbGF0ZS00MDAiPkRhdG9zIGF1ZGl0YWRvcyBlbiB0aWVtcG8gcmVhbCBkZXNkZSBUd2l0Y2gsIEtpY2sgeSBZb3VUdWJlIHNpbiBlc3RpbWFjaW9uZXMgaW50ZXJtZWRpYXMuPC9wPjwvZGl2PjxkaXYgaWQ9ImdyaWQiIGNsYXNzPSJncmlkIGdyaWQtY29scy0xIHNtOmdyaWQtY29scy0yIG1kOmdyaWQtY29scy0zIGdhcC00Ij48ZGl2IGNsYXNzPSJ0ZXh0LXNsYXRlLTUwMCB0ZXh0LXhzIHB5LTgiPkNhcmdhbmRvIGNhbmFsZXMgZW4gdml2by4uLjwvZGl2PjwvZGl2PjwvZGl2PjxzY3JpcHQ+YXN5bmMgZnVuY3Rpb24gbG9hZERhdGEoKXt0cnl7Y29uc3QgcmVzPWF3YWl0IGZldGNoKCcvYXBpL3JhbmtzJyk7Y29uc3QganNvbj1hd2FpdCByZXMuanNvbigpO2NvbnN0IGNoYW5uZWxzPWpzb24uZGF0YXx8W107Y29uc3QgbGl2ZT1jaGFubmVscy5maWx0ZXIoYz0+Yy5pc0xpdmUpLmxlbmd0aDtkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnc3RhdHVzJykudGV4dENvbnRlbnQ9bGl2ZSsnIGVuIHZpdm8nO2NvbnN0IGNvbnRhaW5lcj1kb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnZ3JpZCcpO2NvbnRhaW5lci5pbm5lckhUTUw9Jyc7Y2hhbm5lbHMuZm9yRWFjaCgoYyxpKTw9Pntjb25zdCBjYXJkPWRvY3VtZW50LmNyZWF0ZUVsZW1lbnQoJ2RpdicpO2NhcmQuY2xhc3NOYW1lPSdwLTQgcm91bmRlZC14bCBib3JkZXIgJysoYy5pc0xpdmU/J2JvcmRlci1zbGF0ZS04MDAgYmctc2xhdGUtOTAwLzYwJzonYm9yZGVyLXNsYXRlLTkwMCBiZy1zbGF0ZS05NTAgb3BhY2l0eS00MCcpKycgZmxleCBnYXAtMyBpdGVtcy1jZW50ZXInO2NvbnN0IGltZz1kb2N1bWVudC5jcmVhdGVFbGVtZW50KCdpbWcnKTtpbWcuc3JjPWMuYXZhdGFyO2ltZy5jbGFzc05hbWU9J3ctMTIgaC0xMiByb3VuZGVkLWZ1bGwgb2JqZWN0LWNvdmVyIGJvcmRlciBib3JkZXItc2xhdGUtNzAwIGJnLXNsYXRlLTgwMCc7Y29uc3QgaW5mbz1kb2N1bWVudC5jcmVhdGVFbGVtZW50KCdkaXYnKTtpbmZvLmNsYXNzTmFtZT0nbWluLXctMCBmbGV4LTEnO2NvbnN0IHJvdz1kb2N1bWVudC5jcmVhdGVFbGVtZW50KCdkaXYnKTtyb3cuY2xhc3NOYW1lPSdmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWJldHdlZW4nO2NvbnN0IG5hbWU9ZG9jdW1lbnQuY3JlYXRlRWxlbWVudCgnaDQnKTtuYW1lLmNsYXNzTmFtZT0nZm9udC1ib2xkIHRleHQtc20gdGV4dC13aGl0ZSB0cnVuY2F0ZSc7bmFtZS50ZXh0Q29udGVudD1jLm5hbWU7Y29uc3QgcmFuaz1kb2N1bWVudC5jcmVhdGVFbGVtZW50KCdzcGFuJyk7cmFuay5jbGFzc05hbWU9J3RleHQteHMgZm9udC1ibGFjayAnKyhpPT09MCYmYy5pc0xpdmU/J3RleHQtYW1iZXItNDAwJzondGV4dC1zbGF0ZS00MDAnKTtyYW5rLnRleHRDb250ZW50PScjJysoaSsxKTtyb3cuYXBwZW5kQ2hpbGQobmFtZSk7cm93LmFwcGVuZENoaWxkKHJhbmspO2NvbnN0IHZpZXdlcnM9ZG9jdW1lbnQuY3JlYXRlRWxlbWVudCgncCcpO3ZpZXdlcnMuY2xhc3NOYW1lPSd0ZXh0LXhzIGZvbnQtc2VtaWJvbGQgJysoYy5pc0xpdmU/J3RleHQtaW5kaWdvLTQwMCc6J3RleHQtc2xhdGUtNTAwJyk7dmlld2Vycy50ZXh0Q29udGVudD1jLmlzTGl2ZT9uZXcgSW50bC5OdW1iZXJGb3JtYXQoJ2VzLUFSJykuZm9ybWF0KGMudG90YWxWaWV3ZXJzKSsnIHZpZXdlcnMnOidPZmZsaW5lJztpbmZvLmFwcGVuZENoaWxkKHJvdyk7aW5mby5hcHBlbmRDaGlsZCh2aWV3ZXJzKTtjYXJkLmFwcGVuZENoaWxkKGltZyk7Y2FyZC5hcHBlbmRDaGlsZChpbmZvKTtjb250YWluZXIuYXBwZW5kQ2hpbGQoY2FyZCk7fSk7fWNhdGNoKGUpe2NvbnNvbGUuZXJyb3IoZSk7fX1sb2FkRGF0YSgpO3NldEludGVydmFsKGxvYWREYXRhLDIwMDAwKTs8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==',
+  'base64'
+).toString('utf-8');
+
+app.get('/', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(clientHTML);
 });
 
 // Twitch GQL
 async function fetchTwitch(login) {
   if (!login) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
-  const query = 'query GetStreamInfo($login: String!) { user(login: $login) { stream { viewersCount title } } }';
+  const query = 'query GetStreamInfo(\(login: String!) { user(login:\)login) { stream { viewersCount title } } }';
   try {
     const res = await fetch('https://gql.twitch.tv/gql', {
       method: 'POST',
@@ -128,7 +116,7 @@ async function fetchKick(slug) {
   }
 }
 
-// YouTube con timeout estricto anti-cuelgues
+// YouTube
 async function fetchYouTube(handle) {
   if (!handle) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
   try {
@@ -159,7 +147,7 @@ async function fetchYouTube(handle) {
     }
 
     let title = 'Transmisión en Vivo';
-    const matchTitle = html.match(/<title>(.*?)<\/title>/);
+    const matchTitle = html.match(/(.*?)<\/title>/);
     if (matchTitle && matchTitle[1]) {
       title = matchTitle[1].replace(' - YouTube', '').trim();
     }
@@ -170,7 +158,7 @@ async function fetchYouTube(handle) {
   }
 }
 
-// Bucle en segundo plano secuencial y liviano
+// Bucle en segundo plano
 let isPolling = false;
 async function runLoop() {
   if (isPolling) return;
@@ -205,7 +193,6 @@ async function runLoop() {
         }
       });
 
-      // Pausa secuencial de 150ms para evitar sobrecarga en Render
       await new Promise(r => setTimeout(r, 150));
     }
 
@@ -218,7 +205,6 @@ async function runLoop() {
   }
 }
 
-// Escucha en 0.0.0.0
 app.listen(PORT, '0.0.0.0', () => {
   console.log('StreamRank online en puerto ' + PORT);
   setTimeout(runLoop, 4000);
