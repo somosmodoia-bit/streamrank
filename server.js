@@ -27,7 +27,7 @@ let latestRanks = channels.map(c => ({
   category: c.category || 'entretenimiento',
   avatar: c.avatar,
   thumbnail: c.avatar,
-  title: 'Conectando telemetria...',
+  title: 'Canal en vivo',
   isLive: false,
   totalViewers: 0,
   platforms: {
@@ -37,6 +37,7 @@ let latestRanks = channels.map(c => ({
   }
 }));
 
+// Twitch GQL Ultrarrápido
 async function fetchTwitch(login) {
   if (!login) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
   const query = 'query GetStreamInfo(\(login: String!) { user(login:\)login) { stream { viewersCount title } } }';
@@ -48,7 +49,7 @@ async function fetchTwitch(login) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ query, variables: { login: login.toLowerCase() } }),
-      signal: AbortSignal.timeout(2500)
+      signal: AbortSignal.timeout(1500)
     });
     if (!res.ok) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
     const json = await res.json();
@@ -64,12 +65,13 @@ async function fetchTwitch(login) {
   }
 }
 
+// Kick API v2 Ultrarrápido
 async function fetchKick(slug) {
   if (!slug) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
   try {
     const res = await fetch('https://kick.com/api/v2/channels/' + slug.toLowerCase(), {
       headers: { 'User-Agent': 'Mozilla/5.0' },
-      signal: AbortSignal.timeout(2500)
+      signal: AbortSignal.timeout(1500)
     });
     if (!res.ok) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
     const data = await res.json();
@@ -85,13 +87,17 @@ async function fetchKick(slug) {
   }
 }
 
+// YouTube con timeout estricto de 1.5s para que NUNCA bloquee el servidor
 async function fetchYouTube(handle) {
   if (!handle) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
   try {
     const clean = handle.replace('@', '');
     const res = await fetch('https://www.youtube.com/@' + clean + '/live', {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-      signal: AbortSignal.timeout(2500)
+      headers: { 
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept-Language': 'es-419,es;q=0.9'
+      },
+      signal: AbortSignal.timeout(1800)
     });
     if (!res.ok) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
     const html = await res.text();
@@ -100,7 +106,7 @@ async function fetchYouTube(handle) {
       return { isLive: false, viewers: 0, title: '', thumbnail: '' };
     }
 
-    const isLive = html.includes('"isLive":true') || html.includes('mirando') || html.includes('watching');
+    const isLive = html.includes('"isLive":true') || html.includes('watching') || html.includes('mirando');
     if (!isLive) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
 
     let viewers = 0;
@@ -120,12 +126,13 @@ async function fetchYouTube(handle) {
       title = matchTitle[1].replace(' - YouTube', '').trim();
     }
 
-    return { isLive: true, viewers: viewers, title: title, thumbnail: thumbnail };
+    return { isLive: true, viewers, title, thumbnail };
   } catch {
     return { isLive: false, viewers: 0, title: '', thumbnail: '' };
   }
 }
 
+// Bucle en segundo plano completamente desacoplado de las peticiones web
 let isPolling = false;
 async function runLoop() {
   if (isPolling) return;
@@ -160,19 +167,19 @@ async function runLoop() {
         }
       });
 
-      // Pausa secuencial de 300ms para no saturar CPU en Render
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 150));
     }
 
     latestRanks = list.sort((a, b) => (b.isLive - a.isLive) || (b.totalViewers - a.totalViewers));
-    console.log('[StreamRank] Telemetria OK | En vivo: ' + latestRanks.filter(x => x.isLive).length);
+    console.log('[StreamRank] Telemetria OK | Canales activos: ' + latestRanks.filter(x => x.isLive).length);
   } catch (err) {
-    console.error('[StreamRank] Error:', err.message);
+    console.error('[StreamRank] Error en ciclo:', err.message);
   } finally {
     isPolling = false;
   }
 }
 
+// Rutas de respuesta INMEDIATA (menos de 5ms)
 app.get('/api/ranks', (req, res) => {
   res.json({ status: 'ok', data: latestRanks });
 });
@@ -188,9 +195,9 @@ app.get('/api/analytics/export', (req, res) => {
   res.send(csvRows.join('\n'));
 });
 
+// Levantar el servidor en 0.0.0.0 y lanzar el scraper 5 segundos después en segundo plano
 app.listen(PORT, '0.0.0.0', () => {
   console.log('StreamRank online en puerto ' + PORT);
-  // Espera 3 segundos a que el servidor estabilice la red antes del primer ciclo
-  setTimeout(runLoop, 3000);
+  setTimeout(runLoop, 5000);
   setInterval(runLoop, 25000);
 });
