@@ -10,15 +10,21 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
+// Carga segura de canales con fallback de emergencia
 let channels = [];
 try {
-  channels = JSON.parse(fs.readFileSync('./channels.json', 'utf-8'));
+  const raw = fs.readFileSync(path.join(__dirname, 'channels.json'), 'utf-8');
+  channels = JSON.parse(raw);
 } catch (e) {
-  channels = [];
+  console.error('[StreamRank] Error leyendo channels.json:', e.message);
+  channels = [
+    { id: 'luzutv', name: 'LUZU TV', category: 'entretenimiento', avatar: 'https://unavatar.io/youtube/LuzuTV', channels: { youtube: 'LuzuTV', twitch: 'luzutv', kick: '' } },
+    { id: 'olga', name: 'OLGA', category: 'entretenimiento', avatar: 'https://unavatar.io/youtube/olgaenvivo', channels: { youtube: 'olgaenvivo', twitch: 'olgaenvivo', kick: '' } },
+    { id: 'gelatina', name: 'Gelatina', category: 'politica', avatar: 'https://unavatar.io/youtube/somosgelatina', channels: { youtube: 'somosgelatina', twitch: 'somosgelatina', kick: '' } }
+  ];
 }
 
 let latestRanks = channels.map(c => ({
@@ -27,7 +33,7 @@ let latestRanks = channels.map(c => ({
   category: c.category || 'entretenimiento',
   avatar: c.avatar,
   thumbnail: c.avatar,
-  title: 'Canal en vivo',
+  title: 'Conectando...',
   isLive: false,
   totalViewers: 0,
   platforms: {
@@ -37,10 +43,45 @@ let latestRanks = channels.map(c => ({
   }
 }));
 
-// Twitch GQL Ultrarrápido
+// Servir archivos estáticos de la carpeta public
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Ruta de healthcheck para el balanceador de Render
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
+// Endpoint de telemetría en tiempo real
+app.get('/api/ranks', (req, res) => {
+  res.json({ status: 'ok', data: latestRanks });
+});
+
+// Endpoint de exportación analítica para agencias (CSV)
+app.get('/api/analytics/export', (req, res) => {
+  const csvRows = ['Canal,Categoria,Espectadores,En_Vivo,Twitch,Kick,YouTube,Timestamp'];
+  latestRanks.forEach(r => {
+    const row = '"' + r.name + '","' + r.category + '",' + r.totalViewers + ',' + r.isLive + ',' + r.platforms.twitch.viewers + ',' + r.platforms.kick.viewers + ',' + r.platforms.youtube.viewers + ',"' + new Date().toISOString() + '"';
+    csvRows.push(row);
+  });
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename=StreamRank_Auditoria.csv');
+  res.send(csvRows.join('\n'));
+});
+
+// Fallback universal: garantiza responder siempre con index.html para evitar el 502
+app.get('*', (req, res) => {
+  const indexPath = path.join(__dirname, 'public', 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.send('<!DOCTYPE html><html><body style="background:#080b11;color:#fff;font-family:sans-serif;padding:2rem;"><h2>StreamRank ARG en línea</h2><p>El backend está operativo. Verificando interfaz pública...</p></body></html>');
+  }
+});
+
+// Twitch GQL
 async function fetchTwitch(login) {
   if (!login) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
-  const query = 'query GetStreamInfo(\(login: String!) { user(login:\)login) { stream { viewersCount title } } }';
+  const query = 'query GetStreamInfo($login: String!) { user(login: $login) { stream { viewersCount title } } }';
   try {
     const res = await fetch('https://gql.twitch.tv/gql', {
       method: 'POST',
@@ -48,7 +89,7 @@ async function fetchTwitch(login) {
         'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ query, variables: { login: login.toLowerCase() } }),
+      body: JSON.stringify({ query: query, variables: { login: login.toLowerCase() } }),
       signal: AbortSignal.timeout(1500)
     });
     if (!res.ok) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
@@ -65,7 +106,7 @@ async function fetchTwitch(login) {
   }
 }
 
-// Kick API v2 Ultrarrápido
+// Kick API v2
 async function fetchKick(slug) {
   if (!slug) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
   try {
@@ -87,16 +128,13 @@ async function fetchKick(slug) {
   }
 }
 
-// YouTube con timeout estricto de 1.5s para que NUNCA bloquee el servidor
+// YouTube con timeout estricto anti-cuelgues
 async function fetchYouTube(handle) {
   if (!handle) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
   try {
     const clean = handle.replace('@', '');
     const res = await fetch('https://www.youtube.com/@' + clean + '/live', {
-      headers: { 
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept-Language': 'es-419,es;q=0.9'
-      },
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
       signal: AbortSignal.timeout(1800)
     });
     if (!res.ok) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
@@ -121,18 +159,18 @@ async function fetchYouTube(handle) {
     }
 
     let title = 'Transmisión en Vivo';
-    const matchTitle = html.match(/(.*?)<\/title>/);
+    const matchTitle = html.match(/<title>(.*?)<\/title>/);
     if (matchTitle && matchTitle[1]) {
       title = matchTitle[1].replace(' - YouTube', '').trim();
     }
 
-    return { isLive: true, viewers, title, thumbnail };
+    return { isLive: true, viewers: viewers, title: title, thumbnail: thumbnail };
   } catch {
     return { isLive: false, viewers: 0, title: '', thumbnail: '' };
   }
 }
 
-// Bucle en segundo plano completamente desacoplado de las peticiones web
+// Bucle en segundo plano secuencial y liviano
 let isPolling = false;
 async function runLoop() {
   if (isPolling) return;
@@ -167,6 +205,7 @@ async function runLoop() {
         }
       });
 
+      // Pausa secuencial de 150ms para evitar sobrecarga en Render
       await new Promise(r => setTimeout(r, 150));
     }
 
@@ -179,25 +218,9 @@ async function runLoop() {
   }
 }
 
-// Rutas de respuesta INMEDIATA (menos de 5ms)
-app.get('/api/ranks', (req, res) => {
-  res.json({ status: 'ok', data: latestRanks });
-});
-
-app.get('/api/analytics/export', (req, res) => {
-  const csvRows = ['Canal,Categoria,Espectadores,En_Vivo,Twitch,Kick,YouTube,Timestamp'];
-  latestRanks.forEach(r => {
-    const row = '"' + r.name + '","' + r.category + '",' + r.totalViewers + ',' + r.isLive + ',' + r.platforms.twitch.viewers + ',' + r.platforms.kick.viewers + ',' + r.platforms.youtube.viewers + ',"' + new Date().toISOString() + '"';
-    csvRows.push(row);
-  });
-  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', 'attachment; filename=StreamRank_Auditoria.csv');
-  res.send(csvRows.join('\n'));
-});
-
-// Levantar el servidor en 0.0.0.0 y lanzar el scraper 5 segundos después en segundo plano
+// Escucha en 0.0.0.0
 app.listen(PORT, '0.0.0.0', () => {
   console.log('StreamRank online en puerto ' + PORT);
-  setTimeout(runLoop, 5000);
+  setTimeout(runLoop, 4000);
   setInterval(runLoop, 25000);
 });
