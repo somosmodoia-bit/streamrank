@@ -4,6 +4,9 @@ const { createClient } = require('@libsql/client');
 const app = express();
 const PORT = process.env.PORT || 10000;
 
+// Token de acceso para descarga de telemetría B2B / Agencias
+const ACCESS_TOKEN_SECRET = (process.env.STREAMRANK_ACCESS_TOKEN || 'STREAMRANK2026').trim();
+
 // ============================================================================
 // CONEXIÓN A TURSO DB (SQL DIRECTO, .trim() Y RETENCIÓN DE 2 AÑOS)
 // ============================================================================
@@ -19,7 +22,7 @@ const db = (tursoUrl && tursoAuthToken)
 
 const initTurso = async () => {
   if (!db) {
-    console.log('[Turso DB] Modo sin credenciales. Operando con memoria local.');
+    console.log('[Turso DB] Modo sin credenciales en la nube. Operando con memoria local.');
     return;
   }
   try {
@@ -35,7 +38,7 @@ const initTurso = async () => {
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log('[Turso DB] Tabla metrics_history inicializada con SQL directo.');
+    console.log('[Turso DB] Tabla metrics_history verificada mediante SQL directo.');
   } catch (err) {
     console.error('[Turso DB Error] initTurso:', err.message);
   }
@@ -68,7 +71,7 @@ initTurso();
 setInterval(cleanupOldMetrics, 24 * 60 * 60 * 1000);
 
 // ============================================================================
-// DICCIONARIO OFICIAL DE CANALES (RECATEGORIZACIÓN Y AVATARS FIJOS)
+// DICCIONARIO OFICIAL DE CANALES (AVATARS ESTABLES, RECATEGORIZACIÓN OFICIAL)
 // ============================================================================
 const CHANNELS = [
   // Entretenimiento / Medios
@@ -365,18 +368,7 @@ const CHANNELS = [
     isEmerging: false
   },
 
-  // Emergentes reales (Comunidad e independientes en crecimiento)
-  {
-    id: 'estudio2',
-    name: 'Estudio 2 Stream',
-    category: 'Emergentes',
-    subtheme: 'Comedia & Cultura Pop',
-    avatar: 'https://unavatar.io/youtube/estudio2stream',
-    platforms: { yt: 'estudio2stream' },
-    programas: ['La Mesa Chica', 'Tarde Pero Seguro'],
-    baselineMax: 10000,
-    isEmerging: true
-  },
+  // Emergentes reales (Comunidades independientes en crecimiento)
   {
     id: 'posdatastream',
     name: 'Posdata Stream',
@@ -460,7 +452,7 @@ const fetchConTimeout = async (url, opciones = {}, ms = 6000) => {
 };
 
 // ============================================================================
-// SCRAPERS: YOUTUBE, TWITCH Y KICK
+// SCRAPERS (YOUTUBE CANÓNICO, TWITCH GQL, KICK API)
 // ============================================================================
 const scrapeYouTube = async (handle) => {
   if (!handle) return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: null };
@@ -850,7 +842,7 @@ actualizarTelemetria();
 setInterval(actualizarTelemetria, 25000);
 
 // ============================================================================
-// ENDPOINTS DE API
+// ENDPOINTS DE API & EXPORTACIÓN B2B
 // ============================================================================
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
@@ -869,31 +861,25 @@ app.get('/api/ranks', (req, res) => {
   });
 });
 
-app.get('/api/analytics/export', (req, res) => {
-  const bsAsTime = getBuenosAiresTime();
-
-  const cabeceras = ['Canal', 'Categoria', 'Subtema', 'Espectadores_Totales', 'En_Vivo', 'Alerta_Bots', 'YouTube', 'Twitch', 'Kick', 'Fecha_Hora_Buenos_Aires'];
-  const lineas = telemetriaCache.map((c) => [
-    `"${c.name.replace(/"/g, '""')}"`,
-    `"${c.category}"`,
-    `"${c.subtheme}"`,
-    c.totalViewers,
-    c.isLive ? 'SI' : 'NO',
-    c.bot_alert ? 'AUDITORIA_ACTIVADA' : 'NORMAL',
-    c.platforms.youtube.viewers || 0,
-    c.platforms.twitch.viewers || 0,
-    c.platforms.kick.viewers || 0,
-    `"${bsAsTime.timestamp}"`
-  ]);
-
-  const csv = [cabeceras.join(','), ...lineas.map((l) => l.join(','))].join('\n');
-  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', `attachment; filename="streamrank_instantaneo_${Date.now()}.csv"`);
-  res.status(200).send(csv);
+app.get('/api/validate-token', (req, res) => {
+  const token = (req.query.token || '').trim();
+  if (token === ACCESS_TOKEN_SECRET) {
+    return res.json({ valid: true });
+  }
+  return res.status(403).json({ valid: false, error: 'Token de acceso no válido.' });
 });
 
-app.get('/api/analytics/historical', async (req, res) => {
-  const { canal, programa, from, to, format } = req.query;
+// Endpoint oficial de exportación CSV (Data Room B2B con validación de token y headers institucionales)
+app.get('/api/export-csv', async (req, res) => {
+  const token = (req.query.token || '').trim();
+  if (token !== ACCESS_TOKEN_SECRET) {
+    return res.status(403).send('Acceso restringido. Token de telemetría inválido.');
+  }
+
+  const { canal, programa, from, to } = req.query;
+  const bsAsTime = getBuenosAiresTime();
+
+  let rows = [];
 
   if (db) {
     try {
@@ -917,90 +903,159 @@ app.get('/api/analytics/historical', async (req, res) => {
         params.push(`${to} 23:59:59`);
       }
 
-      query += ` ORDER BY timestamp DESC LIMIT 5000`;
+      query += ` ORDER BY timestamp DESC LIMIT 10000`;
       const dbResult = await db.execute({ sql: query, args: params });
-
-      if (format === 'csv') {
-        const headers = ['ID', 'Canal_ID', 'Nombre', 'Viewers', 'Programa', 'En_Vivo', 'Alerta_Bots', 'Timestamp_UTC'];
-        const rows = dbResult.rows.map(r => [
-          r.id, `"${r.channel_id}"`, `"${r.channel_name}"`, r.viewers, `"${r.program_name}"`, r.is_live, r.bot_alert, `"${r.timestamp}"`
-        ]);
-        const csvText = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', `attachment; filename="streamrank_turso_${canal || 'general'}.csv"`);
-        return res.status(200).send(csvText);
-      }
-
-      return res.json({
-        source: 'TursoDB',
-        retention: '2 years active',
-        totalSamples: dbResult.rows.length,
-        data: dbResult.rows
-      });
+      rows = dbResult.rows.map(r => [
+        `"${r.channel_id}"`,
+        `"${(r.channel_name || '').replace(/"/g, '""')}"`,
+        r.viewers,
+        `"${(r.program_name || '').replace(/"/g, '""')}"`,
+        r.is_live ? 'SI' : 'NO',
+        r.bot_alert ? 'DETECTADO' : 'NORMAL',
+        `"${r.timestamp}"`
+      ]);
     } catch (e) {
-      console.error('[Turso Query Error fallback to memory]:', e.message);
+      console.error('[Export CSV Turso Error]:', e.message);
     }
   }
 
-  let filtrados = historicalSnapshots;
+  if (rows.length === 0) {
+    let filtrados = historicalSnapshots;
+    if (canal && canal !== 'todos') {
+      filtrados = filtrados.filter((s) => s.canal_id === canal.toLowerCase());
+    }
+    if (programa && programa !== 'todos') {
+      const progLower = programa.toLowerCase();
+      filtrados = filtrados.filter((s) =>
+        (s.titulo_programa && s.titulo_programa.toLowerCase().includes(progLower)) ||
+        (s.subtema && s.subtema.toLowerCase().includes(progLower))
+      );
+    }
+    if (from) filtrados = filtrados.filter((s) => s.fecha >= from);
+    if (to) filtrados = filtrados.filter((s) => s.fecha <= to);
 
-  if (canal && canal !== 'todos') {
-    filtrados = filtrados.filter((s) => s.canal_id === canal.toLowerCase());
-  }
-
-  if (programa && programa !== 'todos') {
-    const progLower = programa.toLowerCase();
-    filtrados = filtrados.filter((s) =>
-      (s.titulo_programa && s.titulo_programa.toLowerCase().includes(progLower)) ||
-      (s.subtema && s.subtema.toLowerCase().includes(progLower))
-    );
-  }
-
-  if (from) {
-    filtrados = filtrados.filter((s) => s.fecha >= from);
-  }
-
-  if (to) {
-    filtrados = filtrados.filter((s) => s.fecha <= to);
-  }
-
-  if (format === 'csv') {
-    const cabeceras = [
-      'Canal_ID', 'Nombre', 'Categoria', 'Subtema', 'Titulo_Programa',
-      'Viewers_Total', 'Viewers_YouTube', 'Viewers_Twitch', 'Viewers_Kick',
-      'Alerta_Bots', 'Fecha', 'Hora', 'Timestamp_Buenos_Aires'
-    ];
-
-    const filas = filtrados.map((s) => [
-      `"${s.canal_id}"`, `"${s.nombre.replace(/"/g, '""')}"`, `"${s.categoria}"`,
-      `"${s.subtema}"`, `"${s.titulo_programa.replace(/"/g, '""')}"`,
-      s.viewers_total, s.viewers_yt, s.viewers_tw, s.viewers_ki, s.bot_alert,
-      `"${s.fecha}"`, `"${s.hora}"`, `"${s.timestamp_buenos_aires}"`
+    rows = filtrados.map(s => [
+      `"${s.canal_id}"`,
+      `"${s.nombre.replace(/"/g, '""')}"`,
+      s.viewers_total,
+      `"${s.titulo_programa.replace(/"/g, '""')}"`,
+      'SI',
+      s.bot_alert ? 'DETECTADO' : 'NORMAL',
+      `"${s.timestamp_buenos_aires}"`
     ]);
-
-    const csvData = [cabeceras.join(','), ...filas.map((f) => f.join(','))].join('\n');
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="streamrank_auditoria_${canal || 'general'}_${from || 'inicio'}_${to || 'hoy'}.csv"`);
-    return res.status(200).send(csvData);
   }
 
-  res.json({
-    source: 'MemorySnapshots',
-    totalSamples: filtrados.length,
-    filters: { canal: canal || 'todos', programa: programa || 'todos', from: from || null, to: to || null },
-    data: filtrados
-  });
+  const fileHeaders = [
+    '# STREAMRANK TELEMETRY REPORT - AUDITORÍA OFICIAL',
+    '# Motor: Modo IA | Contacto: info@modoia.online',
+    '# Historial acumulativo iniciado en Septiembre 2026 (Retención 24 meses).',
+    `# Fecha de Exportación: ${bsAsTime.timestamp} (Hora Oficial Argentina)`,
+    '',
+    ['Canal_ID', 'Canal_Nombre', 'Espectadores_Concurrentes', 'Programa_Emitido', 'En_Vivo', 'Alerta_Bots_Shield', 'Timestamp'].join(',')
+  ];
+
+  const csvContent = [...fileHeaders, ...rows.map(r => r.join(','))].join('\n');
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="streamrank_telemetria_oficial_${Date.now()}.csv"`);
+  return res.status(200).send(csvContent);
 });
 
 // ============================================================================
-// FRONTEND SERVIDO EN GET / (DISEÑO LIMPIO, RESPONSIVE MOBILE-FIRST)
+// FRONTEND SERVIDO EN GET /
 // ============================================================================
 const HTML_APP = `<!DOCTYPE html>
-<html lang="es" class="dark">
+<html lang="es-AR" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>StreamRank ARG | Monitor de Audiencia en Vivo</title>
+  <title>StreamRank ARG | Monitor Oficial de Audiencia y Streaming en Vivo</title>
+
+  <!-- METADATOS GEO / GENERATIVE ENGINE OPTIMIZATION & SEO -->
+  <meta name="description" content="StreamRank ARG: Monitor oficial en tiempo real de telemetría, audiencia simultánea y métricas de streaming en Argentina (YouTube Live, Twitch, Kick).">
+  <meta name="keywords" content="StreamRank, streaming argentina, luzu tv en vivo, olga en vivo, rating streaming argentina, métricas de streamers, telemetría streaming, blender, vorterix, tn en vivo">
+  <meta name="author" content="Modo IA">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://streamrank.ar">
+
+  <!-- Open Graph -->
+  <meta property="og:site_name" content="StreamRank ARG">
+  <meta property="og:title" content="StreamRank ARG | Monitor de Audiencia de Streaming en Vivo">
+  <meta property="og:description" content="Monitor oficial y ranking en tiempo real de audiencia de canales de streaming en Argentina. Telemetría directa de YouTube, Twitch y Kick sin sesgo.">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="es_AR">
+  <meta property="og:url" content="https://streamrank.ar">
+  <meta property="og:image" content="https://unavatar.io/youtube/LuzuTV">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="StreamRank ARG | Métricas de Streaming en Vivo">
+  <meta name="twitter:description" content="Audiencia en directo, comparativas 1v1 y telemetría de streaming en Argentina.">
+  <meta name="twitter:image" content="https://unavatar.io/youtube/LuzuTV">
+
+  <!-- JSON-LD Structured Data (GEO / Motores de IA: Perplexity, ChatGPT, Gemini) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://streamrank.ar/#website",
+        "url": "https://streamrank.ar",
+        "name": "StreamRank ARG",
+        "description": "Monitor oficial y plataforma de telemetría en tiempo real de streaming en Argentina.",
+        "inLanguage": "es-AR",
+        "publisher": {
+          "@type": "Organization",
+          "name": "Modo IA",
+          "url": "https://modoia.online"
+        }
+      },
+      {
+        "@type": "BroadcastService",
+        "@id": "https://streamrank.ar/#broadcastservice",
+        "name": "StreamRank Telemetry Argentina",
+        "serviceType": "Live Streaming Metrics & Telemetry",
+        "provider": {
+          "@type": "Organization",
+          "name": "StreamRank ARG"
+        },
+        "areaServed": {
+          "@type": "Country",
+          "name": "Argentina"
+        }
+      },
+      {
+        "@type": "DataFeed",
+        "@id": "https://streamrank.ar/#datafeed",
+        "name": "Audiencia de Streaming en Vivo Argentina",
+        "description": "Feed público en tiempo real de espectadores concurrentes de canales de YouTube, Twitch y Kick en Argentina. Captura oficial continua iniciada en Septiembre 2026.",
+        "dataFeedElement": [
+          {
+            "@type": "DataFeedItem",
+            "name": "LUZU TV",
+            "category": "Entretenimiento"
+          },
+          {
+            "@type": "DataFeedItem",
+            "name": "OLGA",
+            "category": "Entretenimiento"
+          },
+          {
+            "@type": "DataFeedItem",
+            "name": "La Nación+",
+            "category": "Política"
+          },
+          {
+            "@type": "DataFeedItem",
+            "name": "Flavio Azzaro / AZZ",
+            "category": "Deportes"
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>
@@ -1058,7 +1113,7 @@ const HTML_APP = `<!DOCTYPE html>
       
       <div class="flex items-center space-x-2 sm:space-x-3 min-w-0">
         <div class="relative flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-black border border-matrix/50 shadow-matrixSoft flex-shrink-0">
-          <span class="absolute w-3 h-3 rounded-full bg-matrix animate-ping opacity-75"></span>
+          <span class="absolute w-3.5 h-3.5 rounded-full bg-matrix animate-ping opacity-75"></span>
           <span class="w-2.5 h-2.5 rounded-full bg-matrix"></span>
         </div>
         <div class="min-w-0">
@@ -1088,10 +1143,10 @@ const HTML_APP = `<!DOCTYPE html>
     </div>
   </header>
 
-  <!-- CONTENIDO PRINCIPAL: COMIENZA DE INMEDIATO SIN BANNER HERO GIGANTE -->
+  <!-- CONTENIDO PRINCIPAL -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-5">
     
-    <!-- BARRA CON BUSCADOR Y BOTÓN MODAL DE AUDITORÍA HISTÓRICA -->
+    <!-- BARRA CON BUSCADOR Y ACCIÓN DE DESCARGA CSV INSTITUCIONAL (DATA ROOM) -->
     <section class="w-full flex flex-col sm:flex-row items-center gap-2.5 sm:gap-3">
       <div class="relative flex-1 w-full">
         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -1109,19 +1164,18 @@ const HTML_APP = `<!DOCTYPE html>
       </div>
 
       <button 
-        onclick="abrirModalReportes()" 
+        onclick="solicitarDescargaCSV()" 
         class="w-full sm:w-auto px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-[#0b1120] border border-matrix/50 text-matrix hover:bg-matrix hover:text-black transition-all shadow-matrixSoft text-xs font-black uppercase tracking-wider flex items-center justify-center space-x-2 flex-shrink-0"
       >
         <span>📊</span>
-        <span>Reportes & Auditoría Histórica</span>
+        <span>Descargar Reporte CSV / Picos de Audiencia</span>
       </button>
     </section>
 
-    <!-- NAVEGACIÓN Y FILTROS RESPONSIVE CON SCROLL TÁCTIL SUAVE -->
+    <!-- NAVEGACIÓN Y FILTROS RESPONSIVE CON SCROLL HORIZONTAL SUAVE -->
     <section class="space-y-3">
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b border-[#162238] pb-3">
         
-        <!-- Scroll horizontal suave para botones en pantallas táctiles pequeñas -->
         <div class="overflow-x-auto whitespace-nowrap no-scrollbar py-1 -mx-4 px-4 sm:mx-0 sm:px-0">
           <div class="inline-flex gap-2" id="tab-buttons">
             <button onclick="cambiarSolapa('Todos')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-matrix text-black shadow-matrix">
@@ -1164,7 +1218,7 @@ const HTML_APP = `<!DOCTYPE html>
       </div>
     </section>
 
-    <!-- GRILLA RESPONSIVE MOBILE-FIRST (1 COL EN CELULAR, 2 EN TABLETS, 3/4 EN DESKTOP) -->
+    <!-- GRILLA RESPONSIVE MOBILE-FIRST (1 COL EN SMARTPHONE, 2 EN TABLET, 3/4 EN DESKTOP) -->
     <section>
       <div id="channels-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
       </div>
@@ -1210,7 +1264,7 @@ const HTML_APP = `<!DOCTYPE html>
             <span class="mr-2">⏳</span> ¿Cuál es la política de retención y almacenamiento de métricas?
           </h4>
           <p class="text-slate-400 text-xs">
-            StreamRank conserva el historial analítico completo durante <strong>2 años</strong> mediante Turso DB antes de reiniciar y depurar los registros antiguos, garantizando la velocidad del sistema y permitiendo auditorías fidedignas para agencias y marcas.
+            StreamRank conserva el historial analítico completo durante <strong>2 años</strong> mediante Turso DB antes de reiniciar y depurar los registros antiguos, garantizando la velocidad del sistema y permitiendo auditorías fidedignas para agencias y marcas. La captura oficial de datos comenzó en <strong>Septiembre de 2026</strong>.
           </p>
         </div>
 
@@ -1228,19 +1282,76 @@ const HTML_APP = `<!DOCTYPE html>
 
   </main>
 
-  <!-- MODAL DE REPORTES & AUDITORÍA HISTÓRICA -->
+  <!-- MODAL B2B / DATA ROOM: ACCESO A TELEMETRÍA Y REPORTES CRUDOS (CSV) -->
+  <div id="modal-token" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md hidden p-4">
+    <div class="bg-[#0b1120] border border-matrix/40 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative space-y-4">
+      
+      <div class="flex items-center justify-between pb-3 border-b border-[#162238]">
+        <div class="flex items-center space-x-2">
+          <span class="text-matrix font-black text-base sm:text-lg">🔐 Acceso a Telemetría de Audiencias y Reportes Crudos (CSV)</span>
+        </div>
+        <button onclick="cerrarModalToken()" class="text-slate-400 hover:text-white transition-colors text-2xl font-bold">&times;</button>
+      </div>
+
+      <div class="space-y-3 text-xs text-slate-300">
+        <p>
+          <strong class="text-white">Auditoría Continua:</strong> StreamRank es la única plataforma que audita y registra telemetría continua minuto a minuto con una ventana de retención estructurada de hasta 2 años en Turso DB.
+        </p>
+
+        <div class="p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-[11px] leading-relaxed">
+          <strong>Transparencia de Inicio Oficial:</strong> La captura oficial y consolidada de métricas comenzó en <strong>Septiembre de 2026</strong>. La base de datos acumula el historial de forma progresiva a partir de este hito fundacional.
+        </div>
+
+        <p class="text-slate-400">
+          El acceso a datos crudos y exportaciones de picos de audiencia está reservado a <strong>agencias de medios, directores y marcas auditadas</strong>. La credencial de acceso se tramita por única vez y queda guardada en este navegador.
+        </p>
+      </div>
+
+      <div class="space-y-2 pt-1">
+        <label class="block text-[11px] font-mono text-slate-400 uppercase tracking-wider">CÓDIGO DE ACCESO (TOKEN B2B)</label>
+        <div class="flex gap-2">
+          <input 
+            type="password" 
+            id="token-input" 
+            placeholder="Ingresá tu código institucional..." 
+            class="flex-1 px-3 py-2 bg-[#050811] border border-[#162238] rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-matrix focus:shadow-matrixSoft"
+          >
+          <button 
+            onclick="validarYAbrirDescarga()" 
+            class="px-4 py-2 bg-matrix text-black font-black text-xs uppercase tracking-wider rounded-xl hover:bg-emerald-400 transition-all shadow-matrix"
+          >
+            Acceder
+          </button>
+        </div>
+        <p id="token-error" class="text-xs text-red-400 hidden">Código no válido. Solicitá tu clave oficial vía mail.</p>
+      </div>
+
+      <div class="pt-3 border-t border-[#162238] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+        <span class="text-slate-400 text-[11px]">¿No tenés token corporativo?</span>
+        <a 
+          href="mailto:info@modoia.online?subject=Solicitud%20de%20Acceso%20Telemetria%20StreamRank" 
+          class="text-matrix underline hover:text-white font-bold transition-colors"
+        >
+          Solicitar código a info@modoia.online
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL DE FILTRO Y DESCARGA CSV (HABILITADO PARA USUARIOS AUTENTICADOS) -->
   <div id="modal-reportes" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden p-4">
     <div class="bg-[#0b1120] border border-[#162238] rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl relative overflow-hidden space-y-4">
       
       <div class="flex items-center justify-between pb-3 border-b border-[#162238]">
         <div class="flex items-center space-x-2">
-          <span class="text-matrix font-black text-base sm:text-lg">📊 REPORTES & AUDITORÍA HISTÓRICA</span>
+          <span class="text-matrix font-black text-base sm:text-lg">📊 EXPORTAR TELEMETRÍA Y PICOS (CSV)</span>
         </div>
         <button onclick="cerrarModalReportes()" class="text-slate-400 hover:text-white transition-colors text-2xl font-bold">&times;</button>
       </div>
 
       <p class="text-xs text-slate-300">
-        Descarga informes consolidados en CSV estructurado con telemetría por programa, canal y franja horaria auditada (conservados hasta 2 años en Turso DB).
+        Configurá los filtros para generar tu informe oficial. Encabezados institucionales de auditoría incluidos.
       </p>
 
       <div class="space-y-3">
@@ -1281,14 +1392,11 @@ const HTML_APP = `<!DOCTYPE html>
       </div>
 
       <div class="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-4 border-t border-[#162238]">
-        <button onclick="descargarCorteInstantaneo()" class="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold text-slate-300 hover:text-white bg-[#050811] border border-[#162238] transition-colors">
-          ⚡ Corte Actual en Vivo
-        </button>
-        <button onclick="ejecutarDescargaReporte()" class="w-full sm:w-auto px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-matrix text-black hover:bg-emerald-400 transition-all shadow-matrix flex items-center justify-center space-x-1.5">
+        <button onclick="ejecutarDescargaReporte()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-matrix text-black hover:bg-emerald-400 transition-all shadow-matrix flex items-center justify-center space-x-1.5">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
           </svg>
-          <span>Descargar Reporte CSV</span>
+          <span>Descargar CSV Oficial</span>
         </button>
       </div>
 
@@ -1385,7 +1493,7 @@ const HTML_APP = `<!DOCTYPE html>
         <button onclick="cerrarModalDuelo()" class="px-3 sm:px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-colors">
           Cerrar
         </button>
-        <button onclick="descargarDueloPNG()" class="px-4 sm:px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-matrix text-black hover:bg-emerald-400 transition-all shadow-matrix flex items-center">
+        <button onclick="descargarDueloPNG()" class="px-4 sm:px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-matrix text-black hover:bg-emerald-400 transition-all shadow-matrix flex items-center">
           <svg class="w-4 h-4 mr-1.5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
           </svg>
@@ -1557,7 +1665,7 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     // ========================================================================
-    // GRILLA RESPONSIVE (1 COL EN CELULAR, 2 EN TABLET, 3/4 EN DESKTOP)
+    // GRILLA RESPONSIVE CON BOTÓN "VS" Y SIMETRÍA VISUAL
     // ========================================================================
     const renderizarGrilla = () => {
       const container = document.getElementById('channels-grid');
@@ -1596,7 +1704,7 @@ const HTML_APP = `<!DOCTYPE html>
 
         html += '<div class="w-full rounded-2xl bg-[#0b1120] ' + borderClass + ' transition-all duration-300 p-4 flex flex-col justify-between h-[215px] group relative">';
 
-        // Fila 1: Avatar, Nombre, Puesto y Estado
+        // Fila 1: Avatar, Nombre, Puesto e Insignia #1
         html += '<div class="flex items-start justify-between gap-2">';
         html += '<div class="flex items-center space-x-3 min-w-0">';
         html += '<img crossorigin="anonymous" onerror="this.onerror=null; this.src=getFallbackAvatar(\\'' + c.name.replace(/'/g, "\\\\'") + '\\')" src="' + c.avatar + '" class="w-11 h-11 rounded-full ' + (esTopVisible ? 'border-2 border-amber-400 shadow-goldGlow' : (isLive ? 'border-2 border-matrix shadow-matrixSoft' : 'border border-slate-700 opacity-80')) + ' object-cover flex-shrink-0">';
@@ -1624,7 +1732,7 @@ const HTML_APP = `<!DOCTYPE html>
         if (tieneBotShield) {
           html += '<div class="px-2.5 py-1 rounded-lg bg-amber-950/60 border border-amber-500/60 text-[10px] text-amber-200 leading-tight flex items-center space-x-1.5">';
           html += '<span>🛡️</span>';
-          html += '<span class="truncate"><strong>ALERTA:</strong> Tráfico externo anómalo no atribuible al canal.</span>';
+          html += '<span class="truncate"><strong>ALERTA:</strong> Posible inyección externa de tráfico/bots detectada. Tráfico anómalo no atribuible al canal.</span>';
           html += '</div>';
         } else {
           html += '<p class="text-[11px] text-matrix font-mono font-semibold truncate">' + (c.programas && c.programas.length ? c.programas[0] : c.subtheme) + '</p>';
@@ -1632,7 +1740,7 @@ const HTML_APP = `<!DOCTYPE html>
         }
         html += '</div>';
 
-        // Fila 3: Conteo de Viewers, Plataformas y Botón Comparar
+        // Fila 3: Conteo de Viewers, Plataformas y Botón "VS"
         html += '<div class="pt-2 border-t border-[#162238] flex items-center justify-between gap-1.5">';
         html += '<div>';
         html += '<span class="text-[9px] uppercase font-mono text-slate-400 block">Espectadores</span>';
@@ -1645,8 +1753,8 @@ const HTML_APP = `<!DOCTYPE html>
         html += renderizarPlataformaBadge('ki', c.platforms.kick);
         html += '</div>';
 
-        html += '<button onclick="abrirDueloCon(\\'' + c.id + '\\')" class="p-1.5 rounded-lg bg-black/60 hover:bg-matrix hover:text-black transition-all text-matrix text-[10px] font-black border border-matrix/30 flex-shrink-0" title="Comparar">';
-        html += '⚡';
+        html += '<button onclick="abrirDueloCon(\\'' + c.id + '\\')" class="px-2.5 py-1 rounded-lg bg-black/70 hover:bg-matrix hover:text-black transition-all text-matrix font-black text-xs border border-matrix/40 shadow-matrixSoft flex-shrink-0" title="Duelo Versus">';
+        html += 'VS';
         html += '</button>';
 
         html += '</div>';
@@ -1662,7 +1770,7 @@ const HTML_APP = `<!DOCTYPE html>
         html += '<h4 class="text-sm font-black text-white leading-snug">¿Tenés un canal y querés aparecer en StreamRank?</h4>';
         html += '<p class="text-[11px] text-slate-400 leading-tight">Sumate a las métricas oficiales de la escena nacional.</p>';
         html += '</div>';
-        html += '<a href="mailto:info@modoia.online?subject=Postulacion%20de%20Canal%20-%20StreamRank" class="w-full py-2 rounded-xl bg-matrix text-black font-black text-xs uppercase tracking-wider hover:bg-emerald-400 transition-all shadow-matrix text-center block">';
+        html += '<a href="mailto:info@modoia.online?subject=Postulacion%20de%20Canal%20-%20StreamRank" class="w-full py-2.5 rounded-xl bg-matrix text-black font-black text-xs uppercase tracking-wider hover:bg-emerald-400 transition-all shadow-matrix text-center block">';
         html += 'Postular Mi Canal';
         html += '</a>';
         html += '</div>';
@@ -1672,8 +1780,40 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     // ========================================================================
-    // AUDITORÍA HISTÓRICA & FILTROS CON PROGRAMAS DEPENDIENTES
+    // B2B DATA ROOM & AUTENTICACIÓN LOCALSTORAGE PARA DESCARGA CSV
     // ========================================================================
+    const solicitarDescargaCSV = () => {
+      const savedToken = localStorage.getItem('streamrank_b2b_token');
+      if (savedToken) {
+        abrirModalReportes();
+      } else {
+        document.getElementById('modal-token').classList.remove('hidden');
+      }
+    };
+
+    const cerrarModalToken = () => {
+      document.getElementById('modal-token').classList.add('hidden');
+      document.getElementById('token-error').classList.add('hidden');
+    };
+
+    const validarYAbrirDescarga = async () => {
+      const tokenInput = document.getElementById('token-input').value.trim();
+      if (!tokenInput) return;
+
+      try {
+        const res = await fetch('/api/validate-token?token=' + encodeURIComponent(tokenInput));
+        if (res.ok) {
+          localStorage.setItem('streamrank_b2b_token', tokenInput);
+          cerrarModalToken();
+          abrirModalReportes();
+        } else {
+          document.getElementById('token-error').classList.remove('hidden');
+        }
+      } catch (e) {
+        document.getElementById('token-error').classList.remove('hidden');
+      }
+    };
+
     const poblarSelectoresReportes = () => {
       const selectCanal = document.getElementById('report-channel-select');
       if (!selectCanal || !canalesData.length) return;
@@ -1755,17 +1895,14 @@ const HTML_APP = `<!DOCTYPE html>
       }
     };
 
-    const descargarCorteInstantaneo = () => {
-      window.location.href = '/api/analytics/export';
-    };
-
     const ejecutarDescargaReporte = () => {
+      const token = localStorage.getItem('streamrank_b2b_token') || '';
       const canal = document.getElementById('report-channel-select').value;
       const programa = document.getElementById('report-program-select').value;
       const from = document.getElementById('report-from-date').value;
       const to = document.getElementById('report-to-date').value;
 
-      let url = '/api/analytics/historical?format=csv';
+      let url = '/api/export-csv?token=' + encodeURIComponent(token);
       if (canal) url += '&canal=' + encodeURIComponent(canal);
       if (programa && programa !== 'todos') url += '&programa=' + encodeURIComponent(programa);
       if (from) url += '&from=' + encodeURIComponent(from);
