@@ -1,11 +1,11 @@
-import express from 'express';
-import { createClient } from '@libsql/client';
+const express = require('express');
+const { createClient } = require('@libsql/client');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
 // ============================================================================
-// CONEXIÓN A TURSO DB Y RETENCIÓN (2 AÑOS)
+// CONEXIÓN A TURSO DB Y RETENCIÓN DE MÉTRICAS (2 AÑOS)
 // ============================================================================
 const db = (process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN)
   ? createClient({
@@ -32,7 +32,7 @@ const initDb = async () => {
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log('[Turso DB] Tabla metrics_history inicializada y verificada.');
+    console.log('[Turso DB] Tabla metrics_history inicializada y verificada con éxito.');
   } catch (err) {
     console.error('[Turso DB Error] init:', err.message);
   }
@@ -42,17 +42,17 @@ const cleanupOldMetrics = async () => {
   if (!db) return;
   try {
     const res = await db.execute(`DELETE FROM metrics_history WHERE timestamp < datetime('now', '-2 years')`);
-    console.log(`[Turso DB] Limpieza automática de retención (2 años): ${res.rowsAffected} registros depurados.`);
+    console.log(`[Turso DB] Limpieza automática de retención (2 años): ${res.rowsAffected} registros antiguos depurados.`);
   } catch (err) {
     console.error('[Turso DB Error] cleanup:', err.message);
   }
 };
 
 initDb();
-setInterval(cleanupOldMetrics, 24 * 60 * 60 * 1000); // Chequeo diario
+setInterval(cleanupOldMetrics, 24 * 60 * 60 * 1000); // Mantenimiento diario
 
 // ============================================================================
-// CONFIGURACIÓN DE CANALES CON METADATOS Y PROGRAMAS OFICIALES
+// DICCIONARIO OFICIAL DE CANALES, PROGRAMAS Y AVATARS ROBUSTOS
 // ============================================================================
 const CHANNELS = [
   // Entretenimiento / Medios
@@ -85,7 +85,7 @@ const CHANNELS = [
     subtheme: 'Streaming General',
     avatar: 'https://unavatar.io/youtube/somoslacasaok',
     platforms: { yt: 'somoslacasaok' },
-    programas: ['Rumis', 'Circus', 'Somos La Casa'],
+    programas: ['Rumis', 'Circus', 'Somos La Casa', 'Tardes de Mate'],
     baselineMax: 45000,
     isEmerging: false
   },
@@ -385,6 +385,7 @@ let telemetriaCache = CHANNELS.map((canal) => ({
 let ultimaActualizacion = null;
 let estaScrapeando = false;
 const historialLecturas = new Map(); // canalId -> [{ viewers, time }]
+const lastThumbnails = new Map();
 
 const getBuenosAiresTime = () => {
   const now = new Date();
@@ -419,8 +420,6 @@ const fetchConTimeout = async (url, opciones = {}, ms = 6000) => {
     throw error;
   }
 };
-
-const lastThumbnails = new Map();
 
 // ============================================================================
 // YOUTUBE SCRAPER: AISLAMIENTO CANÓNICO Y TIEMPO DE RESPUESTA
@@ -635,29 +634,27 @@ const scrapeKick = async (slug) => {
 };
 
 // ============================================================================
-// DETECCIÓN PREVENTIVA DE BOTS (ALERTA DE TRÁFICO EXTERNO / BOT SHIELD)
+// ESCUDO ANTI-BOTS (DETECCIÓN PREVENTIVA DE TRÁFICO EXTERNO ANÓMALO)
 // ============================================================================
 const evaluarAnomaliaTrafico = (canal, totalViewers) => {
   const ahora = Date.now();
   const historial = historialLecturas.get(canal.id) || [];
   
-  // Guardamos las últimas muestras en memoria con timestamp
   historial.push({ viewers: totalViewers, time: ahora });
-  if (historial.length > 3) historial.shift(); // Mantenemos estrictamente las últimas 3 muestras
+  if (historial.length > 3) historial.shift(); // Mantiene las 3 últimas muestras
   historialLecturas.set(canal.id, historial);
 
   if (!totalViewers || totalViewers < 2000) {
     return { bot_shield: false, bot_alert: 0, reason: null, decoupled: false };
   }
 
-  // Análisis de aceleración atípica en las últimas 3 muestras (en < 3 minutos)
+  // Análisis de aceleración atípica en menos de 3 minutos
   if (historial.length >= 2) {
     const anterior = historial[historial.length - 2];
     const deltaViewers = totalViewers - anterior.viewers;
     const porcentajeSalto = anterior.viewers > 0 ? (deltaViewers / anterior.viewers) : 0;
     const tiempoDiff = ahora - anterior.time;
 
-    // Si ocurre en menos de 3 minutos (180.000 ms)
     if (tiempoDiff <= 180000) {
       const saltoDesmedido = (porcentajeSalto > 1.6 && deltaViewers > 3500) || (deltaViewers >= 18000);
       if (saltoDesmedido) {
@@ -671,12 +668,12 @@ const evaluarAnomaliaTrafico = (canal, totalViewers) => {
     }
   }
 
-  // Backup con límite histórico del canal
+  // Límite histórico individual del canal
   if (canal.baselineMax && totalViewers > canal.baselineMax * 2.8) {
     return {
       bot_shield: true,
       bot_alert: 1,
-      reason: `Pico no atribuible al canal (+${Math.round((totalViewers / canal.baselineMax) * 100)}% de baseline)`,
+      reason: `Pico atípico desproporcionado (+${Math.round((totalViewers / canal.baselineMax) * 100)}% de baseline)`,
       decoupled: true
     };
   }
@@ -873,7 +870,6 @@ app.get('/api/analytics/export', (req, res) => {
 app.get('/api/analytics/historical', async (req, res) => {
   const { canal, programa, from, to, format } = req.query;
 
-  // Si Turso DB está activo, podemos consultar la persistencia de largo plazo
   if (db) {
     try {
       let query = `SELECT * FROM metrics_history WHERE 1=1`;
@@ -921,7 +917,6 @@ app.get('/api/analytics/historical', async (req, res) => {
     }
   }
 
-  // Fallback a memoria local
   let filtrados = historicalSnapshots;
 
   if (canal && canal !== 'todos') {
@@ -973,7 +968,7 @@ app.get('/api/analytics/historical', async (req, res) => {
 });
 
 // ============================================================================
-// FRONTEND SERVIDO EN GET /
+// FRONTEND SERVIDO EN GET / (DISEÑO LIMPIO, SIN BANNER HERO GIGANTE)
 // ============================================================================
 const HTML_APP = `<!DOCTYPE html>
 <html lang="es" class="dark">
@@ -1001,7 +996,7 @@ const HTML_APP = `<!DOCTYPE html>
           boxShadow: {
             matrix: '0 0 20px rgba(0, 255, 102, 0.45)',
             matrixSoft: '0 0 10px rgba(0, 255, 102, 0.25)',
-            goldGlow: '0 0 25px rgba(255, 215, 0, 0.45)',
+            goldGlow: '0 0 20px rgba(255, 215, 0, 0.35)',
             glow: '0 0 35px rgba(0, 255, 102, 0.3)'
           }
         }
@@ -1024,14 +1019,14 @@ const HTML_APP = `<!DOCTYPE html>
 </head>
 <body class="min-h-screen flex flex-col bg-[#050811] text-slate-100 antialiased selection:bg-[#00ff66] selection:text-black">
 
-  <!-- HEADER -->
+  <!-- HEADER COMPACTO -->
   <header class="sticky top-0 z-40 bg-[#050811]/95 backdrop-blur-md border-b border-[#162238]">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
       
       <div class="flex items-center space-x-2.5 sm:space-x-3">
-        <div class="relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-black border border-matrix/50 shadow-matrixSoft flex-shrink-0">
-          <span class="absolute w-3.5 h-3.5 rounded-full bg-matrix animate-ping opacity-75"></span>
-          <span class="w-3 h-3 rounded-full bg-matrix"></span>
+        <div class="relative flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-black border border-matrix/50 shadow-matrixSoft flex-shrink-0">
+          <span class="absolute w-3 h-3 rounded-full bg-matrix animate-ping opacity-75"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-matrix"></span>
         </div>
         <div>
           <div class="flex items-center space-x-1.5 sm:space-x-2">
@@ -1043,12 +1038,12 @@ const HTML_APP = `<!DOCTYPE html>
       </div>
 
       <div class="flex items-center space-x-2 sm:space-x-3">
-        <div class="flex items-center bg-[#0b1120] border border-[#162238] rounded-xl px-3 sm:px-4 py-2 space-x-3 sm:space-x-4">
-          <div class="flex items-center space-x-2">
-            <span class="inline-block w-2.5 h-2.5 rounded-full bg-matrix shadow-matrix"></span>
+        <div class="flex items-center bg-[#0b1120] border border-[#162238] rounded-xl px-3 sm:px-4 py-1.5 sm:py-2 space-x-2.5 sm:space-x-4">
+          <div class="flex items-center space-x-1.5 sm:space-x-2">
+            <span class="inline-block w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-matrix shadow-matrix"></span>
             <span class="text-xs font-semibold text-slate-300"><span id="stat-live-count" class="text-matrix font-bold">0</span> En Vivo</span>
           </div>
-          <div class="w-px h-4 bg-slate-700"></div>
+          <div class="w-px h-3.5 sm:h-4 bg-slate-700"></div>
           <div class="text-xs text-slate-400">
             Audiencia: <span id="stat-total-viewers" class="text-white font-mono font-bold">0</span>
           </div>
@@ -1060,29 +1055,10 @@ const HTML_APP = `<!DOCTYPE html>
     </div>
   </header>
 
-  <!-- BANNER DE INTEGRIDAD DE DATOS Y AUDITORÍA DE BOTS -->
-  <div class="bg-gradient-to-r from-emerald-950/40 via-amber-950/30 to-emerald-950/40 border-b border-matrix/20 px-4 py-2.5">
-    <div class="max-w-7xl mx-auto flex items-center justify-between text-xs">
-      <div class="flex items-center space-x-2 text-slate-300">
-        <svg class="w-4 h-4 text-matrix flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-        </svg>
-        <span><strong class="text-matrix font-bold">BOT SHIELD ACTIVO:</strong> Monitoreo de aceleración en tiempo real. Saltos atípicos activan protección preventiva para salvaguardar la reputación del canal y la transparencia del share.</span>
-      </div>
-      <span class="hidden md:inline-block text-[11px] font-mono text-slate-400">Retención 2 Años • Turso DB</span>
-    </div>
-  </div>
-
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
+  <!-- CONTENIDO PRINCIPAL: LA GRILLA COMIENZA INMEDIATAMENTE BAJO BÚSQUEDA Y FILTROS -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 space-y-5">
     
-    <!-- HERO LEADER (#1 DEL MOMENTO CON MEDALLA / CORONA DORADA) -->
-    <section id="hero-leader" class="w-full">
-      <div class="w-full h-56 rounded-2xl bg-[#0b1120] border border-[#162238] animate-pulse flex items-center justify-center text-slate-500 font-mono text-xs sm:text-sm">
-        Sincronizando canal líder orgánico de Argentina...
-      </div>
-    </section>
-
-    <!-- BARRA CON BUSCADOR INSTANTÁNEO Y BOTÓN MODAL AUDITORÍA HISTÓRICA -->
+    <!-- BARRA CON BUSCADOR Y BOTÓN MODAL DE AUDITORÍA HISTÓRICA -->
     <section class="w-full flex flex-col sm:flex-row items-center gap-3">
       <div class="relative flex-1 w-full">
         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -1094,14 +1070,14 @@ const HTML_APP = `<!DOCTYPE html>
           type="text" 
           id="channel-search-input" 
           oninput="filtrarPorBusqueda(this.value)" 
-          placeholder="Buscar canal en vivo por nombre (ej: Olga, Luzu, TN, Davoo)..." 
-          class="w-full pl-10 pr-4 py-3 bg-[#0b1120] border border-[#162238] rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-matrix focus:shadow-matrixSoft transition-all"
+          placeholder="Buscar canal en vivo por nombre (ej: Olga, Luzu, TN, Azzaro, Davoo)..." 
+          class="w-full pl-10 pr-4 py-2.5 sm:py-3 bg-[#0b1120] border border-[#162238] rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-matrix focus:shadow-matrixSoft transition-all"
         >
       </div>
 
       <button 
         onclick="abrirModalReportes()" 
-        class="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#0b1120] border border-matrix/50 text-matrix hover:bg-matrix hover:text-black transition-all shadow-matrixSoft text-xs font-black uppercase tracking-wider flex items-center justify-center space-x-2 flex-shrink-0"
+        class="w-full sm:w-auto px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-[#0b1120] border border-matrix/50 text-matrix hover:bg-matrix hover:text-black transition-all shadow-matrixSoft text-xs font-black uppercase tracking-wider flex items-center justify-center space-x-2 flex-shrink-0"
       >
         <span>📊</span>
         <span>Reportes & Auditoría Histórica</span>
@@ -1109,8 +1085,8 @@ const HTML_APP = `<!DOCTYPE html>
     </section>
 
     <!-- NAVEGACIÓN Y FILTROS RESPONSIVE -->
-    <section class="space-y-4">
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-[#162238] pb-4">
+    <section class="space-y-3">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b border-[#162238] pb-3">
         
         <div class="flex flex-wrap gap-2" id="tab-buttons">
           <button onclick="cambiarSolapa('Todos')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-matrix text-black shadow-matrix">
@@ -1149,14 +1125,14 @@ const HTML_APP = `<!DOCTYPE html>
       </div>
     </section>
 
-    <!-- GRILLA GENERAL DE CANALES (SIMETRÍA VISUAL TOTAL: SIN THUMBNAILS, ALTURA COMPACTA Y ALINEADA) -->
+    <!-- GRILLA COMPACTA Y SIMÉTRICA (SIN THUMBNAILS, ALTURA UNIFORME, #1 DESTACADO DORADO) -->
     <section>
-      <div id="channels-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div id="channels-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
       </div>
     </section>
 
     <!-- CANALES EMERGENTES & NUEVAS PROMESAS -->
-    <section class="mt-8 sm:mt-12 bg-gradient-to-br from-[#0b1120] to-[#050811] rounded-2xl border border-[#162238] p-5 sm:p-6 space-y-4">
+    <section class="mt-8 bg-gradient-to-br from-[#0b1120] to-[#050811] rounded-2xl border border-[#162238] p-4 sm:p-5 space-y-3">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-2">
           <span class="text-xl">🚀</span>
@@ -1168,13 +1144,13 @@ const HTML_APP = `<!DOCTYPE html>
         <span class="text-[10px] sm:text-xs font-mono font-bold text-matrix bg-matrix/10 border border-matrix/20 px-2.5 sm:px-3 py-1 rounded-full">RADAR ARG</span>
       </div>
 
-      <div id="emerging-channels-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+      <div id="emerging-channels-grid" class="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-1">
       </div>
     </section>
 
     <!-- BANNER SPONSOR -->
     <section class="w-full">
-      <div class="relative w-full rounded-2xl bg-gradient-to-r from-emerald-950/20 via-[#0b1120] to-blue-950/20 border border-matrix/30 p-5 sm:p-6 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+      <div class="relative w-full rounded-2xl bg-gradient-to-r from-emerald-950/20 via-[#0b1120] to-blue-950/20 border border-matrix/30 p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
         <div class="space-y-1">
           <span class="text-[10px] font-mono tracking-widest text-matrix uppercase bg-matrix/10 px-2 py-0.5 rounded border border-matrix/20">ESPACIO PUBLICITARIO</span>
           <h3 class="text-base sm:text-lg font-black text-white">Conecta con la industria del streaming argentino</h3>
@@ -1186,8 +1162,8 @@ const HTML_APP = `<!DOCTYPE html>
       </div>
     </section>
 
-    <!-- SECCIÓN INTERACTIVA DE FAQS & TRANSPARENCIA METODOLÓGICA -->
-    <section class="bg-[#0b1120] rounded-2xl border border-[#162238] p-5 sm:p-6 space-y-5 text-xs text-slate-300 leading-relaxed">
+    <!-- SECCIÓN INTERACTIVA DE FAQS (PREGUNTAS FRECUENTES EN MODO OSCURO) -->
+    <section class="bg-[#0b1120] rounded-2xl border border-[#162238] p-5 sm:p-6 space-y-4 text-xs text-slate-300 leading-relaxed">
       <div class="flex items-center space-x-2 text-white font-bold text-sm">
         <svg class="w-5 h-5 text-matrix" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -1196,28 +1172,28 @@ const HTML_APP = `<!DOCTYPE html>
       </div>
 
       <div class="space-y-3">
-        <!-- FAQ 1 -->
-        <div class="p-4 rounded-xl bg-[#050811] border border-[#162238] space-y-2">
+        <!-- FAQ 1: Escudo Anti-Bots -->
+        <div class="p-4 rounded-xl bg-[#050811] border border-[#162238] space-y-1.5">
           <h4 class="font-bold text-white text-sm flex items-center text-matrix">
-            <span class="mr-2">🛡️</span> ¿Cómo detectamos los ataques e inyecciones de bots externos?
+            <span class="mr-2">🛡️</span> ¿Cómo detectamos las inyecciones de bots externos?
           </h4>
           <p class="text-slate-400 text-xs">
             StreamRank ARG cuenta con un algoritmo de análisis de aceleración en tiempo real que evalúa las últimas 3 muestras concurrentes por canal. Si una transmisión experimenta un salto atípico repentino de más del <strong>160% de incremento o más de +18.000 espectadores en menos de 3 minutos</strong> fuera de un pase de programa verificado, el sistema activa de forma automática una insignia de protección preventiva (<strong>Bot Shield</strong>). Esta alerta protege explícitamente al canal, dejando en claro ante agencias y audiencia que se trata de una inyección de tráfico externa y artificial no atribuible al creador, al tiempo que desacopla la métrica adulterada del liderazgo del ranking.
           </p>
         </div>
 
-        <!-- FAQ 2 -->
-        <div class="p-4 rounded-xl bg-[#050811] border border-[#162238] space-y-2">
+        <!-- FAQ 2: Retención 2 años en Turso DB -->
+        <div class="p-4 rounded-xl bg-[#050811] border border-[#162238] space-y-1.5">
           <h4 class="font-bold text-white text-sm flex items-center text-matrix">
             <span class="mr-2">⏳</span> ¿Cuál es la política de retención y almacenamiento de métricas?
           </h4>
           <p class="text-slate-400 text-xs">
-            Todas las mediciones se almacenan en una base de datos distribuida en <strong>Turso DB</strong> con una política estricta de <strong>retención completa de 2 años</strong>. Esto permite que productoras, canales y marcas descarguen informes históricos fidedignos de cualquier fecha o programa pasado. Al cumplirse la ventana de 2 años, el motor ejecuta una purga automatizada para preservar la máxima velocidad de respuesta de la plataforma.
+            Todas las mediciones se sincronizan en una base de datos distribuida en <strong>Turso DB</strong> con una política estricta de <strong>retención completa de 2 años</strong>. Esto permite que productoras, canales y marcas auditen y descarguen informes históricos fidedignos de cualquier fecha o programa pasado. Al cumplirse la ventana de 2 años, el motor ejecuta una purga automatizada para preservar la máxima velocidad de respuesta de la plataforma.
           </p>
         </div>
 
-        <!-- FAQ 3 -->
-        <div class="p-4 rounded-xl bg-[#050811] border border-[#162238] space-y-2">
+        <!-- FAQ 3: Telemetría sin intermediarios -->
+        <div class="p-4 rounded-xl bg-[#050811] border border-[#162238] space-y-1.5">
           <h4 class="font-bold text-white text-sm flex items-center text-matrix">
             <span class="mr-2">⚡</span> ¿Cómo se calcula la audiencia en vivo multiplataforma?
           </h4>
@@ -1322,7 +1298,7 @@ const HTML_APP = `<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- PLACA PARA CAPTURA HTML2CANVAS (1:1 CUADRADO EXACTO, SIN THUMBNAILS, TOTAL SIMETRÍA) -->
+      <!-- PLACA PARA CAPTURA HTML2CANVAS (1:1 CUADRADO EXACTO, SIN THUMBNAILS) -->
       <div id="duel-capture-card" class="bg-[#050811] border border-matrix/30 rounded-2xl w-full max-w-[520px] aspect-square mx-auto flex flex-col justify-between p-6 sm:p-8 shadow-glow relative my-3">
         
         <div class="text-center pt-1">
@@ -1412,7 +1388,7 @@ const HTML_APP = `<!DOCTYPE html>
     </svg>
   </div>
 
-  <!-- FOOTER -->
+  <!-- FOOTER SUTIL -->
   <footer class="border-t border-[#162238] bg-[#050811] py-8 text-center text-xs text-slate-500 font-mono space-y-2.5">
     <div>StreamRank ARG • Monitor en Tiempo Real de Streaming de Argentina</div>
     <div>
@@ -1430,9 +1406,30 @@ const HTML_APP = `<!DOCTYPE html>
 
     const formatNum = (num) => new Intl.NumberFormat('es-AR').format(num || 0);
 
-    const getFallbackAvatar = (nombre) => {
-      return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(nombre) + '&background=0b1120&color=00ff66&bold=true';
-    };
+    // Fallback estático con SVG de iniciales sobre degradé oscuro
+    function getFallbackAvatar(name) {
+      const initials = (name || 'SR')
+        .replace(/[^a-zA-Z0-9 ]/g, '')
+        .split(' ')
+        .filter(Boolean)
+        .map(w => w[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase() || 'SR';
+
+      const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">' +
+        '<defs>' +
+        '<linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">' +
+        '<stop offset="0%" stop-color="#0b1120"/>' +
+        '<stop offset="100%" stop-color="#162238"/>' +
+        '</linearGradient>' +
+        '</defs>' +
+        '<rect width="64" height="64" rx="32" fill="url(#g)" stroke="#00ff66" stroke-width="2"/>' +
+        '<text x="50%" y="54%" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="20" fill="#00ff66" dominant-baseline="middle" text-anchor="middle">' + initials + '</text>' +
+        '</svg>';
+
+      return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    }
 
     const filtrarPorBusqueda = (texto) => {
       busquedaTexto = (texto || '').toLowerCase().trim();
@@ -1502,7 +1499,6 @@ const HTML_APP = `<!DOCTYPE html>
         const clockEl = document.getElementById('sync-clock');
         if (clockEl) clockEl.innerText = 'Sinc: ' + fechaArg + ' ART';
 
-        renderizarHeroLeader();
         renderizarGrilla();
         renderizarEmergentes();
         poblarSelectoresDuelo();
@@ -1542,76 +1538,7 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     // ========================================================================
-    // HERO LEADER (#1 DEL MOMENTO CON CORONA DORADA / FORMATO 16:9 O CHATO)
-    // ========================================================================
-    const renderizarHeroLeader = () => {
-      const container = document.getElementById('hero-leader');
-      if (!canalesData.length) return;
-
-      const lider = canalesData.find(c => c.isLive && !c.decoupled) || canalesData[0];
-      const isLive = lider.isLive;
-      const hasThumb = Boolean(lider.thumbnail);
-
-      let html = '<div class="relative w-full rounded-3xl bg-gradient-to-r from-[#0b1120] via-[#080d1a] to-[#050811] border-2 border-amber-400/50 p-5 sm:p-7 shadow-goldGlow overflow-hidden">';
-      html += '<div class="absolute -right-20 -bottom-20 w-80 h-80 rounded-full bg-amber-400/10 blur-3xl pointer-events-none"></div>';
-      html += '<div class="flex flex-col ' + (hasThumb ? 'lg:flex-row' : '') + ' items-center gap-6 relative z-10">';
-
-      // Si tiene thumbnail válido lo muestra en 16:9; si no, formato chato
-      if (hasThumb) {
-        html += '<div class="w-full lg:w-3/5 aspect-video rounded-2xl overflow-hidden bg-black/60 relative border border-amber-400/30 flex items-center justify-center flex-shrink-0 shadow-lg">';
-        html += '<img crossorigin="anonymous" onerror="this.parentElement.remove()" src="' + lider.thumbnail + '" class="w-full h-full object-cover" alt="Líder">';
-        html += '<div class="absolute top-3 left-3 flex items-center space-x-2">';
-        html += '<span class="px-3 py-1 bg-black/90 backdrop-blur-md rounded-lg text-xs font-mono font-black text-amber-300 border border-amber-400/60 flex items-center shadow-lg">👑 #1 LÍDER EN VIVO</span>';
-        if (isLive) {
-          html += '<span class="px-2.5 py-1 bg-matrix text-black font-black text-xs rounded-lg tracking-wider animate-pulse shadow-matrix">EN VIVO</span>';
-        }
-        html += '</div></div>';
-      }
-
-      html += '<div class="w-full ' + (hasThumb ? 'lg:w-2/5' : 'max-w-4xl mx-auto text-center sm:text-left') + ' flex flex-col justify-between space-y-4">';
-      html += '<div class="flex flex-col sm:flex-row items-center sm:items-start space-y-3 sm:space-y-0 sm:space-x-4">';
-      html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(lider.name) + '\\'" src="' + lider.avatar + '" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-amber-400 object-cover shadow-goldGlow flex-shrink-0">';
-      html += '<div class="min-w-0">';
-      
-      if (!hasThumb) {
-        html += '<div class="inline-flex items-center space-x-2 mb-1.5">';
-        html += '<span class="px-3 py-1 bg-black/80 rounded-lg text-xs font-mono font-black text-amber-300 border border-amber-400/60">👑 #1 LÍDER EN VIVO</span>';
-        if (isLive) {
-          html += '<span class="px-2.5 py-1 bg-matrix text-black font-black text-xs rounded-lg tracking-wider animate-pulse shadow-matrix">EN VIVO</span>';
-        }
-        html += '</div>';
-      }
-
-      html += '<h2 class="text-2xl sm:text-3xl font-black text-white leading-tight truncate">' + lider.name + '</h2>';
-      html += '<div class="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 mt-1">';
-      html += '<span class="text-xs font-semibold px-2.5 py-0.5 rounded bg-[#162238] text-slate-300">' + lider.category + '</span>';
-      html += '<span class="text-xs font-mono text-matrix truncate">' + lider.subtheme + '</span>';
-      html += '</div></div></div>';
-
-      html += '<p class="text-xs sm:text-sm text-slate-300 italic line-clamp-2">"' + lider.title + '"</p>';
-
-      html += '<div class="p-3.5 sm:p-4 rounded-xl bg-black/50 border border-amber-400/30 flex items-center justify-between">';
-        html += '<div>';
-          html += '<div class="text-[10px] font-mono text-slate-400 uppercase tracking-widest">Audiencia Concurrente Total</div>';
-          html += '<div class="text-3xl sm:text-4xl font-black font-mono text-matrix matrix-glow mt-0.5">' + formatNum(lider.totalViewers) + '</div>';
-        html += '</div>';
-        html += '<button onclick="abrirDueloConLeader()" class="px-4 py-2.5 rounded-xl bg-matrix text-black hover:bg-emerald-400 font-black text-xs tracking-wider transition-all shadow-matrix">';
-          html += '⚡ RETAR EN DUELO';
-        html += '</button>';
-      html += '</div>';
-
-      html += '<div class="grid grid-cols-3 gap-2">';
-      html += renderizarPlataformaBadge('yt', lider.platforms.youtube);
-      html += renderizarPlataformaBadge('tw', lider.platforms.twitch);
-      html += renderizarPlataformaBadge('ki', lider.platforms.kick);
-      html += '</div>';
-
-      html += '</div></div></div>';
-      container.innerHTML = html;
-    };
-
-    // ========================================================================
-    // GRILLA GENERAL: SIMETRÍA VISUAL COMPLETA (SIN THUMBNAILS, ALTURA FIJA)
+    // GRILLA GENERAL DE CANALES (100% SIMÉTRICA, ALTURA FIJA, #1 DESTACADO)
     // ========================================================================
     const renderizarGrilla = () => {
       const container = document.getElementById('channels-grid');
@@ -1639,25 +1566,38 @@ const HTML_APP = `<!DOCTYPE html>
       }
 
       let html = '';
-      filtrados.forEach((c) => {
+      filtrados.forEach((c, index) => {
         const puestoGlobal = canalesData.findIndex(item => item.id === c.id) + 1;
         const isLive = c.isLive;
         const tieneBotShield = c.bot_shield === true;
+        const esTopVisible = (index === 0 && isLive); // Destacado #1 del ranking activo visible
 
-        // Tarjeta compacta, altura uniforme y 100% simétrica
-        html += '<div class="rounded-2xl bg-[#0b1120] border ' + (tieneBotShield ? 'border-amber-500/70 shadow-amber-950/40' : 'border-[#162238] hover:border-matrix/40 hover:shadow-matrixSoft') + ' transition-all duration-300 p-4 flex flex-col justify-between h-[230px] group relative">';
+        // Tarjeta simétrica y compacta de altura idéntica
+        let borderClass = 'border-[#162238] hover:border-matrix/40 hover:shadow-matrixSoft';
+        if (tieneBotShield) {
+          borderClass = 'border-amber-500/70 shadow-amber-950/40';
+        } else if (esTopVisible) {
+          borderClass = 'border-2 border-amber-400/80 shadow-goldGlow bg-gradient-to-b from-[#0b1120] to-[#0a101f]';
+        }
 
-        // Fila 1: Avatar, Nombre, Puesto y Estado
+        html += '<div class="rounded-2xl bg-[#0b1120] ' + borderClass + ' transition-all duration-300 p-4 flex flex-col justify-between h-[215px] group relative">';
+
+        // Fila 1: Logo circular con fallback onerror, Nombre, Insignia #1 o Puesto
         html += '<div class="flex items-start justify-between gap-2">';
         html += '<div class="flex items-center space-x-3 min-w-0">';
-        html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(c.name) + '\\'" src="' + c.avatar + '" class="w-12 h-12 rounded-full ' + (isLive ? 'border-2 border-matrix shadow-matrixSoft' : 'border border-slate-700 opacity-80') + ' object-cover flex-shrink-0">';
+        html += '<img crossorigin="anonymous" onerror="this.onerror=null; this.src=getFallbackAvatar(\\'' + c.name.replace(/'/g, "\\\\'") + '\\')" src="' + c.avatar + '" class="w-12 h-12 rounded-full ' + (esTopVisible ? 'border-2 border-amber-400 shadow-goldGlow' : (isLive ? 'border-2 border-matrix shadow-matrixSoft' : 'border border-slate-700 opacity-80')) + ' object-cover flex-shrink-0">';
         html += '<div class="min-w-0">';
         html += '<h3 class="text-sm font-bold text-white truncate">' + c.name + '</h3>';
         html += '<span class="text-[10px] text-slate-400 font-semibold">' + c.category + '</span>';
         html += '</div></div>';
 
         html += '<div class="flex items-center space-x-1.5 flex-shrink-0">';
-        html += '<span class="px-2 py-0.5 rounded-md bg-black/80 text-[11px] font-mono font-black text-matrix border border-matrix/30">#' + puestoGlobal + '</span>';
+        if (esTopVisible) {
+          html += '<span class="px-2 py-0.5 rounded-md bg-amber-400/20 text-amber-300 font-mono font-black text-[10px] border border-amber-400/60 shadow-goldGlow">#1 LÍDER 👑</span>';
+        } else {
+          html += '<span class="px-2 py-0.5 rounded-md bg-black/80 text-[11px] font-mono font-black text-matrix border border-matrix/30">#' + puestoGlobal + '</span>';
+        }
+
         if (isLive) {
           html += '<span class="px-2 py-0.5 rounded-md bg-matrix text-black font-black text-[9px] tracking-wider animate-pulse">EN VIVO</span>';
         } else {
@@ -1665,12 +1605,12 @@ const HTML_APP = `<!DOCTYPE html>
         }
         html += '</div></div>';
 
-        // Fila 2: Programa emitido / Título del directo o Bot Shield
+        // Fila 2: Programa emitido o Alerta Bot Shield
         html += '<div class="my-auto">';
         if (tieneBotShield) {
           html += '<div class="px-2.5 py-1 rounded-lg bg-amber-950/60 border border-amber-500/60 text-[10px] text-amber-200 leading-tight flex items-center space-x-1.5">';
           html += '<span>🛡️</span>';
-          html += '<span class="truncate"><strong>ALERTA:</strong> Tráfico externo anómalo no atribuible al canal.</span>';
+          html += '<span class="truncate"><strong>ALERTA:</strong> Posible inyección externa de tráfico/bots detectada. Tráfico anómalo no atribuible al canal.</span>';
           html += '</div>';
         } else {
           html += '<p class="text-[11px] text-matrix font-mono font-semibold truncate">' + (c.programas && c.programas.length ? c.programas[0] : c.subtheme) + '</p>';
@@ -1678,7 +1618,7 @@ const HTML_APP = `<!DOCTYPE html>
         }
         html += '</div>';
 
-        // Fila 3: Métricas, Plataformas y Botón Comparar
+        // Fila 3: Conteo de Viewers, Plataformas y Botón Comparar
         html += '<div class="pt-2 border-t border-[#162238] flex items-center justify-between gap-2">';
         html += '<div>';
         html += '<span class="text-[9px] uppercase font-mono text-slate-400 block">Espectadores</span>';
@@ -1716,7 +1656,7 @@ const HTML_APP = `<!DOCTYPE html>
       emergentes.forEach(c => {
         html += '<div class="p-3.5 rounded-xl bg-[#050811] border border-[#162238] flex items-center justify-between space-x-3">';
         html += '<div class="flex items-center space-x-3 min-w-0">';
-        html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(c.name) + '\\'" src="' + c.avatar + '" class="w-10 h-10 rounded-full border border-matrix/30 object-cover flex-shrink-0">';
+        html += '<img crossorigin="anonymous" onerror="this.onerror=null; this.src=getFallbackAvatar(\\'' + c.name.replace(/'/g, "\\\\'") + '\\')" src="' + c.avatar + '" class="w-10 h-10 rounded-full border border-matrix/30 object-cover flex-shrink-0">';
         html += '<div class="min-w-0">';
         html += '<h4 class="text-xs font-bold text-white truncate">' + c.name + '</h4>';
         html += '<p class="text-[10px] text-slate-400 truncate">' + c.subtheme + '</p>';
@@ -1835,7 +1775,7 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     // ========================================================================
-    // MODAL DE DUELO 1 VS 1: 1:1 CUADRADO, PROGRAMA PROTAGONISTA, FECHA FLÚOR
+    // MODAL DE DUELO 1 VS 1: 1:1 CUADRADO, PROGRAMAS PROTAGONISTAS, FECHA FLÚOR
     // ========================================================================
     const poblarSelectoresDuelo = () => {
       const selA = document.getElementById('duel-select-a');
@@ -1880,10 +1820,6 @@ const HTML_APP = `<!DOCTYPE html>
       renderizarContenidoDuelo();
     };
 
-    const abrirDueloConLeader = () => {
-      if (canalesData.length) abrirDueloCon(canalesData[0].id);
-    };
-
     const cerrarModalDuelo = () => {
       document.getElementById('modal-duel').classList.add('hidden');
     };
@@ -1908,12 +1844,20 @@ const HTML_APP = `<!DOCTYPE html>
       document.getElementById('duel-a-program').innerText = progA;
       document.getElementById('duel-a-name').innerText = canalA.name;
       document.getElementById('duel-a-avatar').src = canalA.avatar;
+      document.getElementById('duel-a-avatar').onerror = function() {
+        this.onerror = null;
+        this.src = getFallbackAvatar(canalA.name);
+      };
       document.getElementById('duel-a-status').innerText = canalA.isLive ? '🔴 EN VIVO' : '⚫ OFFLINE';
       document.getElementById('duel-a-viewers').innerText = formatNum(canalA.totalViewers);
 
       document.getElementById('duel-b-program').innerText = progB;
       document.getElementById('duel-b-name').innerText = canalB.name;
       document.getElementById('duel-b-avatar').src = canalB.avatar;
+      document.getElementById('duel-b-avatar').onerror = function() {
+        this.onerror = null;
+        this.src = getFallbackAvatar(canalB.name);
+      };
       document.getElementById('duel-b-status').innerText = canalB.isLive ? '🔴 EN VIVO' : '⚫ OFFLINE';
       document.getElementById('duel-b-viewers').innerText = formatNum(canalB.totalViewers);
 
