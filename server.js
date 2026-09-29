@@ -68,7 +68,7 @@ const cleanupOldMetrics = async () => {
       sql: "DELETE FROM metrics_history WHERE timestamp < datetime('now', '-2 years')",
       args: []
     });
-    console.log(`[Turso DB] Limpieza automática (2 años): ${res.rowsAffected} registros depurados.`);
+    console.log(`[Turso DB] Depuración de registros antiguos (2 años): ${res.rowsAffected} filas eliminadas.`);
   } catch (err) {
     console.error('[Turso DB Error] cleanup:', err.message);
   }
@@ -676,7 +676,7 @@ const evaluarAnomaliaTrafico = (canal, totalViewers) => {
   const historial = historialLecturas.get(canal.id) || [];
   
   historial.push({ viewers: totalViewers, time: ahora });
-  if (historial.length > 3) historial.shift(); // Mantiene las 3 últimas muestras
+  if (historial.length > 3) historial.shift();
   historialLecturas.set(canal.id, historial);
 
   if (!totalViewers || totalViewers < 2000) {
@@ -968,7 +968,7 @@ app.get('/api/export-csv', async (req, res) => {
 });
 
 // ============================================================================
-// FRONTEND SERVIDO EN GET /
+// FRONTEND SERVIDO EN GET / (GEO, SEO, OPEN GRAPH, JSON-LD Y RESPONSIVE)
 // ============================================================================
 const HTML_APP = `<!DOCTYPE html>
 <html lang="es-AR" class="dark">
@@ -1043,7 +1043,7 @@ const HTML_APP = `<!DOCTYPE html>
             "category": "Entretenimiento"
           },
           {
-            "@type": "DataFeedItem",
+            "@type": "OLGA",
             "name": "OLGA",
             "category": "Entretenimiento"
           },
@@ -1150,19 +1150,19 @@ const HTML_APP = `<!DOCTYPE html>
     </div>
   </header>
 
-  <!-- CONTENIDO PRINCIPAL -->
+  <!-- CONTENIDO PRINCIPAL: COMIENZA DE INMEDIATO SIN BANNER HERO GIGANTE -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-5">
     
     <!-- TITULO PRINCIPAL & BAJADA CLARA -->
-    <section class="text-center sm:text-left space-y-1 pt-1 sm:pt-2">
-      <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-matrix/10 border border-matrix/30 text-matrix text-[11px] font-mono font-bold tracking-wider mb-1">
+    <section class="text-center sm:text-left space-y-1.5 pt-1 sm:pt-2">
+      <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-matrix/10 border border-matrix/40 text-matrix text-[11px] font-mono font-bold tracking-wider">
         <span class="w-2 h-2 rounded-full bg-matrix animate-ping"></span>
         <span>DATOS OFICIALES EN TIEMPO REAL</span>
       </div>
       <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight">
         StreamRank <span class="text-matrix font-light">|</span> Monitor de Audiencia en Vivo
       </h1>
-      <p class="text-xs sm:text-sm text-slate-400 max-w-3xl leading-relaxed">
+      <p class="text-xs sm:text-sm text-slate-400 max-w-2xl leading-relaxed">
         Telemetría y métricas oficiales de streaming en Argentina en tiempo real. Auditado minuto a minuto.
       </p>
     </section>
@@ -1180,7 +1180,7 @@ const HTML_APP = `<!DOCTYPE html>
           id="channel-search-input" 
           oninput="filtrarPorBusqueda(this.value)" 
           placeholder="Buscar canal por nombre (ej: Olga, Luzu, TN, Azzaro, Davoo)..." 
-          class="w-full pl-10 pr-4 py-2.5 sm:py-3 bg-[#0b1120] border-2 border-slate-700/80 hover:border-slate-500 focus:border-matrix focus:shadow-matrixSoft rounded-xl text-xs sm:text-sm text-white placeholder-slate-400 transition-all shadow-md"
+          class="w-full pl-10 pr-4 py-2.5 sm:py-3 bg-[#0b1120] border-2 border-slate-600 hover:border-slate-400 focus:border-matrix focus:shadow-matrixSoft rounded-xl text-xs sm:text-sm text-white placeholder-slate-400 transition-all shadow-md"
         >
       </div>
 
@@ -1687,13 +1687,13 @@ const HTML_APP = `<!DOCTYPE html>
       const svgIcon = document.getElementById('svg-' + tipo).outerHTML;
 
       return '<div class="flex items-center space-x-1 px-1.5 py-0.5 rounded-md border shrink-0 ' + estilo + '">' +
-        '<div class="w-3 h-3 shrink-0 ' + iconColor + '">' + svgIcon + '</div>' +
+        '<div class="w-3.5 h-3.5 shrink-0 ' + iconColor + '">' + svgIcon + '</div>' +
         '<span class="text-[9px] font-mono font-bold leading-none">' + valor + '</span>' +
       '</div>';
     };
 
     // ========================================================================
-    // GRILLA RESPONSIVE (1 COL EN CELULAR, 2 EN TABLET, 3/4 EN DESKTOP)
+    // GRILLA RESPONSIVE CON BOTÓN "VS" Y LAYOUT FLUIDO (SIN CORTAR KICK)
     // ========================================================================
     const renderizarGrilla = () => {
       const container = document.getElementById('channels-grid');
