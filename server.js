@@ -902,7 +902,7 @@ const HTML_APP = `<!DOCTYPE html>
 </head>
 <body class="min-h-screen flex flex-col bg-[#050811] text-slate-100 antialiased selection:bg-[#00ff66] selection:text-black">
 
-  <!-- HEADER (SIN BOTÓN EXPORTAR CSV) -->
+  <!-- HEADER -->
   <header class="sticky top-0 z-40 bg-[#050811]/95 backdrop-blur-md border-b border-[#162238]">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
       
@@ -1420,7 +1420,12 @@ const HTML_APP = `<!DOCTYPE html>
       if (lider.thumbnail) {
         html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(lider.name) + '\\'" src="' + lider.thumbnail + '" class="w-full h-full object-cover" alt="Líder">';
       } else {
-        html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(lider.name) + '\\'" src="' + lider.avatar + '" class="w-20 h-20 sm:w-24 sm:h-24 rounded-full border border-matrix/40 object-cover shadow-matrixSoft" alt="Avatar">';
+        html += '<div class="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-[#0b1120] to-black">';
+        html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(lider.name) + '\\'" src="' + lider.avatar + '" class="w-20 h-20 sm:w-24 sm:h-24 rounded-full ' + (isLive ? 'border-2 border-matrix shadow-matrixSoft' : 'border border-matrix/40') + ' object-cover mb-2" alt="Avatar">';
+        if (isLive) {
+          html += '<span class="text-xs text-matrix font-mono font-bold tracking-widest">SEÑAL EN DIRECTO</span>';
+        }
+        html += '</div>';
       }
 
       html += '<div class="absolute top-3 left-3 flex items-center space-x-2">';
@@ -1500,8 +1505,12 @@ const HTML_APP = `<!DOCTYPE html>
           html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(c.name) + '\\'" src="' + c.thumbnail + '" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="' + c.name + '">';
         } else {
           html += '<div class="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-[#0b1120] to-black">';
-          html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(c.name) + '\\'" src="' + c.avatar + '" class="w-12 h-12 rounded-full opacity-60 mb-2 object-cover border border-[#162238]">';
-          html += '<span class="text-[10px] text-slate-500 font-mono tracking-widest">OFFLINE</span>';
+          html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(c.name) + '\\'" src="' + c.avatar + '" class="w-12 h-12 rounded-full ' + (isLive ? 'border-2 border-matrix shadow-matrixSoft' : 'opacity-60 border border-[#162238]') + ' mb-2 object-cover">';
+          if (isLive) {
+            html += '<span class="text-[10px] text-matrix font-mono font-bold tracking-widest">SEÑAL EN DIRECTO</span>';
+          } else {
+            html += '<span class="text-[10px] text-slate-500 font-mono tracking-widest">OFFLINE</span>';
+          }
           html += '</div>';
         }
 
