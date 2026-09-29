@@ -4,7 +4,7 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 
 // ============================================================================
-// CONFIGURACIÓN DE CANALES CON METADATOS Y LÍMITES HEURÍSTICOS
+// CONFIGURACIÓN DE CANALES CON METADATOS, PROGRAMAS Y LÍMITES HEURÍSTICOS
 // ============================================================================
 const CHANNELS = [
   // Entretenimiento / Medios
@@ -15,6 +15,7 @@ const CHANNELS = [
     subtheme: 'Streaming General / Magazine',
     avatar: 'https://unavatar.io/youtube/LuzuTV',
     platforms: { yt: 'LuzuTV', tw: 'luzutv' },
+    programas: ['Nadie Dice Nada', 'Antes Que Nadie', 'Patria y Familia', 'Algo de Música', 'Tarde Para Nada', 'Stream Master'],
     baselineMax: 130000,
     isEmerging: false
   },
@@ -25,6 +26,7 @@ const CHANNELS = [
     subtheme: 'Streaming General / Humor',
     avatar: 'https://unavatar.io/youtube/olgaenvivo_',
     platforms: { yt: 'olgaenvivo_', tw: 'olgaenvivo' },
+    programas: ['Soñé que Volaba', 'Sería Increíble', 'Paraíso Fiscal', 'Generación Dorada', 'Mi Primo es Así', 'Tapados'],
     baselineMax: 150000,
     isEmerging: false
   },
@@ -35,6 +37,7 @@ const CHANNELS = [
     subtheme: 'Streaming General',
     avatar: 'https://unavatar.io/youtube/somoslacasaok',
     platforms: { yt: 'somoslacasaok' },
+    programas: ['Rumis', 'Circus', 'Somos La Casa'],
     baselineMax: 45000,
     isEmerging: false
   },
@@ -45,6 +48,7 @@ const CHANNELS = [
     subtheme: 'Cultura & Actualidad',
     avatar: 'https://unavatar.io/youtube/estoesblender',
     platforms: { yt: 'estoesblender' },
+    programas: ['Hay Algo Ahí', 'Escucho Ofertas', 'Dinastía', 'Generación F'],
     baselineMax: 40000,
     isEmerging: false
   },
@@ -55,6 +59,7 @@ const CHANNELS = [
     subtheme: 'Radio & Rock',
     avatar: 'https://unavatar.io/youtube/vorterixoficial',
     platforms: { yt: 'vorterixoficial', tw: 'vorterixoficial' },
+    programas: ['Paren la Mano', 'Maldición Va a Ser un Día Hermoso', 'El Loco y el Cuerdo', 'Decímetro'],
     baselineMax: 35000,
     isEmerging: false
   },
@@ -65,6 +70,7 @@ const CHANNELS = [
     subtheme: 'Farándula / Magazine',
     avatar: 'https://unavatar.io/youtube/bondi_liveok',
     platforms: { yt: 'bondi_liveok' },
+    programas: ['Ángel Responde', 'Yanina 107.9', 'El Ejército de LAM', 'No Pasa Nada'],
     baselineMax: 30000,
     isEmerging: false
   },
@@ -75,6 +81,7 @@ const CHANNELS = [
     subtheme: 'Televisión de Aire',
     avatar: 'https://unavatar.io/youtube/telefe',
     platforms: { yt: 'telefe', tw: 'telefe' },
+    programas: ['Gran Hermano En Vivo', 'Ariel en su Salsa', 'Cortá por Lozano', 'Telefe Noticias'],
     baselineMax: 90000,
     isEmerging: false
   },
@@ -85,6 +92,7 @@ const CHANNELS = [
     subtheme: 'Televisión de Aire',
     avatar: 'https://unavatar.io/youtube/eltrece',
     platforms: { yt: 'eltrece' },
+    programas: ['Mediodía Noticias', 'Telenoche', 'Los 8 Escalones', 'El Trece en Vivo'],
     baselineMax: 60000,
     isEmerging: false
   },
@@ -97,6 +105,7 @@ const CHANNELS = [
     subtheme: 'Noticias 24 Horas',
     avatar: 'https://unavatar.io/youtube/todonoticias',
     platforms: { yt: 'todonoticias' },
+    programas: ['Tempraneros', 'TN Central', 'Desde el Llano', 'TN de Noche', 'Todo Noticias 24hs'],
     baselineMax: 95000,
     isEmerging: false
   },
@@ -107,6 +116,7 @@ const CHANNELS = [
     subtheme: 'Análisis Político',
     avatar: 'https://unavatar.io/youtube/lanacionmas',
     platforms: { yt: 'lanacionmas' },
+    programas: ['+Mañana', '+Realidad', '+Voces', '+Nación', 'El Noticiero'],
     baselineMax: 85000,
     isEmerging: false
   },
@@ -117,6 +127,7 @@ const CHANNELS = [
     subtheme: 'Noticias & Debate',
     avatar: 'https://unavatar.io/youtube/c5n',
     platforms: { yt: 'c5n' },
+    programas: ['Mañanas Argentinas', 'Argenzuela', 'Minuto Uno', 'Duro de Domar'],
     baselineMax: 85000,
     isEmerging: false
   },
@@ -127,6 +138,7 @@ const CHANNELS = [
     subtheme: 'Noticias Populares',
     avatar: 'https://unavatar.io/youtube/cronicatv',
     platforms: { yt: 'cronicatv' },
+    programas: ['La Primera', 'Firme Junto al Pueblo', 'Las Tragedias de los Famosos', 'Crónica Central'],
     baselineMax: 45000,
     isEmerging: false
   },
@@ -137,6 +149,7 @@ const CHANNELS = [
     subtheme: 'Humor Político / Streaming',
     avatar: 'https://unavatar.io/youtube/somosgelatina',
     platforms: { yt: 'somosgelatina', tw: 'somosgelatina' },
+    programas: ['Tres Estrellas', 'TUGO', 'Compañeros de Viaje', 'Gelatina Radio'],
     baselineMax: 55000,
     isEmerging: false
   },
@@ -147,6 +160,7 @@ const CHANNELS = [
     subtheme: 'Opinión & Debate Digital',
     avatar: 'https://unavatar.io/youtube/carajostream',
     platforms: { yt: 'carajostream' },
+    programas: ['La Misa de Dan', 'Toda', 'Carajo Central', 'Libre y Salvaje'],
     baselineMax: 50000,
     isEmerging: false
   },
@@ -157,6 +171,7 @@ const CHANNELS = [
     subtheme: 'Debate & Actualidad',
     avatar: 'https://unavatar.io/youtube/neuramedia',
     platforms: { yt: 'neuramedia', tw: 'neuramedia' },
+    programas: ['Multiverso Fantino', 'Neura Flash', 'Troncal', 'Pillados'],
     baselineMax: 45000,
     isEmerging: false
   },
@@ -169,6 +184,7 @@ const CHANNELS = [
     subtheme: 'Debate Futbolero',
     avatar: 'https://unavatar.io/youtube/FlavioAzzaroOficial',
     platforms: { yt: 'FlavioAzzaroOficial' },
+    programas: ['El Show del Fútbol', 'Azzaro al Horno', 'AZZ Transmisiones', 'Fútbol Total'],
     baselineMax: 65000,
     isEmerging: false
   },
@@ -179,6 +195,7 @@ const CHANNELS = [
     subtheme: 'Radio Deportiva',
     avatar: 'https://unavatar.io/youtube/dsportsradio',
     platforms: { yt: 'dsportsradio' },
+    programas: ['De Zurda', 'No Veo la Hora', 'Cómo Te Va', 'Puede Pasar'],
     baselineMax: 30000,
     isEmerging: false
   },
@@ -189,6 +206,7 @@ const CHANNELS = [
     subtheme: 'Noticias Deportivas',
     avatar: 'https://unavatar.io/youtube/tycsports',
     platforms: { yt: 'tycsports' },
+    programas: ['Sportia', 'Líbero', 'Superfútbol', 'Presión Alta'],
     baselineMax: 70000,
     isEmerging: false
   },
@@ -201,6 +219,7 @@ const CHANNELS = [
     subtheme: 'Variedad & Reacciones',
     avatar: 'https://unavatar.io/twitch/coscu',
     platforms: { tw: 'coscu', ki: 'coscu', yt: 'Coscu' },
+    programas: ['Coscu Army Stream', 'Just Chatting', 'Reaccionando', 'Gaming IRL'],
     baselineMax: 50000,
     isEmerging: false
   },
@@ -211,6 +230,7 @@ const CHANNELS = [
     subtheme: 'Gaming & Entretenimiento',
     avatar: 'https://unavatar.io/twitch/elspreen',
     platforms: { tw: 'elspreen', ki: 'spreen', yt: 'SpreenDMC' },
+    programas: ['Spreen Directo', 'Minecraft Hardcore', 'Eventos Especiales', 'Just Chatting'],
     baselineMax: 120000,
     isEmerging: false
   },
@@ -221,6 +241,7 @@ const CHANNELS = [
     subtheme: 'Fútbol & Boca Juniors',
     avatar: 'https://unavatar.io/twitch/davooxeneize',
     platforms: { tw: 'davooxeneize', ki: 'davooxeneize' },
+    programas: ['Post-Partido Boca', 'Debate Xeneize', 'Modo Carrera', 'Charla Futbolera'],
     baselineMax: 60000,
     isEmerging: false
   },
@@ -231,6 +252,7 @@ const CHANNELS = [
     subtheme: 'Fútbol & Reacciones',
     avatar: 'https://unavatar.io/twitch/lacobraaa',
     platforms: { tw: 'lacobraaa', ki: 'lacobraaa' },
+    programas: ['El Show de La Cobra', 'Debate Redondo', 'Fútbol y Risa', 'Reacciones Champions'],
     baselineMax: 50000,
     isEmerging: false
   },
@@ -241,6 +263,7 @@ const CHANNELS = [
     subtheme: 'Charlas & Humor',
     avatar: 'https://unavatar.io/twitch/luquitasrodriguez',
     platforms: { tw: 'luquitasrodriguez' },
+    programas: ['Paren la Mano', 'Charla de Madrugada', 'Fútbol y Anécdotas'],
     baselineMax: 45000,
     isEmerging: false
   },
@@ -253,6 +276,7 @@ const CHANNELS = [
     subtheme: 'Periodismo Independiente',
     avatar: 'https://unavatar.io/youtube/Cenitalcom',
     platforms: { yt: 'Cenitalcom' },
+    programas: ['540°', 'Off The Record', 'Mundo Propio'],
     baselineMax: 20000,
     isEmerging: true
   },
@@ -263,6 +287,7 @@ const CHANNELS = [
     subtheme: 'Radio Multimedia',
     avatar: 'https://unavatar.io/youtube/urbanaplayfm',
     platforms: { yt: 'urbanaplayfm' },
+    programas: ['Perros de la Calle', 'Todo Pasa', 'Vuelta y Media', 'Urbana Play Club'],
     baselineMax: 25000,
     isEmerging: true
   },
@@ -273,6 +298,7 @@ const CHANNELS = [
     subtheme: 'Comedia & Charlas',
     avatar: 'https://unavatar.io/youtube/parenlamanoclips',
     platforms: { yt: 'parenlamanoclips' },
+    programas: ['Paren la Mano', 'PLM Highlights', 'Paren el Fútbol'],
     baselineMax: 40000,
     isEmerging: true
   }
@@ -291,6 +317,7 @@ let telemetriaCache = CHANNELS.map((canal) => ({
   category: canal.category,
   subtheme: canal.subtheme,
   avatar: canal.avatar,
+  programas: canal.programas || [],
   isEmerging: canal.isEmerging,
   isLive: false,
   totalViewers: 0,
@@ -625,6 +652,7 @@ const procesarCanalIndividual = async (canal) => {
       category: canal.category,
       subtheme: canal.subtheme,
       avatar: canal.avatar,
+      programas: canal.programas || [],
       isEmerging: canal.isEmerging,
       isLive,
       totalViewers,
@@ -692,7 +720,7 @@ const actualizarTelemetria = async () => {
 
   try {
     const listaActualizada = [];
-    const BATCH_SIZE = 6; // Procesamiento en lotes de 6 canales en paralelo
+    const BATCH_SIZE = 6; // Procesamiento en lotes de 6 canales concurrentes
 
     for (let i = 0; i < CHANNELS.length; i += BATCH_SIZE) {
       const lote = CHANNELS.slice(i, i + BATCH_SIZE);
@@ -902,7 +930,7 @@ const HTML_APP = `<!DOCTYPE html>
 </head>
 <body class="min-h-screen flex flex-col bg-[#050811] text-slate-100 antialiased selection:bg-[#00ff66] selection:text-black">
 
-  <!-- HEADER -->
+  <!-- HEADER (SIN BOTÓN EXPORTAR CSV) -->
   <header class="sticky top-0 z-40 bg-[#050811]/95 backdrop-blur-md border-b border-[#162238]">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
       
@@ -1096,7 +1124,7 @@ const HTML_APP = `<!DOCTYPE html>
 
   </main>
 
-  <!-- MODAL DE REPORTES & AUDITORÍA HISTÓRICA (CON FILTRO DE PROGRAMA) -->
+  <!-- MODAL DE REPORTES & AUDITORÍA HISTÓRICA (CON GRILLA DE PROGRAMAS) -->
   <div id="modal-reportes" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden p-4">
     <div class="bg-[#0b1120] border border-[#162238] rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl relative overflow-hidden space-y-5">
       
@@ -1120,7 +1148,7 @@ const HTML_APP = `<!DOCTYPE html>
           </select>
         </div>
 
-        <!-- PROGRAMA A AUDITAR (FILTRO DEPENDIENTE) -->
+        <!-- PROGRAMA A AUDITAR (FILTRO DEPENDIENTE OFICIAL) -->
         <div>
           <label class="block text-xs font-semibold text-slate-400 mb-1">PROGRAMA A AUDITAR</label>
           <select id="report-program-select" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-matrix">
@@ -1198,14 +1226,18 @@ const HTML_APP = `<!DOCTYPE html>
           <span class="text-[10px] sm:text-[11px] font-black tracking-widest uppercase bg-matrix/10 text-matrix px-3.5 py-1.5 rounded-full border border-matrix/30">STREAMRANK ARG • DUELO EN DIRECTO</span>
         </div>
 
+        <!-- Canales enfrentados: PROGRAMA PROTAGONISTA EN GRANDE, CANAL SECUNDARIO -->
         <div class="grid grid-cols-2 gap-3 sm:gap-4 items-stretch my-auto">
           
           <!-- Canal A -->
           <div class="text-center p-3.5 sm:p-4 rounded-xl bg-[#0b1120]/90 border border-[#162238] flex flex-col justify-between">
             <div>
-              <img id="duel-a-avatar" crossorigin="anonymous" src="" class="w-14 h-14 sm:w-16 sm:h-16 rounded-full mx-auto border-2 border-matrix object-cover shadow-matrixSoft mb-1.5" alt="A">
-              <h3 id="duel-a-name" class="font-extrabold text-white text-sm sm:text-base leading-normal break-words mt-1 mb-1">--</h3>
-              <p id="duel-a-status" class="text-[10px] sm:text-xs font-mono text-slate-400 mb-2">OFFLINE</p>
+              <img id="duel-a-avatar" crossorigin="anonymous" src="" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full mx-auto border-2 border-matrix object-cover shadow-matrixSoft mb-1.5" alt="A">
+              <!-- Nombre de programa en grande como protagonista principal -->
+              <div id="duel-a-program" class="font-black text-white text-sm sm:text-lg leading-tight line-clamp-2 break-words mt-1">--</div>
+              <!-- Nombre de canal secundario y sutil -->
+              <h4 id="duel-a-name" class="text-xs sm:text-sm font-semibold text-slate-400 uppercase tracking-wider mt-0.5 mb-1 truncate">--</h4>
+              <p id="duel-a-status" class="text-[9px] sm:text-[10px] font-mono text-matrix mb-1">OFFLINE</p>
             </div>
             <div>
               <div id="duel-a-viewers" class="text-2xl sm:text-3xl font-black font-mono text-matrix matrix-glow">0</div>
@@ -1216,9 +1248,12 @@ const HTML_APP = `<!DOCTYPE html>
           <!-- Canal B -->
           <div class="text-center p-3.5 sm:p-4 rounded-xl bg-[#0b1120]/90 border border-[#162238] flex flex-col justify-between">
             <div>
-              <img id="duel-b-avatar" crossorigin="anonymous" src="" class="w-14 h-14 sm:w-16 sm:h-16 rounded-full mx-auto border-2 border-cyan-400 object-cover shadow-cyan-500/50 mb-1.5" alt="B">
-              <h3 id="duel-b-name" class="font-extrabold text-white text-sm sm:text-base leading-normal break-words mt-1 mb-1">--</h3>
-              <p id="duel-b-status" class="text-[10px] sm:text-xs font-mono text-slate-400 mb-2">OFFLINE</p>
+              <img id="duel-b-avatar" crossorigin="anonymous" src="" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full mx-auto border-2 border-cyan-400 object-cover shadow-cyan-500/50 mb-1.5" alt="B">
+              <!-- Nombre de programa en grande como protagonista principal -->
+              <div id="duel-b-program" class="font-black text-white text-sm sm:text-lg leading-tight line-clamp-2 break-words mt-1">--</div>
+              <!-- Nombre de canal secundario y sutil -->
+              <h4 id="duel-b-name" class="text-xs sm:text-sm font-semibold text-slate-400 uppercase tracking-wider mt-0.5 mb-1 truncate">--</h4>
+              <p id="duel-b-status" class="text-[9px] sm:text-[10px] font-mono text-cyan-400 mb-1">OFFLINE</p>
             </div>
             <div>
               <div id="duel-b-viewers" class="text-2xl sm:text-3xl font-black font-mono text-cyan-400">0</div>
@@ -1228,6 +1263,7 @@ const HTML_APP = `<!DOCTYPE html>
 
         </div>
 
+        <!-- BARRAS DE SHARE Y PIE CON FECHA Y HORA EN VERDE FLÚOR (#00FF66) -->
         <div class="space-y-3 pb-1">
           <div>
             <div class="flex justify-between text-xs font-mono font-bold mb-1.5">
@@ -1241,9 +1277,9 @@ const HTML_APP = `<!DOCTYPE html>
             </div>
           </div>
 
-          <div class="flex items-center justify-between text-[9px] sm:text-[10px] font-mono text-slate-500 pt-1 border-t border-[#162238]/60">
-            <span id="duel-timestamp">--</span>
-            <span class="text-slate-400">streamrank.ar</span>
+          <div class="flex items-center justify-between text-xs sm:text-sm font-mono pt-2 border-t border-[#162238]/80">
+            <span id="duel-timestamp" class="text-[#00FF66] font-bold tracking-wide">--</span>
+            <span class="text-slate-400 font-bold text-[10px] sm:text-xs tracking-wider">STREAMRANK.AR</span>
           </div>
         </div>
 
@@ -1364,7 +1400,8 @@ const HTML_APP = `<!DOCTYPE html>
           second: '2-digit'
         }).format(new Date());
 
-        document.getElementById('sync-clock').innerText = 'Sinc: ' + fechaArg + ' ART';
+        const clockEl = document.getElementById('sync-clock');
+        if (clockEl) clockEl.innerText = 'Sinc: ' + fechaArg + ' ART';
 
         renderizarHeroLeader();
         renderizarGrilla();
@@ -1424,6 +1461,8 @@ const HTML_APP = `<!DOCTYPE html>
         html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(lider.name) + '\\'" src="' + lider.avatar + '" class="w-20 h-20 sm:w-24 sm:h-24 rounded-full ' + (isLive ? 'border-2 border-matrix shadow-matrixSoft' : 'border border-matrix/40') + ' object-cover mb-2" alt="Avatar">';
         if (isLive) {
           html += '<span class="text-xs text-matrix font-mono font-bold tracking-widest">SEÑAL EN DIRECTO</span>';
+        } else {
+          html += '<span class="text-xs text-slate-500 font-mono tracking-widest">OFFLINE</span>';
         }
         html += '</div>';
       }
@@ -1620,11 +1659,15 @@ const HTML_APP = `<!DOCTYPE html>
       if (canalId !== 'todos') {
         const canal = canalesData.find(c => c.id === canalId);
         if (canal) {
-          if (canal.subtheme) {
-            opts += '<option value="' + canal.subtheme + '">' + canal.subtheme + '</option>';
+          // Lista oficial configurada en backend
+          if (canal.programas && Array.isArray(canal.programas)) {
+            canal.programas.forEach(prog => {
+              opts += '<option value="' + prog.replace(/"/g, '&quot;') + '">' + prog + '</option>';
+            });
           }
-          if (canal.title && canal.title !== 'Transmisión finalizada' && canal.title !== 'Sincronizando señal en vivo...') {
-            opts += '<option value="' + canal.title.replace(/"/g, '&quot;') + '">' + canal.title + '</option>';
+          // Si está en vivo con un título específico no listado, agregarlo
+          if (canal.title && canal.title !== 'Transmisión finalizada' && canal.title !== 'Sincronizando señal en vivo...' && (!canal.programas || !canal.programas.includes(canal.title))) {
+            opts += '<option value="' + canal.title.replace(/"/g, '&quot;') + '">🔴 ' + canal.title + '</option>';
           }
         }
       }
@@ -1755,11 +1798,22 @@ const HTML_APP = `<!DOCTYPE html>
 
       if (!canalA || !canalB) return;
 
+      // Determinar nombre del programa protagonista
+      const progA = canalA.isLive && canalA.title && canalA.title !== 'Transmisión en directo' && canalA.title !== 'Transmitiendo en directo'
+        ? canalA.title
+        : (canalA.programas && canalA.programas.length ? canalA.programas[0] : canalA.subtheme || canalA.name);
+
+      const progB = canalB.isLive && canalB.title && canalB.title !== 'Transmisión en directo' && canalB.title !== 'Transmitiendo en directo'
+        ? canalB.title
+        : (canalB.programas && canalB.programas.length ? canalB.programas[0] : canalB.subtheme || canalB.name);
+
+      document.getElementById('duel-a-program').innerText = progA;
       document.getElementById('duel-a-name').innerText = canalA.name;
       document.getElementById('duel-a-avatar').src = canalA.avatar;
       document.getElementById('duel-a-status').innerText = canalA.isLive ? '🔴 EN VIVO' : '⚫ OFFLINE';
       document.getElementById('duel-a-viewers').innerText = formatNum(canalA.totalViewers);
 
+      document.getElementById('duel-b-program').innerText = progB;
       document.getElementById('duel-b-name').innerText = canalB.name;
       document.getElementById('duel-b-avatar').src = canalB.avatar;
       document.getElementById('duel-b-status').innerText = canalB.isLive ? '🔴 EN VIVO' : '⚫ OFFLINE';
@@ -1786,7 +1840,7 @@ const HTML_APP = `<!DOCTYPE html>
         timeStyle: 'medium'
       }).format(new Date());
 
-      document.getElementById('duel-timestamp').innerText = 'Captura: ' + fechaActual + ' ART';
+      document.getElementById('duel-timestamp').innerText = 'CAPTURA: ' + fechaActual + ' ART';
     };
 
     const descargarDueloPNG = async () => {
