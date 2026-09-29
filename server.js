@@ -4,11 +4,11 @@ const { createClient } = require('@libsql/client');
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Token de acceso para descarga de telemetría B2B / Agencias
+// Token de acceso institucional para descarga de telemetría B2B / Agencias
 const ACCESS_TOKEN_SECRET = (process.env.STREAMRANK_ACCESS_TOKEN || 'STREAMRANK2026').trim();
 
 // ============================================================================
-// CONEXIÓN A TURSO DB (SQL DIRECTO, .trim() Y RETENCIÓN DE 2 AÑOS)
+// CONEXIÓN A TURSO DB (SQL DIRECTO Y PURO, .trim() Y RETENCIÓN DE 2 AÑOS)
 // ============================================================================
 const tursoUrl = process.env.TURSO_DATABASE_URL ? process.env.TURSO_DATABASE_URL.trim() : null;
 const tursoAuthToken = process.env.TURSO_AUTH_TOKEN ? process.env.TURSO_AUTH_TOKEN.trim() : null;
@@ -26,8 +26,8 @@ const initTurso = async () => {
     return;
   }
   try {
-    await db.execute(`
-      CREATE TABLE IF NOT EXISTS metrics_history (
+    await db.execute({
+      sql: `CREATE TABLE IF NOT EXISTS metrics_history (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         channel_id TEXT,
         channel_name TEXT,
@@ -36,9 +36,10 @@ const initTurso = async () => {
         is_live INTEGER,
         bot_alert INTEGER DEFAULT 0,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    console.log('[Turso DB] Tabla metrics_history verificada mediante SQL directo.');
+      );`,
+      args: []
+    });
+    console.log('[Turso DB] Tabla metrics_history inicializada con SQL directo.');
   } catch (err) {
     console.error('[Turso DB Error] initTurso:', err.message);
   }
@@ -50,7 +51,14 @@ const saveMetricToTurso = async (channelId, channelName, viewers, programName, i
     await db.execute({
       sql: `INSERT INTO metrics_history (channel_id, channel_name, viewers, program_name, is_live, bot_alert)
             VALUES (?, ?, ?, ?, ?, ?)`,
-      args: [channelId, channelName, viewers, programName, isLive ? 1 : 0, botAlert ? 1 : 0]
+      args: [
+        String(channelId),
+        String(channelName),
+        Number(viewers) || 0,
+        String(programName || ''),
+        isLive ? 1 : 0,
+        botAlert ? 1 : 0
+      ]
     });
   } catch (err) {
     console.error(`[Turso DB Error] Guardando métrica de ${channelId}:`, err.message);
@@ -60,7 +68,10 @@ const saveMetricToTurso = async (channelId, channelName, viewers, programName, i
 const cleanupOldMetrics = async () => {
   if (!db) return;
   try {
-    const res = await db.execute(`DELETE FROM metrics_history WHERE timestamp < datetime('now', '-2 years')`);
+    const res = await db.execute({
+      sql: "DELETE FROM metrics_history WHERE timestamp < datetime('now', '-2 years')",
+      args: []
+    });
     console.log(`[Turso DB] Limpieza automática (2 años): ${res.rowsAffected} registros depurados.`);
   } catch (err) {
     console.error('[Turso DB Error] cleanup:', err.message);
@@ -1036,7 +1047,7 @@ const HTML_APP = `<!DOCTYPE html>
             "category": "Entretenimiento"
           },
           {
-            "@type": "DataFeedItem",
+            "@type": "OLGA",
             "name": "OLGA",
             "category": "Entretenimiento"
           },
