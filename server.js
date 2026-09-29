@@ -310,7 +310,7 @@ const CHANNELS = [
 const historicalSnapshots = [];
 const MAX_HISTORICAL_RECORDS = 50000;
 
-// Inicialización de arranque rápido: el servidor sirve la web de inmediato sin bloqueo
+// Inicialización de arranque rápido: el servidor sirve la web de inmediato
 let telemetriaCache = CHANNELS.map((canal) => ({
   id: canal.id,
   name: canal.name,
@@ -322,7 +322,7 @@ let telemetriaCache = CHANNELS.map((canal) => ({
   isLive: false,
   totalViewers: 0,
   title: 'Sincronizando señal en vivo...',
-  thumbnail: '',
+  thumbnail: null,
   botAlert: false,
   botReason: null,
   decoupled: false,
@@ -382,10 +382,10 @@ const fetchConTimeout = async (url, opciones = {}, ms = 6000) => {
 const lastThumbnails = new Map();
 
 // ============================================================================
-// YOUTUBE SCRAPER: EXTRACCIÓN ESTRICTA DE VIDEOID Y MINIATURA EN VIVO
+// YOUTUBE SCRAPER: EXTRACCIÓN UNIVERSAL DE VIDEOID Y MINIATURA EN VIVO
 // ============================================================================
 const scrapeYouTube = async (handle) => {
-  if (!handle) return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
+  if (!handle) return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: null };
   try {
     const url = `https://www.youtube.com/@${handle}/live`;
     const res = await fetchConTimeout(
@@ -404,21 +404,50 @@ const scrapeYouTube = async (handle) => {
       6000
     );
 
-    if (!res.ok) return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
+    if (!res.ok) return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: null };
+
+    // 1. Obtener videoId si provino de la URL final tras redirección HTTP
+    let videoId = '';
+    const finalUrl = res.url || '';
+    if (finalUrl.includes('watch?v=')) {
+      const urlMatch = finalUrl.match(/watch\?v=([a-zA-Z0-9_-]{11})/);
+      if (urlMatch) videoId = urlMatch[1];
+    }
 
     const html = await res.text();
 
-    // 1. Descartar si el HTML contiene UPCOMING o evento futuro programado
+    // 2. Extracción exhaustiva de videoId en metadatos y endpoints de YouTube
+    if (!videoId) {
+      const currentEndpointMatch = html.match(/"currentVideoEndpoint":\s*\{\s*"watchEndpoint":\s*\{\s*"videoId":\s*"([a-zA-Z0-9_-]{11})"/i) ||
+                                   html.match(/\\"currentVideoEndpoint\\":\s*\{\s*\\"watchEndpoint\\":\s*\{\s*\\"videoId\\":\s*\\"([a-zA-Z0-9_-]{11})\\"/i);
+      const canonicalBaseMatch = html.match(/"canonicalBaseUrl":\s*"\/watch\?v=([a-zA-Z0-9_-]{11})"/i) ||
+                                 html.match(/\\"canonicalBaseUrl\\":\s*"\/watch\?v=([a-zA-Z0-9_-]{11})\\"/i);
+      const vDetailsMatch = html.match(/"videoDetails":\s*\{[^}]*"videoId":\s*"([a-zA-Z0-9_-]{11})"/i) ||
+                            html.match(/\\"videoDetails\\":\s*\{[^}]*\\"videoId\\":\s*\\"([a-zA-Z0-9_-]{11})\\"/i);
+      const liveStreamMatch = html.match(/"liveStreamabilityRenderer":\s*\{\s*"videoId":\s*"([a-zA-Z0-9_-]{11})"/i) ||
+                              html.match(/\\"liveStreamabilityRenderer\\":\s*\{\s*\\"videoId\\":\s*\\"([a-zA-Z0-9_-]{11})\\"/i);
+      const canMatch = html.match(/<link\s+rel="canonical"\s+href="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/i) ||
+                       html.match(/<meta\s+property="og:url"\s+content="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/i) ||
+                       html.match(/<meta\s+itemprop="videoId"\s+content="([a-zA-Z0-9_-]{11})"/i);
+
+      if (currentEndpointMatch && currentEndpointMatch[1]) videoId = currentEndpointMatch[1];
+      else if (canonicalBaseMatch && canonicalBaseMatch[1]) videoId = canonicalBaseMatch[1];
+      else if (vDetailsMatch && vDetailsMatch[1]) videoId = vDetailsMatch[1];
+      else if (liveStreamMatch && liveStreamMatch[1]) videoId = liveStreamMatch[1];
+      else if (canMatch && canMatch[1]) videoId = canMatch[1];
+    }
+
+    // 3. Descartar si el HTML contiene UPCOMING o evento futuro programado
     const isUpcoming =
       /"status":\s*"UPCOMING"/i.test(html) ||
       /\\"status\\":\s*\\"UPCOMING\\"/i.test(html) ||
       html.includes('"upcomingEventData"');
     if (isUpcoming) {
       lastThumbnails.delete(handle);
-      return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
+      return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: null };
     }
 
-    // 2. Extraer Viewers Concurrentes en todo el HTML con soporte de strings escapados
+    // 4. Extraer Viewers Concurrentes en todo el HTML con soporte de strings escapados
     const concurrentMatch =
       html.match(/"concurrentViewers":\s*"(\d+)"/) ||
       html.match(/\\"concurrentViewers\\":\s*\\"(\d+)\\"/);
@@ -432,9 +461,12 @@ const scrapeYouTube = async (handle) => {
     let viewers = 0;
     if (concurrentMatch) viewers = parseInt(concurrentMatch[1], 10);
     else if (originalViewMatch) viewers = parseInt(originalViewMatch[1], 10);
-    else if (viewRunsMatch) viewers = parseInt(viewRunsMatch[1].replace(/[^0-9]/g, ''), 10) || 0;
+    else if (viewRunsMatch && viewRunsMatch[1]) {
+      const limpio = viewRunsMatch[1].replace(/[^0-9]/g, '');
+      viewers = parseInt(limpio, 10) || 0;
+    }
 
-    // 3. Validar si está en vivo
+    // 5. Validar si está en vivo
     const hasLiveSignal =
       viewers > 20 ||
       /"isLive":\s*true/i.test(html) ||
@@ -445,10 +477,10 @@ const scrapeYouTube = async (handle) => {
 
     if (!hasLiveSignal || viewers <= 5) {
       lastThumbnails.delete(handle);
-      return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
+      return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: null };
     }
 
-    // 4. Extraer título
+    // 6. Extraer título
     let title = '';
     const metaTitle =
       html.match(/<meta\s+name="title"\s+content="([^"]*)"/i) ||
@@ -463,28 +495,11 @@ const scrapeYouTube = async (handle) => {
     const blacklistRegex = /(hasta ma[nñ]ana|pr[oó]ximamente|en espera|directo finalizado)/i;
     if (title && blacklistRegex.test(title)) {
       lastThumbnails.delete(handle);
-      return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
+      return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: null };
     }
 
-    // 5. Extraer videoId ÚNICAMENTE del reproductor principal o del tag canonical (nunca búsqueda suelta)
-    let videoId = '';
-    const finalUrl = res.url || '';
-    if (finalUrl.includes('watch?v=')) {
-      const urlMatch = finalUrl.match(/watch\?v=([a-zA-Z0-9_-]{11})/);
-      if (urlMatch) videoId = urlMatch[1];
-    }
-
-    if (!videoId) {
-      const vDetailsMatch = html.match(/"videoDetails":\s*\{[^}]*"videoId":\s*"([a-zA-Z0-9_-]{11})"/);
-      const liveStreamMatch = html.match(/"liveStreamabilityRenderer":\s*\{\s*"videoId":\s*"([a-zA-Z0-9_-]{11})"/);
-      const canMatch = html.match(/<link\s+rel="canonical"\s+href="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/i);
-      if (vDetailsMatch && vDetailsMatch[1]) videoId = vDetailsMatch[1];
-      else if (liveStreamMatch && liveStreamMatch[1]) videoId = liveStreamMatch[1];
-      else if (canMatch && canMatch[1]) videoId = canMatch[1];
-    }
-
-    // 6. Asignación y persistencia de miniatura en vivo
-    let thumbnail = videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : '';
+    // 7. Asignación y persistencia de miniatura en vivo
+    let thumbnail = videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null;
 
     if (!thumbnail && lastThumbnails.has(handle)) {
       thumbnail = lastThumbnails.get(handle);
@@ -492,23 +507,23 @@ const scrapeYouTube = async (handle) => {
       lastThumbnails.set(handle, thumbnail);
     }
 
-    console.log(`[YouTube OK] ${handle}: ${viewers} viewers (ID: ${videoId || 'CACHED'})`);
+    console.log(`[YouTube OK] ${handle}: ${viewers} viewers (ID: ${videoId || 'N/A'})`);
     return {
       isLive: true,
       viewers,
       title: title || 'Transmisión en directo',
-      thumbnail
+      thumbnail: thumbnail || null
     };
   } catch (err) {
     lastThumbnails.delete(handle);
     console.error(`[YouTube Error] ${handle}:`, err.message);
-    return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
+    return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: null };
   }
 };
 
 // Twitch GQL Scraper (Público, sin API keys)
 const scrapeTwitch = async (login) => {
-  if (!login) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
+  if (!login) return { isLive: false, viewers: 0, title: '', thumbnail: null };
   try {
     const res = await fetchConTimeout(
       'https://gql.twitch.tv/gql',
@@ -533,7 +548,7 @@ const scrapeTwitch = async (login) => {
       6000
     );
 
-    if (!res.ok) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
+    if (!res.ok) return { isLive: false, viewers: 0, title: '', thumbnail: null };
 
     const data = await res.json();
     const stream = data?.data?.user?.stream;
@@ -546,15 +561,15 @@ const scrapeTwitch = async (login) => {
         thumbnail: `https://static-cdn.jtvnw.net/previews-ttv/live_user_${login.toLowerCase()}-640x360.jpg`
       };
     }
-    return { isLive: false, viewers: 0, title: '', thumbnail: '' };
+    return { isLive: false, viewers: 0, title: '', thumbnail: null };
   } catch (err) {
-    return { isLive: false, viewers: 0, title: '', thumbnail: '' };
+    return { isLive: false, viewers: 0, title: '', thumbnail: null };
   }
 };
 
 // Kick API v2 Scraper (Público, sin API keys)
 const scrapeKick = async (slug) => {
-  if (!slug) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
+  if (!slug) return { isLive: false, viewers: 0, title: '', thumbnail: null };
   try {
     const res = await fetchConTimeout(
       `https://kick.com/api/v2/channels/${slug}`,
@@ -568,7 +583,7 @@ const scrapeKick = async (slug) => {
       6000
     );
 
-    if (!res.ok) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
+    if (!res.ok) return { isLive: false, viewers: 0, title: '', thumbnail: null };
 
     const data = await res.json();
     const isLive = data?.livestream?.is_live === true;
@@ -579,12 +594,12 @@ const scrapeKick = async (slug) => {
         isLive: true,
         viewers,
         title: data.livestream.session_title || 'En vivo en Kick',
-        thumbnail: data.livestream.thumbnail?.url || ''
+        thumbnail: data.livestream.thumbnail?.url || null
       };
     }
-    return { isLive: false, viewers: 0, title: '', thumbnail: '' };
+    return { isLive: false, viewers: 0, title: '', thumbnail: null };
   } catch (err) {
-    return { isLive: false, viewers: 0, title: '', thumbnail: '' };
+    return { isLive: false, viewers: 0, title: '', thumbnail: null };
   }
 };
 
@@ -633,15 +648,15 @@ const evaluarAnomaliaTrafico = (canal, totalViewers) => {
 const procesarCanalIndividual = async (canal) => {
   try {
     const [ytRes, twRes, kiRes] = await Promise.all([
-      canal.platforms.yt ? scrapeYouTube(canal.platforms.yt) : Promise.resolve({ isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' }),
-      canal.platforms.tw ? scrapeTwitch(canal.platforms.tw) : Promise.resolve({ isLive: false, viewers: 0, title: '', thumbnail: '' }),
-      canal.platforms.ki ? scrapeKick(canal.platforms.ki) : Promise.resolve({ isLive: false, viewers: 0, title: '', thumbnail: '' })
+      canal.platforms.yt ? scrapeYouTube(canal.platforms.yt) : Promise.resolve({ isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: null }),
+      canal.platforms.tw ? scrapeTwitch(canal.platforms.tw) : Promise.resolve({ isLive: false, viewers: 0, title: '', thumbnail: null }),
+      canal.platforms.ki ? scrapeKick(canal.platforms.ki) : Promise.resolve({ isLive: false, viewers: 0, title: '', thumbnail: null })
     ]);
 
     const isLive = ytRes.isLive || twRes.isLive || kiRes.isLive;
     const totalViewers = (ytRes.viewers || 0) + (twRes.viewers || 0) + (kiRes.viewers || 0);
 
-    let thumbnail = isLive ? (ytRes.thumbnail || twRes.thumbnail || kiRes.thumbnail || '') : '';
+    let thumbnail = isLive ? (ytRes.thumbnail || twRes.thumbnail || kiRes.thumbnail || null) : null;
     let title = isLive ? (ytRes.title || twRes.title || kiRes.title || 'Transmitiendo en directo') : 'Transmisión finalizada';
 
     const anomalia = isLive ? evaluarAnomaliaTrafico(canal, totalViewers) : { botAlert: false, reason: null, decoupled: false };
@@ -1335,6 +1350,22 @@ const HTML_APP = `<!DOCTYPE html>
       return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(nombre) + '&background=0b1120&color=00ff66&bold=true';
     };
 
+    const colapsarThumb = (img, id) => {
+      const wrap = document.getElementById('thumb-wrap-' + id);
+      if (wrap) wrap.remove();
+      const badges = document.getElementById('fallback-badges-' + id);
+      if (badges) badges.classList.remove('hidden');
+    };
+
+    const colapsarHeroThumb = () => {
+      const wrap = document.getElementById('hero-thumb-wrapper');
+      if (wrap) wrap.remove();
+      const info = document.getElementById('hero-info-wrapper');
+      if (info) {
+        info.className = 'w-full max-w-3xl mx-auto flex flex-col justify-between space-y-4';
+      }
+    };
+
     const filtrarPorBusqueda = (texto) => {
       busquedaTexto = (texto || '').toLowerCase().trim();
       renderizarGrilla();
@@ -1448,38 +1479,39 @@ const HTML_APP = `<!DOCTYPE html>
 
       const lider = canalesData.find(c => c.isLive && !c.decoupled) || canalesData[0];
       const isLive = lider.isLive;
+      const hasThumb = Boolean(lider.thumbnail);
 
       let html = '<div class="relative w-full rounded-3xl bg-gradient-to-r from-[#0b1120] to-[#050811] border border-matrix/40 p-5 sm:p-8 shadow-matrix overflow-hidden">';
       html += '<div class="absolute -right-20 -bottom-20 w-80 h-80 rounded-full bg-matrix/10 blur-3xl pointer-events-none"></div>';
-      html += '<div class="flex flex-col lg:flex-row items-center gap-6 relative z-10">';
+      html += '<div class="flex flex-col ' + (hasThumb ? 'lg:flex-row' : '') + ' items-center gap-6 relative z-10">';
 
-      html += '<div class="w-full lg:w-3/5 aspect-video rounded-2xl overflow-hidden bg-black/60 relative border border-[#162238] flex items-center justify-center">';
-      if (lider.thumbnail) {
-        html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(lider.name) + '\\'" src="' + lider.thumbnail + '" class="w-full h-full object-cover" alt="Líder">';
-      } else {
-        html += '<div class="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-[#0b1120] to-black">';
-        html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(lider.name) + '\\'" src="' + lider.avatar + '" class="w-20 h-20 sm:w-24 sm:h-24 rounded-full ' + (isLive ? 'border-2 border-matrix shadow-matrixSoft' : 'border border-matrix/40') + ' object-cover mb-2" alt="Avatar">';
+      if (hasThumb) {
+        html += '<div id="hero-thumb-wrapper" class="w-full lg:w-3/5 aspect-video rounded-2xl overflow-hidden bg-black/60 relative border border-[#162238] flex items-center justify-center flex-shrink-0">';
+        html += '<img crossorigin="anonymous" onerror="colapsarHeroThumb()" src="' + lider.thumbnail + '" class="w-full h-full object-cover" alt="Líder">';
+        html += '<div class="absolute top-3 left-3 flex items-center space-x-2">';
+        html += '<span class="px-2.5 sm:px-3 py-1 bg-black/80 backdrop-blur-md rounded-lg text-[10px] sm:text-xs font-mono font-black text-matrix border border-matrix/40">#1 LÍDER ORGÁNICO</span>';
         if (isLive) {
-          html += '<span class="text-xs text-matrix font-mono font-bold tracking-widest">SEÑAL EN DIRECTO</span>';
+          html += '<span class="px-2.5 sm:px-3 py-1 bg-matrix text-black font-black text-[10px] sm:text-xs rounded-lg tracking-wider animate-pulse shadow-matrix">EN VIVO</span>';
+        }
+        html += '</div></div>';
+      }
+
+      html += '<div id="hero-info-wrapper" class="w-full ' + (hasThumb ? 'lg:w-2/5' : 'max-w-3xl mx-auto') + ' flex flex-col justify-between space-y-4">';
+      html += '<div class="flex items-center space-x-4">';
+      html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(lider.name) + '\\'" src="' + lider.avatar + '" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full ' + (isLive ? 'border-2 border-matrix shadow-matrix' : 'border border-slate-700') + ' object-cover flex-shrink-0">';
+      html += '<div class="min-w-0">';
+      if (!hasThumb) {
+        html += '<div class="flex items-center space-x-2 mb-1">';
+        html += '<span class="px-2.5 py-0.5 bg-black/80 rounded-md text-[10px] sm:text-xs font-mono font-black text-matrix border border-matrix/40">#1 LÍDER ORGÁNICO</span>';
+        if (isLive) {
+          html += '<span class="px-2 py-0.5 bg-matrix text-black font-black text-[10px] rounded-md tracking-wider animate-pulse">EN VIVO</span>';
         } else {
-          html += '<span class="text-xs text-slate-500 font-mono tracking-widest">OFFLINE</span>';
+          html += '<span class="px-2 py-0.5 bg-slate-800 text-slate-400 font-bold text-[10px] rounded-md">OFFLINE</span>';
         }
         html += '</div>';
       }
-
-      html += '<div class="absolute top-3 left-3 flex items-center space-x-2">';
-      html += '<span class="px-2.5 sm:px-3 py-1 bg-black/80 backdrop-blur-md rounded-lg text-[10px] sm:text-xs font-mono font-black text-matrix border border-matrix/40">#1 LÍDER ORGÁNICO</span>';
-      if (isLive) {
-        html += '<span class="px-2.5 sm:px-3 py-1 bg-matrix text-black font-black text-[10px] sm:text-xs rounded-lg tracking-wider animate-pulse shadow-matrix">EN VIVO</span>';
-      }
-      html += '</div></div>';
-
-      html += '<div class="w-full lg:w-2/5 flex flex-col justify-between space-y-4">';
-      html += '<div class="flex items-center space-x-3">';
-      html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(lider.name) + '\\'" src="' + lider.avatar + '" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-matrix object-cover shadow-matrixSoft flex-shrink-0">';
-      html += '<div class="min-w-0">';
-      html += '<h2 class="text-xl sm:text-2xl font-black text-white leading-tight truncate">' + lider.name + '</h2>';
-      html += '<div class="flex flex-wrap items-center gap-1.5 mt-0.5">';
+      html += '<h2 class="text-xl sm:text-3xl font-black text-white leading-tight truncate">' + lider.name + '</h2>';
+      html += '<div class="flex flex-wrap items-center gap-1.5 mt-1">';
       html += '<span class="text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded bg-[#162238] text-slate-300">' + lider.category + '</span>';
       html += '<span class="text-[10px] sm:text-[11px] font-mono text-matrix truncate">' + lider.subtheme + '</span>';
       html += '</div></div></div>';
@@ -1536,35 +1568,53 @@ const HTML_APP = `<!DOCTYPE html>
         const puestoGlobal = canalesData.findIndex(item => item.id === c.id) + 1;
         const isLive = c.isLive;
         const tieneBotAlert = c.botAlert === true;
+        const hasThumb = Boolean(c.thumbnail);
 
         html += '<div class="rounded-2xl bg-[#0b1120] border ' + (tieneBotAlert ? 'border-amber-500/60 shadow-amber-950/40' : 'border-[#162238] hover:border-matrix/40 hover:shadow-matrixSoft') + ' transition-all duration-300 p-4 flex flex-col justify-between group">';
 
-        html += '<div class="relative w-full aspect-video rounded-xl bg-black overflow-hidden mb-3 border border-[#162238]">';
-        if (c.thumbnail) {
-          html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(c.name) + '\\'" src="' + c.thumbnail + '" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="' + c.name + '">';
-        } else {
-          html += '<div class="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-[#0b1120] to-black">';
-          html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(c.name) + '\\'" src="' + c.avatar + '" class="w-12 h-12 rounded-full ' + (isLive ? 'border-2 border-matrix shadow-matrixSoft' : 'opacity-60 border border-[#162238]') + ' mb-2 object-cover">';
+        // Contenedor de Miniatura: Solo se crea si hay thumbnail disponible
+        if (hasThumb) {
+          html += '<div id="thumb-wrap-' + c.id + '" class="relative w-full aspect-video rounded-xl bg-black overflow-hidden mb-3 border border-[#162238]">';
+          html += '<img crossorigin="anonymous" onerror="colapsarThumb(this, \\'' + c.id + '\\')" src="' + c.thumbnail + '" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="' + c.name + '">';
+          html += '<div class="absolute top-2 left-2 flex items-center space-x-1.5">';
+          html += '<span class="px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-[11px] font-mono font-black text-matrix border border-matrix/30">#' + puestoGlobal + '</span>';
           if (isLive) {
-            html += '<span class="text-[10px] text-matrix font-mono font-bold tracking-widest">SEÑAL EN DIRECTO</span>';
-          } else {
-            html += '<span class="text-[10px] text-slate-500 font-mono tracking-widest">OFFLINE</span>';
+            html += '<span class="px-2 py-0.5 rounded-md bg-matrix text-black font-black text-[10px] tracking-wider animate-pulse">EN VIVO</span>';
           }
+          html += '</div>';
+
+          html += '<button onclick="abrirDueloCon(\\'' + c.id + '\\')" class="absolute top-2 right-2 px-2.5 py-1 rounded-md bg-black/80 hover:bg-matrix hover:text-black transition-all text-matrix text-[10px] font-black border border-matrix/30 flex items-center space-x-1">';
+          html += '<span>⚡</span><span>Comparar</span>';
+          html += '</button>';
+
           html += '</div>';
         }
 
-        html += '<div class="absolute top-2 left-2 flex items-center space-x-1.5">';
-        html += '<span class="px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-[11px] font-mono font-black text-matrix border border-matrix/30">#' + puestoGlobal + '</span>';
-        if (isLive) {
-          html += '<span class="px-2 py-0.5 rounded-md bg-matrix text-black font-black text-[10px] tracking-wider animate-pulse">EN VIVO</span>';
-        }
+        // Fila de Encabezado: Avatar + Nombre + Estado
+        html += '<div class="flex items-start space-x-3 mb-3">';
+        html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(c.name) + '\\'" src="' + c.avatar + '" class="w-12 h-12 rounded-full ' + (isLive ? 'border-2 border-matrix shadow-matrixSoft' : 'border border-slate-700 opacity-80') + ' object-cover flex-shrink-0 mt-0.5">';
+        html += '<div class="flex-1 min-w-0">';
+        html += '<div class="flex items-center justify-between gap-1">';
+        html += '<h3 class="text-sm font-bold text-white truncate">' + c.name + '</h3>';
+        html += '<span class="text-[10px] text-slate-400 font-semibold">' + c.category + '</span>';
         html += '</div>';
 
-        html += '<button onclick="abrirDueloCon(\\'' + c.id + '\\')" class="absolute top-2 right-2 px-2.5 py-1 rounded-md bg-black/80 hover:bg-matrix hover:text-black transition-all text-matrix text-[10px] font-black border border-matrix/30 flex items-center space-x-1">';
+        // Badges alternativos en línea si no hay foto o si se colapsó por error
+        html += '<div id="fallback-badges-' + c.id + '" class="flex items-center space-x-2 my-1 ' + (hasThumb ? 'hidden' : '') + '">';
+        html += '<span class="px-2 py-0.5 rounded-md bg-black/80 text-[10px] font-mono font-black text-matrix border border-matrix/30">#' + puestoGlobal + '</span>';
+        if (isLive) {
+          html += '<span class="px-2 py-0.5 rounded-md bg-matrix text-black font-black text-[9px] tracking-wider animate-pulse">EN VIVO</span>';
+        } else {
+          html += '<span class="px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 font-bold text-[9px]">OFFLINE</span>';
+        }
+        html += '<button onclick="abrirDueloCon(\\'' + c.id + '\\')" class="ml-auto px-2 py-0.5 rounded-md bg-black/60 hover:bg-matrix hover:text-black transition-all text-matrix text-[10px] font-black border border-matrix/30 flex items-center space-x-1">';
         html += '<span>⚡</span><span>Comparar</span>';
         html += '</button>';
-
         html += '</div>';
+
+        html += '<p class="text-[11px] text-matrix font-mono truncate">' + c.subtheme + '</p>';
+        html += '<p class="text-xs text-slate-400 truncate mt-0.5">' + c.title + '</p>';
+        html += '</div></div>';
 
         if (tieneBotAlert) {
           html += '<div class="mb-3 px-3 py-1.5 rounded-lg bg-amber-950/40 border border-amber-500/50 flex items-start space-x-2">';
@@ -1573,17 +1623,6 @@ const HTML_APP = `<!DOCTYPE html>
           html += '<strong class="font-bold text-amber-300">Alerta de Tráfico No Orgánico:</strong> Métrica bajo auditoría heurística. Datos desacoplados del liderazgo general.';
           html += '</div></div>';
         }
-
-        html += '<div class="flex items-start space-x-3 mb-3">';
-        html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(c.name) + '\\'" src="' + c.avatar + '" class="w-10 h-10 rounded-full border border-slate-700 object-cover flex-shrink-0 mt-0.5">';
-        html += '<div class="flex-1 min-w-0">';
-        html += '<div class="flex items-center justify-between">';
-        html += '<h3 class="text-sm font-bold text-white truncate">' + c.name + '</h3>';
-        html += '<span class="text-[10px] text-slate-400 font-semibold">' + c.category + '</span>';
-        html += '</div>';
-        html += '<p class="text-[11px] text-matrix font-mono truncate">' + c.subtheme + '</p>';
-        html += '<p class="text-xs text-slate-400 truncate mt-0.5">' + c.title + '</p>';
-        html += '</div></div>';
 
         html += '<div class="flex items-end justify-between bg-black/30 rounded-xl p-2.5 mb-3 border border-[#162238]">';
         html += '<div><span class="text-[10px] uppercase font-mono text-slate-400">Total Viewers</span></div>';
@@ -1659,13 +1698,11 @@ const HTML_APP = `<!DOCTYPE html>
       if (canalId !== 'todos') {
         const canal = canalesData.find(c => c.id === canalId);
         if (canal) {
-          // Lista oficial configurada en backend
           if (canal.programas && Array.isArray(canal.programas)) {
             canal.programas.forEach(prog => {
               opts += '<option value="' + prog.replace(/"/g, '&quot;') + '">' + prog + '</option>';
             });
           }
-          // Si está en vivo con un título específico no listado, agregarlo
           if (canal.title && canal.title !== 'Transmisión finalizada' && canal.title !== 'Sincronizando señal en vivo...' && (!canal.programas || !canal.programas.includes(canal.title))) {
             opts += '<option value="' + canal.title.replace(/"/g, '&quot;') + '">🔴 ' + canal.title + '</option>';
           }
@@ -1798,7 +1835,6 @@ const HTML_APP = `<!DOCTYPE html>
 
       if (!canalA || !canalB) return;
 
-      // Determinar nombre del programa protagonista
       const progA = canalA.isLive && canalA.title && canalA.title !== 'Transmisión en directo' && canalA.title !== 'Transmitiendo en directo'
         ? canalA.title
         : (canalA.programas && canalA.programas.length ? canalA.programas[0] : canalA.subtheme || canalA.name);
