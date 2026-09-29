@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 10000;
 const ACCESS_TOKEN_SECRET = (process.env.STREAMRANK_ACCESS_TOKEN || 'STREAMRANK2026').trim();
 
 // ============================================================================
-// CONEXIÓN DIRECTA A TURSO DB (@libsql/client/web, PROTOCOLO libsql:// Y SQL PURO)
+// CONEXIÓN DIRECTA A TURSO DB (@libsql/client/web CON PROTOCOLO libsql://)
 // ============================================================================
 const rawUrl = (process.env.TURSO_DATABASE_URL || '').trim();
 const tursoUrl = rawUrl ? (rawUrl.startsWith('libsql://') ? rawUrl : rawUrl.replace(/^https?:\/\//, 'libsql://')) : null;
@@ -26,22 +26,7 @@ const db = (tursoUrl && tursoAuthToken)
     })
   : null;
 
-const initTurso = async () => {
-  if (!db) {
-    console.log('[Turso DB] Modo sin credenciales en la nube. Operando con memoria local.');
-    return;
-  }
-  try {
-    await db.execute({
-      sql: 'CREATE TABLE IF NOT EXISTS metrics_history (id INTEGER PRIMARY KEY AUTOINCREMENT, channel_id TEXT, channel_name TEXT, viewers INTEGER, program_name TEXT, is_live INTEGER, bot_alert INTEGER DEFAULT 0, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)',
-      args: []
-    });
-    console.log('[Turso DB] Tabla metrics_history inicializada con SQL directo.');
-  } catch (err) {
-    console.error('[Turso DB Error] initTurso:', err.message);
-  }
-};
-
+// Inserción directa sin gestores de esquemas
 const saveMetricToTurso = async (channelId, channelName, viewers, programName, isLive, botAlert) => {
   if (!db) return;
   try {
@@ -57,7 +42,7 @@ const saveMetricToTurso = async (channelId, channelName, viewers, programName, i
       ]
     });
   } catch (err) {
-    console.error(`[Turso DB Error] Guardando métrica de ${channelId}:`, err.message);
+    console.error(`[Turso DB Error] ${channelId}:`, err.message);
   }
 };
 
@@ -74,7 +59,6 @@ const cleanupOldMetrics = async () => {
   }
 };
 
-initTurso();
 setInterval(cleanupOldMetrics, 24 * 60 * 60 * 1000);
 
 // ============================================================================
@@ -676,7 +660,7 @@ const evaluarAnomaliaTrafico = (canal, totalViewers) => {
   const historial = historialLecturas.get(canal.id) || [];
   
   historial.push({ viewers: totalViewers, time: ahora });
-  if (historial.length > 3) historial.shift();
+  if (historial.length > 3) historial.shift(); // Mantiene las 3 últimas muestras
   historialLecturas.set(canal.id, historial);
 
   if (!totalViewers || totalViewers < 2000) {
@@ -876,7 +860,7 @@ app.get('/api/validate-token', (req, res) => {
   return res.status(403).json({ valid: false, error: 'Token de acceso no válido.' });
 });
 
-// Endpoint oficial de exportación CSV (Data Room B2B con validación de token y headers institucionales)
+// Endpoint oficial de exportación CSV (Data Room B2B con validación de token)
 app.get('/api/export-csv', async (req, res) => {
   const token = (req.query.token || '').trim();
   if (token !== ACCESS_TOKEN_SECRET) {
@@ -968,7 +952,7 @@ app.get('/api/export-csv', async (req, res) => {
 });
 
 // ============================================================================
-// FRONTEND SERVIDO EN GET / (GEO, SEO, OPEN GRAPH, JSON-LD Y RESPONSIVE)
+// FRONTEND SERVIDO EN GET /
 // ============================================================================
 const HTML_APP = `<!DOCTYPE html>
 <html lang="es-AR" class="dark">
@@ -1043,7 +1027,7 @@ const HTML_APP = `<!DOCTYPE html>
             "category": "Entretenimiento"
           },
           {
-            "@type": "OLGA",
+            "@type": "DataFeedItem",
             "name": "OLGA",
             "category": "Entretenimiento"
           },
@@ -1150,11 +1134,11 @@ const HTML_APP = `<!DOCTYPE html>
     </div>
   </header>
 
-  <!-- CONTENIDO PRINCIPAL: COMIENZA DE INMEDIATO SIN BANNER HERO GIGANTE -->
+  <!-- CONTENIDO PRINCIPAL -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-5">
     
     <!-- TITULO PRINCIPAL & BAJADA CLARA -->
-    <section class="text-center sm:text-left space-y-1.5 pt-1 sm:pt-2">
+    <section class="text-center sm:text-left space-y-1.5 pt-2">
       <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-matrix/10 border border-matrix/40 text-matrix text-[11px] font-mono font-bold tracking-wider">
         <span class="w-2 h-2 rounded-full bg-matrix animate-ping"></span>
         <span>DATOS OFICIALES EN TIEMPO REAL</span>
@@ -1670,13 +1654,13 @@ const HTML_APP = `<!DOCTYPE html>
 
       if (plat && plat.isLive) {
         if (tipo === 'yt') {
-          estilo = 'text-red-400 border-red-500/40 bg-red-950/20';
+          estilo = 'text-red-400 border-red-500/40 bg-red-950/30';
           iconColor = 'text-[#FF0000]';
         } else if (tipo === 'tw') {
-          estilo = 'text-purple-300 border-purple-500/40 bg-purple-950/20';
+          estilo = 'text-purple-300 border-purple-500/40 bg-purple-950/30';
           iconColor = 'text-[#9146FF]';
         } else if (tipo === 'ki') {
-          estilo = 'text-emerald-400 border-[#53FC18]/40 bg-emerald-950/20';
+          estilo = 'text-emerald-400 border-[#53FC18]/40 bg-emerald-950/30';
           iconColor = 'text-[#53FC18]';
         }
         valor = formatBadgeNum(plat.viewers);
@@ -1686,14 +1670,14 @@ const HTML_APP = `<!DOCTYPE html>
 
       const svgIcon = document.getElementById('svg-' + tipo).outerHTML;
 
-      return '<div class="flex items-center space-x-1 px-1.5 py-0.5 rounded-md border shrink-0 ' + estilo + '">' +
+      return '<div class="flex items-center space-x-1.5 px-2 py-1 rounded-md border shrink-0 ' + estilo + '">' +
         '<div class="w-3.5 h-3.5 shrink-0 ' + iconColor + '">' + svgIcon + '</div>' +
-        '<span class="text-[9px] font-mono font-bold leading-none">' + valor + '</span>' +
+        '<span class="text-[10px] font-mono font-bold leading-none">' + valor + '</span>' +
       '</div>';
     };
 
     // ========================================================================
-    // GRILLA RESPONSIVE CON BOTÓN "VS" Y LAYOUT FLUIDO (SIN CORTAR KICK)
+    // GRILLA RESPONSIVE CON FILA INFERIOR EN 2 NIVELES (KICK SIEMPRE VISIBLE)
     // ========================================================================
     const renderizarGrilla = () => {
       const container = document.getElementById('channels-grid');
@@ -1723,27 +1707,27 @@ const HTML_APP = `<!DOCTYPE html>
         const tieneBotShield = c.bot_shield === true;
         const esTopVisible = (index === 0 && isLive);
 
-        let borderClass = 'border border-slate-700/70 sm:border-[#162238] hover:border-matrix/40 hover:shadow-matrixSoft';
+        let borderClass = 'border border-slate-700/80 sm:border-[#162238] hover:border-matrix/40 hover:shadow-matrixSoft';
         if (tieneBotShield) {
           borderClass = 'border-2 border-amber-500/80 shadow-amber-950/40 bg-gradient-to-b from-[#1c120c] to-[#0b1120]';
         } else if (esTopVisible) {
           borderClass = 'border-2 border-amber-400/90 shadow-goldGlow bg-gradient-to-b from-[#0b1329] to-[#0b1120]';
         }
 
-        html += '<div class="w-full rounded-2xl bg-[#0b1120] ' + borderClass + ' shadow-md shadow-black/40 transition-all duration-300 p-3.5 sm:p-4 flex flex-col justify-between min-h-[220px] h-auto sm:h-[225px] group relative">';
+        html += '<div class="w-full rounded-2xl bg-[#0b1120] ' + borderClass + ' shadow-lg shadow-black/60 transition-all duration-300 p-4 flex flex-col justify-between min-h-[225px] h-auto group relative">';
 
-        // Fila 1: Avatar, Nombre, Puesto e Insignia #1
-        html += '<div class="flex items-start justify-between gap-2">';
-        html += '<div class="flex items-center space-x-2.5 sm:space-x-3 min-w-0">';
-        html += '<img crossorigin="anonymous" onerror="this.onerror=null; this.src=getFallbackAvatar(\\'' + c.name.replace(/'/g, "\\\\'") + '\\')" src="' + c.avatar + '" class="w-11 h-11 rounded-full ' + (esTopVisible ? 'border-2 border-amber-400 shadow-goldGlow' : (isLive ? 'border-2 border-matrix shadow-matrixSoft' : 'border border-slate-700 opacity-80')) + ' object-cover flex-shrink-0">';
-        html += '<div class="min-w-0">';
-        html += '<h3 class="text-sm font-bold text-white truncate">' + c.name + '</h3>';
-        html += '<span class="text-[10px] text-slate-400 font-semibold">' + c.category + '</span>';
+        // Fila 1: Avatar + Nombre con min-w-0 flex-1 para no truncar prematuramente
+        html += '<div class="flex items-center justify-between gap-2 mb-2">';
+        html += '<div class="flex items-center space-x-2.5 min-w-0 flex-1">';
+        html += '<img crossorigin="anonymous" onerror="this.onerror=null; this.src=getFallbackAvatar(\\'' + c.name.replace(/'/g, "\\\\'") + '\\')" src="' + c.avatar + '" class="w-11 h-11 rounded-full ' + (esTopVisible ? 'border-2 border-amber-400 shadow-goldGlow' : (isLive ? 'border-2 border-matrix shadow-matrixSoft' : 'border border-slate-700 opacity-80')) + ' object-cover shrink-0">';
+        html += '<div class="min-w-0 flex-1">';
+        html += '<h3 class="text-sm font-bold text-white truncate leading-tight">' + c.name + '</h3>';
+        html += '<span class="text-[10px] text-slate-400 font-semibold block truncate">' + c.category + '</span>';
         html += '</div></div>';
 
-        html += '<div class="flex items-center space-x-1.5 flex-shrink-0">';
+        html += '<div class="flex items-center space-x-1.5 shrink-0">';
         if (esTopVisible) {
-          html += '<span class="px-2 py-0.5 rounded-md bg-amber-400/20 text-amber-300 font-mono font-black text-[10px] border border-amber-400/60 shadow-goldGlow">#1 LÍDER 👑</span>';
+          html += '<span class="px-2 py-0.5 rounded-md bg-amber-400/20 text-amber-300 font-mono font-black text-[10px] border border-amber-400/60 shadow-goldGlow whitespace-nowrap">#1 👑</span>';
         } else {
           html += '<span class="px-2 py-0.5 rounded-md bg-black/80 text-[11px] font-mono font-black text-matrix border border-matrix/30">#' + puestoGlobal + '</span>';
         }
@@ -1756,7 +1740,7 @@ const HTML_APP = `<!DOCTYPE html>
         html += '</div></div>';
 
         // Fila 2: Programa emitido o Alerta Bot Shield
-        html += '<div class="my-auto py-1">';
+        html += '<div class="my-auto py-1.5">';
         if (tieneBotShield) {
           html += '<div class="px-2.5 py-1.5 rounded-lg bg-amber-950/70 border border-amber-500/70 text-[10px] text-amber-200 leading-tight flex items-center space-x-1.5">';
           html += '<span class="shrink-0 text-sm">🛡️</span>';
@@ -1768,28 +1752,27 @@ const HTML_APP = `<!DOCTYPE html>
         }
         html += '</div>';
 
-        // Fila 3: Conteo de Viewers, Plataformas y Botón VS (Separación perfecta sin recortar Kick)
-        html += '<div class="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-1.5 sm:gap-2">';
+        // Fila 3: Estructura en 2 niveles (Línea A: Espectadores y VS; Línea B: Badges holgados sin recortar Kick)
+        html += '<div class="pt-2 border-t border-slate-800/80 space-y-2">';
         
-        // Bloque de Datos (Espectadores + Badges)
-        html += '<div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 overflow-hidden">';
-        html += '<div class="shrink-0 min-w-[65px]">';
-        html += '<span class="text-[9px] uppercase font-mono text-slate-400 block leading-tight">Espectadores</span>';
-        html += '<span class="text-base sm:text-lg font-black font-mono leading-tight ' + (tieneBotShield ? 'text-amber-400' : (isLive ? 'text-matrix matrix-glow' : 'text-slate-500')) + '">' + formatNum(c.totalViewers) + '</span>';
+        // Línea A: Espectadores y botón VS
+        html += '<div class="flex items-center justify-between gap-2">';
+        html += '<div class="flex items-baseline space-x-1.5 min-w-0">';
+        html += '<span class="text-[9px] uppercase font-mono text-slate-400">Espectadores:</span>';
+        html += '<span class="text-base sm:text-lg font-black font-mono leading-none ' + (tieneBotShield ? 'text-amber-400' : (isLive ? 'text-matrix matrix-glow' : 'text-slate-500')) + '">' + formatNum(c.totalViewers) + '</span>';
         html += '</div>';
 
-        // Contenedor de Badges con shrink-0 (YouTube, Twitch, Kick siempre visibles)
-        html += '<div class="flex items-center gap-1 sm:gap-1.5 shrink-0">';
+        html += '<button onclick="abrirDueloCon(\\'' + c.id + '\\')" class="px-3 py-1 rounded-lg bg-black/80 hover:bg-matrix hover:text-black transition-all text-matrix font-black text-xs border border-matrix/50 shadow-matrixSoft shrink-0" title="Duelo Versus">';
+        html += 'VS';
+        html += '</button>';
+        html += '</div>';
+
+        // Línea B: Badges de plataformas con flex-wrap y gap holgado
+        html += '<div class="flex items-center gap-1.5 flex-wrap">';
         html += renderizarPlataformaBadge('yt', c.platforms.youtube);
         html += renderizarPlataformaBadge('tw', c.platforms.twitch);
         html += renderizarPlataformaBadge('ki', c.platforms.kick);
         html += '</div>';
-        html += '</div>';
-
-        // Botón VS a la derecha con ancho fijo shrink-0
-        html += '<button onclick="abrirDueloCon(\\'' + c.id + '\\')" class="px-2.5 py-1.5 rounded-lg bg-black/80 hover:bg-matrix hover:text-black transition-all text-matrix font-black text-xs border border-matrix/40 shadow-matrixSoft shrink-0 ml-auto" title="Duelo Versus">';
-        html += 'VS';
-        html += '</button>';
 
         html += '</div>';
 
@@ -1798,7 +1781,7 @@ const HTML_APP = `<!DOCTYPE html>
 
       // TARJETA DE POSTULACIÓN DE CANAL (CTA CARD EN CATEGORÍA EMERGENTES O GENERAL)
       if (solapaActiva === 'Emergentes' || solapaActiva === 'Todos') {
-        html += '<div class="w-full rounded-2xl bg-gradient-to-br from-[#0c1527] to-[#050811] border-2 border-dashed border-matrix/40 p-4 flex flex-col justify-between min-h-[220px] h-auto sm:h-[225px] text-center shadow-matrixSoft">';
+        html += '<div class="w-full rounded-2xl bg-gradient-to-br from-[#0c1527] to-[#050811] border-2 border-dashed border-matrix/40 p-4 flex flex-col justify-between min-h-[225px] h-auto text-center shadow-matrixSoft">';
         html += '<div class="space-y-1.5 my-auto">';
         html += '<span class="text-2xl">📡</span>';
         html += '<h4 class="text-sm font-black text-white leading-snug">¿Tenés un canal y querés aparecer en StreamRank?</h4>';
