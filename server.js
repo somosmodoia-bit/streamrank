@@ -284,7 +284,7 @@ const CHANNELS = [
 const historicalSnapshots = [];
 const MAX_HISTORICAL_RECORDS = 50000;
 
-// Inicialización de arranque inmediato (sin bloqueos HTTP)
+// Inicialización de arranque rápido: el servidor sirve la web de inmediato
 let telemetriaCache = CHANNELS.map((canal) => ({
   id: canal.id,
   name: canal.name,
@@ -336,7 +336,7 @@ const getBuenosAiresTime = () => {
 // ============================================================================
 // MOTOR DE SCRAPING CON TIMEOUT SEGURO
 // ============================================================================
-const fetchConTimeout = async (url, opciones = {}, ms = 2000) => {
+const fetchConTimeout = async (url, opciones = {}, ms = 2500) => {
   const controlador = new AbortController();
   const id = setTimeout(() => controlador.abort(), ms);
   try {
@@ -350,7 +350,7 @@ const fetchConTimeout = async (url, opciones = {}, ms = 2000) => {
 };
 
 // ============================================================================
-// YOUTUBE SCRAPER CANÓNICO: AISLAMIENTO ABSOLUTO Y CERO CONTAMINACIÓN
+// YOUTUBE SCRAPER: REDIRECTS, BYPASS DE CONSENTIMIENTO Y EXTRACCIÓN ROBUSTA
 // ============================================================================
 const scrapeYouTube = async (handle) => {
   if (!handle) return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
@@ -359,44 +359,62 @@ const scrapeYouTube = async (handle) => {
     const res = await fetchConTimeout(
       url,
       {
+        redirect: 'follow',
         headers: {
           'User-Agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-          'Accept-Language': 'es-419,es;q=0.9,en;q=0.8'
+          'Accept':
+            'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+          'Accept-Language': 'es-419,es;q=0.9,en;q=0.8',
+          'Cookie': 'SOCS=CAESEwgDEgk0ODE3Nzk3MjQaAmVuIAEaBgiA_LyaBg; CONSENT=YES+'
         }
       },
-      2000
+      2500
     );
 
     if (!res.ok) return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
 
+    // 1. Obtener URL final tras seguir redirecciones HTTP 302/303
+    let videoId = '';
+    const finalUrl = res.url || '';
+    if (finalUrl.includes('watch?v=')) {
+      const urlMatch = finalUrl.match(/watch\?v=([a-zA-Z0-9_-]{11})/);
+      if (urlMatch) videoId = urlMatch[1];
+    }
+
     const html = await res.text();
 
-    // 1. Extraer videoId ÚNICAMENTE de etiquetas meta / canónicas del header
-    // Cuando el canal está en vivo en /live, YouTube redirige y coloca watch?v= en la canónica.
-    // Si no está transmitiendo, la canónica apunta al perfil @handle sin watch?v=.
-    const canonicalMatch = html.match(/<link\s+rel="canonical"\s+href="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/i) ||
-                           html.match(/<meta\s+property="og:url"\s+content="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/i) ||
-                           html.match(/<meta\s+itemprop="videoId"\s+content="([a-zA-Z0-9_-]{11})"/i);
+    // 2. Si no provino de la URL final, buscar en tags canónicos y meta
+    if (!videoId) {
+      const canonicalMatch =
+        html.match(/<link\s+rel="canonical"\s+href="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/i) ||
+        html.match(/<meta\s+property="og:url"\s+content="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/i) ||
+        html.match(/<meta\s+itemprop="videoId"\s+content="([a-zA-Z0-9_-]{11})"/i) ||
+        html.match(/"liveStreamabilityRenderer":\s*\{\s*"videoId":\s*"([a-zA-Z0-9_-]{11})"/);
+      if (canonicalMatch && canonicalMatch[1]) {
+        videoId = canonicalMatch[1];
+      }
+    }
 
-    if (!canonicalMatch || !canonicalMatch[1]) {
+    // Si la URL canónica no apunta a un video en watch?v=, el canal está fuera del aire
+    if (!videoId) {
       return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
     }
 
-    const videoId = canonicalMatch[1];
-
-    // 2. Descartar si es estreno programado o emisión futura (UPCOMING)
-    const isUpcoming = /"status":\s*"UPCOMING"/i.test(html) || 
-                       /\\"status\\":\s*\\"UPCOMING\\"/i.test(html) ||
-                       html.includes('"upcomingEventData"');
+    // 3. Descartar si es estreno programado o emisión futura (UPCOMING)
+    const isUpcoming =
+      /"status":\s*"UPCOMING"/i.test(html) ||
+      /\\"status\\":\s*\\"UPCOMING\\"/i.test(html) ||
+      html.includes('"upcomingEventData"');
     if (isUpcoming) {
       return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
     }
 
-    // 3. Extraer título exclusivo del stream actual desde los metadatos de cabecera
+    // 4. Extraer título exclusivo del directo actual
     let title = '';
-    const metaTitle = html.match(/<meta\s+name="title"\s+content="([^"]*)"/i) ||
-                      html.match(/<meta\s+property="og:title"\s+content="([^"]*)"/i);
+    const metaTitle =
+      html.match(/<meta\s+name="title"\s+content="([^"]*)"/i) ||
+      html.match(/<meta\s+property="og:title"\s+content="([^"]*)"/i);
     if (metaTitle && metaTitle[1]) {
       title = metaTitle[1];
     } else {
@@ -410,14 +428,17 @@ const scrapeYouTube = async (handle) => {
       return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
     }
 
-    // 4. Extraer Viewers Concurrentes reales
+    // 5. Extraer Viewers Concurrentes
     let viewers = 0;
-    const concurrentMatch = html.match(/"concurrentViewers":\s*"(\d+)"/) || 
-                            html.match(/\\"concurrentViewers\\":\s*\\"(\d+)\\"/);
-    const originalViewMatch = html.match(/"originalViewCount":\s*"(\d+)"/) ||
-                              html.match(/\\"originalViewCount\\":\s*\\"(\d+)\\"/);
-    const viewRunsMatch = html.match(/"viewCount":\s*\{\s*"runs":\s*\[\s*\{\s*"text":\s*"([^"]+)"/) || 
-                          html.match(/\\"viewCount\\":\s*\{\s*\\"runs\\":\s*\[\s*\{\s*\\"text\\":\s*\\"([^"\\]+)\\"/);
+    const concurrentMatch =
+      html.match(/"concurrentViewers":\s*"(\d+)"/) ||
+      html.match(/\\"concurrentViewers\\":\s*\\"(\d+)\\"/);
+    const originalViewMatch =
+      html.match(/"originalViewCount":\s*"(\d+)"/) ||
+      html.match(/\\"originalViewCount\\":\s*\\"(\d+)\\"/);
+    const viewRunsMatch =
+      html.match(/"viewCount":\s*\{\s*"runs":\s*\[\s*\{\s*"text":\s*"([^"]+)"/) ||
+      html.match(/\\"viewCount\\":\s*\{\s*\\"runs\\":\s*\[\s*\{\s*\\"text\\":\s*\\"([^"\\]+)\\"/);
 
     if (concurrentMatch) {
       viewers = parseInt(concurrentMatch[1], 10) || 0;
@@ -428,16 +449,18 @@ const scrapeYouTube = async (handle) => {
       viewers = parseInt(limpio, 10) || 0;
     }
 
-    // 5. Criterio de En Vivo real y confirmado
-    const hasLiveSignal = /"isLive":\s*true/i.test(html) ||
-                          /\\"isLive\\":\s*true/i.test(html) ||
-                          /"isLiveBroadcast":\s*true/i.test(html) ||
-                          /\\"isLiveBroadcast\\":\s*true/i.test(html) ||
-                          /"isLiveNow":\s*true/i.test(html) ||
-                          /\\"isLiveNow\\":\s*true/i.test(html) ||
-                          (viewers > 20);
+    // 6. Validación de En Vivo real y confirmado
+    const hasLiveSignal =
+      viewers > 20 ||
+      /"isLive":\s*true/i.test(html) ||
+      /\\"isLive\\":\s*true/i.test(html) ||
+      /"isLiveBroadcast":\s*true/i.test(html) ||
+      /\\"isLiveBroadcast\\":\s*true/i.test(html) ||
+      /"isLiveNow":\s*true/i.test(html) ||
+      /\\"isLiveNow\\":\s*true/i.test(html);
 
     if (hasLiveSignal && viewers > 5) {
+      console.log(`[YouTube] ${handle}: EN VIVO con ${viewers} viewers (ID: ${videoId})`);
       return {
         isLive: true,
         viewers,
