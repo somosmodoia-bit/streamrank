@@ -1,10 +1,58 @@
 import express from 'express';
+import { createClient } from '@libsql/client';
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
 // ============================================================================
-// CONFIGURACIÓN DE CANALES CON METADATOS, PROGRAMAS Y LÍMITES HEURÍSTICOS
+// CONEXIÓN A TURSO DB Y RETENCIÓN (2 AÑOS)
+// ============================================================================
+const db = (process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN)
+  ? createClient({
+      url: process.env.TURSO_DATABASE_URL,
+      authToken: process.env.TURSO_AUTH_TOKEN
+    })
+  : null;
+
+const initDb = async () => {
+  if (!db) {
+    console.log('[Turso DB] Modo sin credenciales en la nube. Operando con memoria local.');
+    return;
+  }
+  try {
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS metrics_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        channel_id TEXT,
+        channel_name TEXT,
+        viewers INTEGER,
+        program_name TEXT,
+        is_live INTEGER,
+        bot_alert INTEGER DEFAULT 0,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('[Turso DB] Tabla metrics_history inicializada y verificada.');
+  } catch (err) {
+    console.error('[Turso DB Error] init:', err.message);
+  }
+};
+
+const cleanupOldMetrics = async () => {
+  if (!db) return;
+  try {
+    const res = await db.execute(`DELETE FROM metrics_history WHERE timestamp < datetime('now', '-2 years')`);
+    console.log(`[Turso DB] Limpieza automática de retención (2 años): ${res.rowsAffected} registros depurados.`);
+  } catch (err) {
+    console.error('[Turso DB Error] cleanup:', err.message);
+  }
+};
+
+initDb();
+setInterval(cleanupOldMetrics, 24 * 60 * 60 * 1000); // Chequeo diario
+
+// ============================================================================
+// CONFIGURACIÓN DE CANALES CON METADATOS Y PROGRAMAS OFICIALES
 // ============================================================================
 const CHANNELS = [
   // Entretenimiento / Medios
@@ -305,12 +353,11 @@ const CHANNELS = [
 ];
 
 // ============================================================================
-// PERSISTENCIA HISTÓRICA EN MEMORIA (MOTOR ANALÍTICO PARA AUDITORÍA)
+// MEMORIA EN TIEMPO REAL & RETENCIÓN DE MUESTRAS
 // ============================================================================
 const historicalSnapshots = [];
 const MAX_HISTORICAL_RECORDS = 50000;
 
-// Inicialización de arranque rápido: el servidor sirve la web de inmediato
 let telemetriaCache = CHANNELS.map((canal) => ({
   id: canal.id,
   name: canal.name,
@@ -323,7 +370,8 @@ let telemetriaCache = CHANNELS.map((canal) => ({
   totalViewers: 0,
   title: 'Sincronizando señal en vivo...',
   thumbnail: null,
-  botAlert: false,
+  bot_shield: false,
+  bot_alert: 0,
   botReason: null,
   decoupled: false,
   platforms: {
@@ -336,9 +384,8 @@ let telemetriaCache = CHANNELS.map((canal) => ({
 
 let ultimaActualizacion = null;
 let estaScrapeando = false;
-const historialLecturas = new Map();
+const historialLecturas = new Map(); // canalId -> [{ viewers, time }]
 
-// Helper de Fecha y Hora en zona horaria Buenos Aires (America/Argentina/Buenos_Aires)
 const getBuenosAiresTime = () => {
   const now = new Date();
   const dateStr = now.toLocaleDateString('es-AR', {
@@ -360,9 +407,6 @@ const getBuenosAiresTime = () => {
   };
 };
 
-// ============================================================================
-// MOTOR DE SCRAPING CON TIMEOUT DE RED ROBUSTO (6000 MS)
-// ============================================================================
 const fetchConTimeout = async (url, opciones = {}, ms = 6000) => {
   const controlador = new AbortController();
   const id = setTimeout(() => controlador.abort(), ms);
@@ -376,13 +420,10 @@ const fetchConTimeout = async (url, opciones = {}, ms = 6000) => {
   }
 };
 
-// ============================================================================
-// MAP DE PERSISTENCIA DE MINIATURAS (EVITA CAMBIOS Y PARPADEOS)
-// ============================================================================
 const lastThumbnails = new Map();
 
 // ============================================================================
-// YOUTUBE SCRAPER: EXTRACCIÓN UNIVERSAL DE VIDEOID Y MINIATURA EN VIVO
+// YOUTUBE SCRAPER: AISLAMIENTO CANÓNICO Y TIEMPO DE RESPUESTA
 // ============================================================================
 const scrapeYouTube = async (handle) => {
   if (!handle) return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: null };
@@ -406,7 +447,6 @@ const scrapeYouTube = async (handle) => {
 
     if (!res.ok) return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: null };
 
-    // 1. Obtener videoId si provino de la URL final tras redirección HTTP
     let videoId = '';
     const finalUrl = res.url || '';
     if (finalUrl.includes('watch?v=')) {
@@ -416,7 +456,6 @@ const scrapeYouTube = async (handle) => {
 
     const html = await res.text();
 
-    // 2. Extracción exhaustiva de videoId en metadatos y endpoints de YouTube
     if (!videoId) {
       const currentEndpointMatch = html.match(/"currentVideoEndpoint":\s*\{\s*"watchEndpoint":\s*\{\s*"videoId":\s*"([a-zA-Z0-9_-]{11})"/i) ||
                                    html.match(/\\"currentVideoEndpoint\\":\s*\{\s*\\"watchEndpoint\\":\s*\{\s*\\"videoId\\":\s*\\"([a-zA-Z0-9_-]{11})\\"/i);
@@ -437,7 +476,6 @@ const scrapeYouTube = async (handle) => {
       else if (canMatch && canMatch[1]) videoId = canMatch[1];
     }
 
-    // 3. Descartar si el HTML contiene UPCOMING o evento futuro programado
     const isUpcoming =
       /"status":\s*"UPCOMING"/i.test(html) ||
       /\\"status\\":\s*\\"UPCOMING\\"/i.test(html) ||
@@ -447,7 +485,6 @@ const scrapeYouTube = async (handle) => {
       return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: null };
     }
 
-    // 4. Extraer Viewers Concurrentes en todo el HTML con soporte de strings escapados
     const concurrentMatch =
       html.match(/"concurrentViewers":\s*"(\d+)"/) ||
       html.match(/\\"concurrentViewers\\":\s*\\"(\d+)\\"/);
@@ -461,12 +498,8 @@ const scrapeYouTube = async (handle) => {
     let viewers = 0;
     if (concurrentMatch) viewers = parseInt(concurrentMatch[1], 10);
     else if (originalViewMatch) viewers = parseInt(originalViewMatch[1], 10);
-    else if (viewRunsMatch && viewRunsMatch[1]) {
-      const limpio = viewRunsMatch[1].replace(/[^0-9]/g, '');
-      viewers = parseInt(limpio, 10) || 0;
-    }
+    else if (viewRunsMatch) viewers = parseInt(viewRunsMatch[1].replace(/[^0-9]/g, ''), 10) || 0;
 
-    // 5. Validar si está en vivo
     const hasLiveSignal =
       viewers > 20 ||
       /"isLive":\s*true/i.test(html) ||
@@ -480,7 +513,6 @@ const scrapeYouTube = async (handle) => {
       return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: null };
     }
 
-    // 6. Extraer título
     let title = '';
     const metaTitle =
       html.match(/<meta\s+name="title"\s+content="([^"]*)"/i) ||
@@ -498,7 +530,6 @@ const scrapeYouTube = async (handle) => {
       return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: null };
     }
 
-    // 7. Asignación y persistencia de miniatura en vivo
     let thumbnail = videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null;
 
     if (!thumbnail && lastThumbnails.has(handle)) {
@@ -521,7 +552,7 @@ const scrapeYouTube = async (handle) => {
   }
 };
 
-// Twitch GQL Scraper (Público, sin API keys)
+// Twitch GQL Scraper (Público)
 const scrapeTwitch = async (login) => {
   if (!login) return { isLive: false, viewers: 0, title: '', thumbnail: null };
   try {
@@ -567,7 +598,7 @@ const scrapeTwitch = async (login) => {
   }
 };
 
-// Kick API v2 Scraper (Público, sin API keys)
+// Kick API v2 Scraper (Público)
 const scrapeKick = async (slug) => {
   if (!slug) return { isLive: false, viewers: 0, title: '', thumbnail: null };
   try {
@@ -604,46 +635,57 @@ const scrapeKick = async (slug) => {
 };
 
 // ============================================================================
-// MOTOR HEURÍSTICO DE ANOMALÍAS Y TRÁFICO ARTIFICIAL (BOTS)
+// DETECCIÓN PREVENTIVA DE BOTS (ALERTA DE TRÁFICO EXTERNO / BOT SHIELD)
 // ============================================================================
 const evaluarAnomaliaTrafico = (canal, totalViewers) => {
+  const ahora = Date.now();
   const historial = historialLecturas.get(canal.id) || [];
   
-  historial.push(totalViewers);
-  if (historial.length > 10) historial.shift();
+  // Guardamos las últimas muestras en memoria con timestamp
+  historial.push({ viewers: totalViewers, time: ahora });
+  if (historial.length > 3) historial.shift(); // Mantenemos estrictamente las últimas 3 muestras
   historialLecturas.set(canal.id, historial);
 
-  if (!totalViewers || totalViewers < 2500) {
-    return { botAlert: false, reason: null, decoupled: false };
+  if (!totalViewers || totalViewers < 2000) {
+    return { bot_shield: false, bot_alert: 0, reason: null, decoupled: false };
   }
 
-  if (canal.baselineMax && totalViewers > canal.baselineMax * 2.8) {
-    return {
-      botAlert: true,
-      reason: `Pico desproporcionado (+${Math.round((totalViewers / canal.baselineMax) * 100)}% de baseline)`,
-      decoupled: true
-    };
-  }
+  // Análisis de aceleración atípica en las últimas 3 muestras (en < 3 minutos)
+  if (historial.length >= 2) {
+    const anterior = historial[historial.length - 2];
+    const deltaViewers = totalViewers - anterior.viewers;
+    const porcentajeSalto = anterior.viewers > 0 ? (deltaViewers / anterior.viewers) : 0;
+    const tiempoDiff = ahora - anterior.time;
 
-  if (historial.length >= 4) {
-    const lecturasAnteriores = historial.slice(0, -1).filter((v) => v > 0);
-    if (lecturasAnteriores.length >= 2) {
-      const promedioPrevio = lecturasAnteriores.reduce((a, b) => a + b, 0) / lecturasAnteriores.length;
-      if (promedioPrevio > 500 && totalViewers > promedioPrevio * 4.2 && totalViewers > 15000) {
+    // Si ocurre en menos de 3 minutos (180.000 ms)
+    if (tiempoDiff <= 180000) {
+      const saltoDesmedido = (porcentajeSalto > 1.6 && deltaViewers > 3500) || (deltaViewers >= 18000);
+      if (saltoDesmedido) {
         return {
-          botAlert: true,
-          reason: 'Variación anómala repentina sin correlación orgánica',
+          bot_shield: true,
+          bot_alert: 1,
+          reason: 'Inyección externa acelerada (>160% o +18k en <3 min)',
           decoupled: true
         };
       }
     }
   }
 
-  return { botAlert: false, reason: null, decoupled: false };
+  // Backup con límite histórico del canal
+  if (canal.baselineMax && totalViewers > canal.baselineMax * 2.8) {
+    return {
+      bot_shield: true,
+      bot_alert: 1,
+      reason: `Pico no atribuible al canal (+${Math.round((totalViewers / canal.baselineMax) * 100)}% de baseline)`,
+      decoupled: true
+    };
+  }
+
+  return { bot_shield: false, bot_alert: 0, reason: null, decoupled: false };
 };
 
 // ============================================================================
-// CICLO DE SCRAPEO CONCURRENTE EN LOTES (ARRANQUE VELOZ < 5 SEGUNDOS)
+// CICLO DE SCRAPEO CONCURRENTE EN LOTES
 // ============================================================================
 const procesarCanalIndividual = async (canal) => {
   try {
@@ -659,7 +701,7 @@ const procesarCanalIndividual = async (canal) => {
     let thumbnail = isLive ? (ytRes.thumbnail || twRes.thumbnail || kiRes.thumbnail || null) : null;
     let title = isLive ? (ytRes.title || twRes.title || kiRes.title || 'Transmitiendo en directo') : 'Transmisión finalizada';
 
-    const anomalia = isLive ? evaluarAnomaliaTrafico(canal, totalViewers) : { botAlert: false, reason: null, decoupled: false };
+    const anomalia = isLive ? evaluarAnomaliaTrafico(canal, totalViewers) : { bot_shield: false, bot_alert: 0, reason: null, decoupled: false };
 
     const itemTelemetria = {
       id: canal.id,
@@ -673,7 +715,8 @@ const procesarCanalIndividual = async (canal) => {
       totalViewers,
       title,
       thumbnail,
-      botAlert: anomalia.botAlert,
+      bot_shield: anomalia.bot_shield,
+      bot_alert: anomalia.bot_alert,
       botReason: anomalia.reason,
       decoupled: anomalia.decoupled,
       platforms: {
@@ -699,6 +742,7 @@ const procesarCanalIndividual = async (canal) => {
       timestamp: new Date().toISOString()
     };
 
+    // 1. Guardar en memoria para queries rápidas
     if (isLive && totalViewers > 0) {
       const bsAsTime = getBuenosAiresTime();
       historicalSnapshots.push({
@@ -711,7 +755,7 @@ const procesarCanalIndividual = async (canal) => {
         viewers_yt: ytRes.viewers || 0,
         viewers_tw: twRes.viewers || 0,
         viewers_ki: kiRes.viewers || 0,
-        bot_alert: anomalia.botAlert ? 1 : 0,
+        bot_alert: anomalia.bot_alert,
         fecha: bsAsTime.date,
         hora: bsAsTime.time,
         timestamp_buenos_aires: bsAsTime.timestamp
@@ -719,6 +763,15 @@ const procesarCanalIndividual = async (canal) => {
 
       if (historicalSnapshots.length > MAX_HISTORICAL_RECORDS) {
         historicalSnapshots.splice(0, historicalSnapshots.length - (MAX_HISTORICAL_RECORDS - 5000));
+      }
+
+      // 2. Persistencia en Turso DB (2 años de retención)
+      if (db) {
+        db.execute({
+          sql: `INSERT INTO metrics_history (channel_id, channel_name, viewers, program_name, is_live, bot_alert)
+                VALUES (?, ?, ?, ?, ?, ?)`,
+          args: [canal.id, canal.name, totalViewers, title, 1, anomalia.bot_alert]
+        }).catch((e) => console.error('[Turso DB Insert Error]:', e.message));
       }
     }
 
@@ -735,7 +788,7 @@ const actualizarTelemetria = async () => {
 
   try {
     const listaActualizada = [];
-    const BATCH_SIZE = 6; // Procesamiento en lotes de 6 canales concurrentes
+    const BATCH_SIZE = 6;
 
     for (let i = 0; i < CHANNELS.length; i += BATCH_SIZE) {
       const lote = CHANNELS.slice(i, i + BATCH_SIZE);
@@ -770,7 +823,6 @@ const actualizarTelemetria = async () => {
   }
 };
 
-// Iniciar primer ciclo veloz de inmediato y programar chequeo cada 25s
 actualizarTelemetria();
 setInterval(actualizarTelemetria, 25000);
 
@@ -778,12 +830,10 @@ setInterval(actualizarTelemetria, 25000);
 // ENDPOINTS DE API
 // ============================================================================
 
-// 1. Healthcheck ultra-rápido para UptimeRobot
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
-// 2. Telemetría en tiempo real
 app.get('/api/ranks', (req, res) => {
   const liveCount = telemetriaCache.filter((c) => c.isLive).length;
   const organicAudience = telemetriaCache.filter((c) => !c.decoupled).reduce((acc, c) => acc + c.totalViewers, 0);
@@ -797,7 +847,6 @@ app.get('/api/ranks', (req, res) => {
   });
 });
 
-// 3. Exportación de corte instantáneo CSV
 app.get('/api/analytics/export', (req, res) => {
   const bsAsTime = getBuenosAiresTime();
 
@@ -808,7 +857,7 @@ app.get('/api/analytics/export', (req, res) => {
     `"${c.subtheme}"`,
     c.totalViewers,
     c.isLive ? 'SI' : 'NO',
-    c.botAlert ? 'AUDITORIA_ACTIVADA' : 'NORMAL',
+    c.bot_alert ? 'AUDITORIA_ACTIVADA' : 'NORMAL',
     c.platforms.youtube.viewers || 0,
     c.platforms.twitch.viewers || 0,
     c.platforms.kick.viewers || 0,
@@ -821,10 +870,58 @@ app.get('/api/analytics/export', (req, res) => {
   res.status(200).send(csv);
 });
 
-// 4. Endpoint de Auditoría Histórica con filtros de canal, programa y fechas
-app.get('/api/analytics/historical', (req, res) => {
+app.get('/api/analytics/historical', async (req, res) => {
   const { canal, programa, from, to, format } = req.query;
 
+  // Si Turso DB está activo, podemos consultar la persistencia de largo plazo
+  if (db) {
+    try {
+      let query = `SELECT * FROM metrics_history WHERE 1=1`;
+      const params = [];
+
+      if (canal && canal !== 'todos') {
+        query += ` AND channel_id = ?`;
+        params.push(canal.toLowerCase());
+      }
+      if (programa && programa !== 'todos') {
+        query += ` AND program_name LIKE ?`;
+        params.push(`%${programa}%`);
+      }
+      if (from) {
+        query += ` AND timestamp >= ?`;
+        params.push(`${from} 00:00:00`);
+      }
+      if (to) {
+        query += ` AND timestamp <= ?`;
+        params.push(`${to} 23:59:59`);
+      }
+
+      query += ` ORDER BY timestamp DESC LIMIT 5000`;
+      const dbResult = await db.execute({ sql: query, args: params });
+
+      if (format === 'csv') {
+        const headers = ['ID', 'Canal_ID', 'Nombre', 'Viewers', 'Programa', 'En_Vivo', 'Alerta_Bots', 'Timestamp_UTC'];
+        const rows = dbResult.rows.map(r => [
+          r.id, `"${r.channel_id}"`, `"${r.channel_name}"`, r.viewers, `"${r.program_name}"`, r.is_live, r.bot_alert, `"${r.timestamp}"`
+        ]);
+        const csvText = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="streamrank_turso_${canal || 'general'}.csv"`);
+        return res.status(200).send(csvText);
+      }
+
+      return res.json({
+        source: 'TursoDB',
+        retention: '2 years active',
+        totalSamples: dbResult.rows.length,
+        data: dbResult.rows
+      });
+    } catch (e) {
+      console.error('[Turso Query Error fallback to memory]:', e.message);
+    }
+  }
+
+  // Fallback a memoria local
   let filtrados = historicalSnapshots;
 
   if (canal && canal !== 'todos') {
@@ -849,35 +946,16 @@ app.get('/api/analytics/historical', (req, res) => {
 
   if (format === 'csv') {
     const cabeceras = [
-      'Canal_ID',
-      'Nombre',
-      'Categoria',
-      'Subtema',
-      'Titulo_Programa',
-      'Viewers_Total',
-      'Viewers_YouTube',
-      'Viewers_Twitch',
-      'Viewers_Kick',
-      'Alerta_Bots',
-      'Fecha',
-      'Hora',
-      'Timestamp_Buenos_Aires'
+      'Canal_ID', 'Nombre', 'Categoria', 'Subtema', 'Titulo_Programa',
+      'Viewers_Total', 'Viewers_YouTube', 'Viewers_Twitch', 'Viewers_Kick',
+      'Alerta_Bots', 'Fecha', 'Hora', 'Timestamp_Buenos_Aires'
     ];
 
     const filas = filtrados.map((s) => [
-      `"${s.canal_id}"`,
-      `"${s.nombre.replace(/"/g, '""')}"`,
-      `"${s.categoria}"`,
-      `"${s.subtema}"`,
-      `"${s.titulo_programa.replace(/"/g, '""')}"`,
-      s.viewers_total,
-      s.viewers_yt,
-      s.viewers_tw,
-      s.viewers_ki,
-      s.bot_alert,
-      `"${s.fecha}"`,
-      `"${s.hora}"`,
-      `"${s.timestamp_buenos_aires}"`
+      `"${s.canal_id}"`, `"${s.nombre.replace(/"/g, '""')}"`, `"${s.categoria}"`,
+      `"${s.subtema}"`, `"${s.titulo_programa.replace(/"/g, '""')}"`,
+      s.viewers_total, s.viewers_yt, s.viewers_tw, s.viewers_ki, s.bot_alert,
+      `"${s.fecha}"`, `"${s.hora}"`, `"${s.timestamp_buenos_aires}"`
     ]);
 
     const csvData = [cabeceras.join(','), ...filas.map((f) => f.join(','))].join('\n');
@@ -887,13 +965,9 @@ app.get('/api/analytics/historical', (req, res) => {
   }
 
   res.json({
+    source: 'MemorySnapshots',
     totalSamples: filtrados.length,
-    filters: {
-      canal: canal || 'todos',
-      programa: programa || 'todos',
-      from: from || null,
-      to: to || null
-    },
+    filters: { canal: canal || 'todos', programa: programa || 'todos', from: from || null, to: to || null },
     data: filtrados
   });
 });
@@ -919,6 +993,7 @@ const HTML_APP = `<!DOCTYPE html>
             cardBg: '#0b1120',
             cardBorder: '#162238',
             matrix: '#00ff66',
+            gold: '#FFD700',
             yt: '#FF0000',
             tw: '#9146FF',
             ki: '#53FC18'
@@ -926,6 +1001,7 @@ const HTML_APP = `<!DOCTYPE html>
           boxShadow: {
             matrix: '0 0 20px rgba(0, 255, 102, 0.45)',
             matrixSoft: '0 0 10px rgba(0, 255, 102, 0.25)',
+            goldGlow: '0 0 25px rgba(255, 215, 0, 0.45)',
             glow: '0 0 35px rgba(0, 255, 102, 0.3)'
           }
         }
@@ -941,15 +1017,17 @@ const HTML_APP = `<!DOCTYPE html>
     .matrix-glow {
       text-shadow: 0 0 10px rgba(0, 255, 102, 0.7), 0 0 22px rgba(0, 255, 102, 0.35);
     }
+    .gold-glow {
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.8), 0 0 20px rgba(255, 215, 0, 0.4);
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col bg-[#050811] text-slate-100 antialiased selection:bg-[#00ff66] selection:text-black">
 
-  <!-- HEADER (SIN BOTÓN EXPORTAR CSV) -->
+  <!-- HEADER -->
   <header class="sticky top-0 z-40 bg-[#050811]/95 backdrop-blur-md border-b border-[#162238]">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
       
-      <!-- LOGO -->
       <div class="flex items-center space-x-2.5 sm:space-x-3">
         <div class="relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-black border border-matrix/50 shadow-matrixSoft flex-shrink-0">
           <span class="absolute w-3.5 h-3.5 rounded-full bg-matrix animate-ping opacity-75"></span>
@@ -960,11 +1038,10 @@ const HTML_APP = `<!DOCTYPE html>
             <span class="text-base sm:text-xl font-black tracking-wider text-white">STREAMRANK</span>
             <span class="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded font-black tracking-widest bg-matrix/20 text-matrix border border-matrix/40">ARG</span>
           </div>
-          <p class="text-[10px] sm:text-[11px] text-slate-400 truncate max-w-[190px] sm:max-w-none">Telemetría y Ranking en Vivo de Argentina</p>
+          <p class="text-[10px] sm:text-[11px] text-slate-400 truncate max-w-[190px] sm:max-w-none">Telemetría en Vivo de Streaming Argentino</p>
         </div>
       </div>
 
-      <!-- STATUS Y AUDIENCIA EN TIEMPO REAL -->
       <div class="flex items-center space-x-2 sm:space-x-3">
         <div class="flex items-center bg-[#0b1120] border border-[#162238] rounded-xl px-3 sm:px-4 py-2 space-x-3 sm:space-x-4">
           <div class="flex items-center space-x-2">
@@ -990,17 +1067,17 @@ const HTML_APP = `<!DOCTYPE html>
         <svg class="w-4 h-4 text-matrix flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
         </svg>
-        <span><strong class="text-matrix font-bold">AUDITORÍA ACTIVA DE TRÁFICO ARTIFICIAL:</strong> El sistema evalúa picos no orgánicos y descarta placas de espera, repeticiones o bucles sin audiencia real para mantener un ranking 100% fidedigno.</span>
+        <span><strong class="text-matrix font-bold">BOT SHIELD ACTIVO:</strong> Monitoreo de aceleración en tiempo real. Saltos atípicos activan protección preventiva para salvaguardar la reputación del canal y la transparencia del share.</span>
       </div>
-      <span class="hidden md:inline-block text-[11px] font-mono text-slate-400">Buenos Aires ART</span>
+      <span class="hidden md:inline-block text-[11px] font-mono text-slate-400">Retención 2 Años • Turso DB</span>
     </div>
   </div>
 
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
     
-    <!-- HERO LEADER (#1 DEL MOMENTO) -->
+    <!-- HERO LEADER (#1 DEL MOMENTO CON MEDALLA / CORONA DORADA) -->
     <section id="hero-leader" class="w-full">
-      <div class="w-full h-64 sm:h-72 rounded-2xl bg-[#0b1120] border border-[#162238] animate-pulse flex items-center justify-center text-slate-500 font-mono text-xs sm:text-sm">
+      <div class="w-full h-56 rounded-2xl bg-[#0b1120] border border-[#162238] animate-pulse flex items-center justify-center text-slate-500 font-mono text-xs sm:text-sm">
         Sincronizando canal líder orgánico de Argentina...
       </div>
     </section>
@@ -1022,7 +1099,6 @@ const HTML_APP = `<!DOCTYPE html>
         >
       </div>
 
-      <!-- BOTÓN MODAL REPORTES & AUDITORÍA HISTÓRICA -->
       <button 
         onclick="abrirModalReportes()" 
         class="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#0b1120] border border-matrix/50 text-matrix hover:bg-matrix hover:text-black transition-all shadow-matrixSoft text-xs font-black uppercase tracking-wider flex items-center justify-center space-x-2 flex-shrink-0"
@@ -1036,7 +1112,6 @@ const HTML_APP = `<!DOCTYPE html>
     <section class="space-y-4">
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-[#162238] pb-4">
         
-        <!-- Solapas Principales -->
         <div class="flex flex-wrap gap-2" id="tab-buttons">
           <button onclick="cambiarSolapa('Todos')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-matrix text-black shadow-matrix">
             🔥 General
@@ -1055,7 +1130,6 @@ const HTML_APP = `<!DOCTYPE html>
           </button>
         </div>
 
-        <!-- Desplegables de Subtemas y Estado -->
         <div class="flex flex-wrap items-center gap-2 sm:gap-3">
           <div class="relative flex-1 sm:flex-initial">
             <select id="subtheme-dropdown" onchange="cambiarSubtema(this.value)" class="w-full sm:w-auto bg-[#0b1120] border border-[#162238] hover:border-matrix/40 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 focus:outline-none focus:border-matrix">
@@ -1075,9 +1149,9 @@ const HTML_APP = `<!DOCTYPE html>
       </div>
     </section>
 
-    <!-- GRILLA COMPLETA DE CANALES -->
+    <!-- GRILLA GENERAL DE CANALES (SIMETRÍA VISUAL TOTAL: SIN THUMBNAILS, ALTURA COMPACTA Y ALINEADA) -->
     <section>
-      <div id="channels-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div id="channels-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
       </div>
     </section>
 
@@ -1112,34 +1186,51 @@ const HTML_APP = `<!DOCTYPE html>
       </div>
     </section>
 
-    <!-- AUTORIDAD Y TRANSPARENCIA METODOLÓGICA -->
-    <section class="bg-[#0b1120] rounded-2xl border border-[#162238] p-5 sm:p-6 space-y-4 text-xs text-slate-400 leading-relaxed">
+    <!-- SECCIÓN INTERACTIVA DE FAQS & TRANSPARENCIA METODOLÓGICA -->
+    <section class="bg-[#0b1120] rounded-2xl border border-[#162238] p-5 sm:p-6 space-y-5 text-xs text-slate-300 leading-relaxed">
       <div class="flex items-center space-x-2 text-white font-bold text-sm">
         <svg class="w-5 h-5 text-matrix" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
-        <span>¿Cómo funciona, por qué y en qué se basa StreamRank ARG?</span>
+        <span class="text-base font-black">Centro de Transparencia & Preguntas Frecuentes (FAQs)</span>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-        <div class="space-y-1.5">
-          <h4 class="font-bold text-slate-200">1. Extracción Canónica Aislada</h4>
-          <p>La telemetría extrae metadatos exclusivamente de la URL canónica y reproductor del stream en directo, impidiendo la captura de miniaturas ajenas o sugerencias de otros canales.</p>
+      <div class="space-y-3">
+        <!-- FAQ 1 -->
+        <div class="p-4 rounded-xl bg-[#050811] border border-[#162238] space-y-2">
+          <h4 class="font-bold text-white text-sm flex items-center text-matrix">
+            <span class="mr-2">🛡️</span> ¿Cómo detectamos los ataques e inyecciones de bots externos?
+          </h4>
+          <p class="text-slate-400 text-xs">
+            StreamRank ARG cuenta con un algoritmo de análisis de aceleración en tiempo real que evalúa las últimas 3 muestras concurrentes por canal. Si una transmisión experimenta un salto atípico repentino de más del <strong>160% de incremento o más de +18.000 espectadores en menos de 3 minutos</strong> fuera de un pase de programa verificado, el sistema activa de forma automática una insignia de protección preventiva (<strong>Bot Shield</strong>). Esta alerta protege explícitamente al canal, dejando en claro ante agencias y audiencia que se trata de una inyección de tráfico externa y artificial no atribuible al creador, al tiempo que desacopla la métrica adulterada del liderazgo del ranking.
+          </p>
         </div>
-        <div class="space-y-1.5">
-          <h4 class="font-bold text-slate-200">2. Detección Heurística de Bots</h4>
-          <p>Las subidas abruptas y anormales de audiencia sin correlación orgánica son auditadas y desacopladas del ranking general para preservar la transparencia.</p>
+
+        <!-- FAQ 2 -->
+        <div class="p-4 rounded-xl bg-[#050811] border border-[#162238] space-y-2">
+          <h4 class="font-bold text-white text-sm flex items-center text-matrix">
+            <span class="mr-2">⏳</span> ¿Cuál es la política de retención y almacenamiento de métricas?
+          </h4>
+          <p class="text-slate-400 text-xs">
+            Todas las mediciones se almacenan en una base de datos distribuida en <strong>Turso DB</strong> con una política estricta de <strong>retención completa de 2 años</strong>. Esto permite que productoras, canales y marcas descarguen informes históricos fidedignos de cualquier fecha o programa pasado. Al cumplirse la ventana de 2 años, el motor ejecuta una purga automatizada para preservar la máxima velocidad de respuesta de la plataforma.
+          </p>
         </div>
-        <div class="space-y-1.5">
-          <h4 class="font-bold text-slate-200">3. Auditoría Histórica Abierta</h4>
-          <p>Disponibilizamos descargas en CSV estructuradas por programa y fecha para verificación pública y auditoría de pautas de agencias.</p>
+
+        <!-- FAQ 3 -->
+        <div class="p-4 rounded-xl bg-[#050811] border border-[#162238] space-y-2">
+          <h4 class="font-bold text-white text-sm flex items-center text-matrix">
+            <span class="mr-2">⚡</span> ¿Cómo se calcula la audiencia en vivo multiplataforma?
+          </h4>
+          <p class="text-slate-400 text-xs">
+            Cada 25 segundos, el backend consulta directamente la URL canónica de YouTube Live, los endpoints de GraphQL de Twitch y la API oficial de Kick de forma simultánea. Se contabilizan exclusivamente usuarios concurrentes viendo el stream activo en ese instante (CCV), sumando las plataformas para obtener el share global en tiempo real.
+          </p>
         </div>
       </div>
     </section>
 
   </main>
 
-  <!-- MODAL DE REPORTES & AUDITORÍA HISTÓRICA (CON GRILLA DE PROGRAMAS) -->
+  <!-- MODAL DE REPORTES & AUDITORÍA HISTÓRICA -->
   <div id="modal-reportes" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden p-4">
     <div class="bg-[#0b1120] border border-[#162238] rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl relative overflow-hidden space-y-5">
       
@@ -1151,11 +1242,10 @@ const HTML_APP = `<!DOCTYPE html>
       </div>
 
       <p class="text-xs text-slate-300">
-        Descarga informes consolidados en CSV estructurado con telemetría por programa, canal y franja horaria para análisis de medios y agencias.
+        Descarga informes consolidados en CSV estructurado con telemetría por programa, canal y franja horaria auditada (conservados hasta 2 años en Turso DB).
       </p>
 
       <div class="space-y-3">
-        <!-- CANAL -->
         <div>
           <label class="block text-xs font-semibold text-slate-400 mb-1">CANAL A AUDITAR</label>
           <select id="report-channel-select" onchange="actualizarProgramasAuditModal(this.value)" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-matrix">
@@ -1163,7 +1253,6 @@ const HTML_APP = `<!DOCTYPE html>
           </select>
         </div>
 
-        <!-- PROGRAMA A AUDITAR (FILTRO DEPENDIENTE OFICIAL) -->
         <div>
           <label class="block text-xs font-semibold text-slate-400 mb-1">PROGRAMA A AUDITAR</label>
           <select id="report-program-select" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-matrix">
@@ -1171,7 +1260,6 @@ const HTML_APP = `<!DOCTYPE html>
           </select>
         </div>
 
-        <!-- PERÍODO -->
         <div>
           <label class="block text-xs font-semibold text-slate-400 mb-1">PERÍODO TEMPORAL</label>
           <select id="report-period-select" onchange="ajustarFechasPeriodo(this.value)" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-matrix">
@@ -1209,7 +1297,7 @@ const HTML_APP = `<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- MODAL DUELO 1 VS 1 (FORMATO 1:1 CUADRADO PARA REDES) -->
+  <!-- MODAL DUELO 1 VS 1 (FORMATO 1:1 CUADRADO, TOTALMENTE SIMÉTRICO, SIN THUMBNAILS DE VIDEO) -->
   <div id="modal-duel" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden p-4 overflow-y-auto">
     <div class="bg-[#0b1120] border border-[#162238] rounded-2xl max-w-xl sm:max-w-2xl w-full p-4 sm:p-6 shadow-2xl relative my-auto">
       
@@ -1234,51 +1322,47 @@ const HTML_APP = `<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- PLACA PARA CAPTURA HTML2CANVAS (1:1 CUADRADO EXACTO) -->
+      <!-- PLACA PARA CAPTURA HTML2CANVAS (1:1 CUADRADO EXACTO, SIN THUMBNAILS, TOTAL SIMETRÍA) -->
       <div id="duel-capture-card" class="bg-[#050811] border border-matrix/30 rounded-2xl w-full max-w-[520px] aspect-square mx-auto flex flex-col justify-between p-6 sm:p-8 shadow-glow relative my-3">
         
         <div class="text-center pt-1">
           <span class="text-[10px] sm:text-[11px] font-black tracking-widest uppercase bg-matrix/10 text-matrix px-3.5 py-1.5 rounded-full border border-matrix/30">STREAMRANK ARG • DUELO EN DIRECTO</span>
         </div>
 
-        <!-- Canales enfrentados: PROGRAMA PROTAGONISTA EN GRANDE, CANAL SECUNDARIO -->
-        <div class="grid grid-cols-2 gap-3 sm:gap-4 items-stretch my-auto">
+        <!-- Enfrentamiento Simétrico: Logos, Programas Protagonistas y Audiencia -->
+        <div class="grid grid-cols-2 gap-4 items-stretch my-auto">
           
           <!-- Canal A -->
-          <div class="text-center p-3.5 sm:p-4 rounded-xl bg-[#0b1120]/90 border border-[#162238] flex flex-col justify-between">
+          <div class="text-center p-4 rounded-xl bg-[#0b1120]/90 border border-[#162238] flex flex-col justify-between h-[210px]">
             <div>
-              <img id="duel-a-avatar" crossorigin="anonymous" src="" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full mx-auto border-2 border-matrix object-cover shadow-matrixSoft mb-1.5" alt="A">
-              <!-- Nombre de programa en grande como protagonista principal -->
-              <div id="duel-a-program" class="font-black text-white text-sm sm:text-lg leading-tight line-clamp-2 break-words mt-1">--</div>
-              <!-- Nombre de canal secundario y sutil -->
-              <h4 id="duel-a-name" class="text-xs sm:text-sm font-semibold text-slate-400 uppercase tracking-wider mt-0.5 mb-1 truncate">--</h4>
-              <p id="duel-a-status" class="text-[9px] sm:text-[10px] font-mono text-matrix mb-1">OFFLINE</p>
+              <img id="duel-a-avatar" crossorigin="anonymous" src="" class="w-14 h-14 rounded-full mx-auto border-2 border-matrix object-cover shadow-matrixSoft mb-1.5" alt="A">
+              <div id="duel-a-program" class="font-black text-white text-base sm:text-lg leading-tight line-clamp-2 break-words mt-1">--</div>
+              <h4 id="duel-a-name" class="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-0.5 truncate">--</h4>
+              <p id="duel-a-status" class="text-[10px] font-mono text-matrix">OFFLINE</p>
             </div>
             <div>
-              <div id="duel-a-viewers" class="text-2xl sm:text-3xl font-black font-mono text-matrix matrix-glow">0</div>
-              <div class="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Espectadores</div>
+              <div id="duel-a-viewers" class="text-3xl font-black font-mono text-matrix matrix-glow">0</div>
+              <div class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Espectadores</div>
             </div>
           </div>
 
           <!-- Canal B -->
-          <div class="text-center p-3.5 sm:p-4 rounded-xl bg-[#0b1120]/90 border border-[#162238] flex flex-col justify-between">
+          <div class="text-center p-4 rounded-xl bg-[#0b1120]/90 border border-[#162238] flex flex-col justify-between h-[210px]">
             <div>
-              <img id="duel-b-avatar" crossorigin="anonymous" src="" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full mx-auto border-2 border-cyan-400 object-cover shadow-cyan-500/50 mb-1.5" alt="B">
-              <!-- Nombre de programa en grande como protagonista principal -->
-              <div id="duel-b-program" class="font-black text-white text-sm sm:text-lg leading-tight line-clamp-2 break-words mt-1">--</div>
-              <!-- Nombre de canal secundario y sutil -->
-              <h4 id="duel-b-name" class="text-xs sm:text-sm font-semibold text-slate-400 uppercase tracking-wider mt-0.5 mb-1 truncate">--</h4>
-              <p id="duel-b-status" class="text-[9px] sm:text-[10px] font-mono text-cyan-400 mb-1">OFFLINE</p>
+              <img id="duel-b-avatar" crossorigin="anonymous" src="" class="w-14 h-14 rounded-full mx-auto border-2 border-cyan-400 object-cover shadow-cyan-500/50 mb-1.5" alt="B">
+              <div id="duel-b-program" class="font-black text-white text-base sm:text-lg leading-tight line-clamp-2 break-words mt-1">--</div>
+              <h4 id="duel-b-name" class="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-0.5 truncate">--</h4>
+              <p id="duel-b-status" class="text-[10px] font-mono text-cyan-400">OFFLINE</p>
             </div>
             <div>
-              <div id="duel-b-viewers" class="text-2xl sm:text-3xl font-black font-mono text-cyan-400">0</div>
-              <div class="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Espectadores</div>
+              <div id="duel-b-viewers" class="text-3xl font-black font-mono text-cyan-400">0</div>
+              <div class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Espectadores</div>
             </div>
           </div>
 
         </div>
 
-        <!-- BARRAS DE SHARE Y PIE CON FECHA Y HORA EN VERDE FLÚOR (#00FF66) -->
+        <!-- Barras de Share y Pie con Fecha/Hora Flúor -->
         <div class="space-y-3 pb-1">
           <div>
             <div class="flex justify-between text-xs font-mono font-bold mb-1.5">
@@ -1286,7 +1370,7 @@ const HTML_APP = `<!DOCTYPE html>
               <span class="text-slate-400 text-[10px] sm:text-xs tracking-wider">SHARE DE AUDIENCIA</span>
               <span id="duel-pct-b" class="text-cyan-400">50%</span>
             </div>
-            <div class="w-full h-4 sm:h-5 bg-slate-900 rounded-full overflow-hidden flex border border-[#162238] p-0.5">
+            <div class="w-full h-4 bg-slate-900 rounded-full overflow-hidden flex border border-[#162238] p-0.5">
               <div id="duel-bar-a" class="h-full bg-matrix rounded-l-full transition-all duration-500 shadow-matrix" style="width: 50%"></div>
               <div id="duel-bar-b" class="h-full bg-cyan-400 rounded-r-full transition-all duration-500 shadow-cyan-400" style="width: 50%"></div>
             </div>
@@ -1348,22 +1432,6 @@ const HTML_APP = `<!DOCTYPE html>
 
     const getFallbackAvatar = (nombre) => {
       return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(nombre) + '&background=0b1120&color=00ff66&bold=true';
-    };
-
-    const colapsarThumb = (img, id) => {
-      const wrap = document.getElementById('thumb-wrap-' + id);
-      if (wrap) wrap.remove();
-      const badges = document.getElementById('fallback-badges-' + id);
-      if (badges) badges.classList.remove('hidden');
-    };
-
-    const colapsarHeroThumb = () => {
-      const wrap = document.getElementById('hero-thumb-wrapper');
-      if (wrap) wrap.remove();
-      const info = document.getElementById('hero-info-wrapper');
-      if (info) {
-        info.className = 'w-full max-w-3xl mx-auto flex flex-col justify-between space-y-4';
-      }
     };
 
     const filtrarPorBusqueda = (texto) => {
@@ -1467,12 +1535,15 @@ const HTML_APP = `<!DOCTYPE html>
 
       const svgIcon = document.getElementById('svg-' + tipo).outerHTML;
 
-      return '<div class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg border ' + estilo + '">' +
+      return '<div class="flex items-center space-x-1.5 px-2 py-1 rounded-lg border ' + estilo + '">' +
         '<div class="w-3.5 h-3.5 ' + iconColor + '">' + svgIcon + '</div>' +
-        '<span class="text-[11px] font-mono font-bold truncate">' + valor + '</span>' +
+        '<span class="text-[10px] font-mono font-bold truncate">' + valor + '</span>' +
       '</div>';
     };
 
+    // ========================================================================
+    // HERO LEADER (#1 DEL MOMENTO CON CORONA DORADA / FORMATO 16:9 O CHATO)
+    // ========================================================================
     const renderizarHeroLeader = () => {
       const container = document.getElementById('hero-leader');
       if (!canalesData.length) return;
@@ -1481,47 +1552,52 @@ const HTML_APP = `<!DOCTYPE html>
       const isLive = lider.isLive;
       const hasThumb = Boolean(lider.thumbnail);
 
-      let html = '<div class="relative w-full rounded-3xl bg-gradient-to-r from-[#0b1120] to-[#050811] border border-matrix/40 p-5 sm:p-8 shadow-matrix overflow-hidden">';
-      html += '<div class="absolute -right-20 -bottom-20 w-80 h-80 rounded-full bg-matrix/10 blur-3xl pointer-events-none"></div>';
+      let html = '<div class="relative w-full rounded-3xl bg-gradient-to-r from-[#0b1120] via-[#080d1a] to-[#050811] border-2 border-amber-400/50 p-5 sm:p-7 shadow-goldGlow overflow-hidden">';
+      html += '<div class="absolute -right-20 -bottom-20 w-80 h-80 rounded-full bg-amber-400/10 blur-3xl pointer-events-none"></div>';
       html += '<div class="flex flex-col ' + (hasThumb ? 'lg:flex-row' : '') + ' items-center gap-6 relative z-10">';
 
+      // Si tiene thumbnail válido lo muestra en 16:9; si no, formato chato
       if (hasThumb) {
-        html += '<div id="hero-thumb-wrapper" class="w-full lg:w-3/5 aspect-video rounded-2xl overflow-hidden bg-black/60 relative border border-[#162238] flex items-center justify-center flex-shrink-0">';
-        html += '<img crossorigin="anonymous" onerror="colapsarHeroThumb()" src="' + lider.thumbnail + '" class="w-full h-full object-cover" alt="Líder">';
+        html += '<div class="w-full lg:w-3/5 aspect-video rounded-2xl overflow-hidden bg-black/60 relative border border-amber-400/30 flex items-center justify-center flex-shrink-0 shadow-lg">';
+        html += '<img crossorigin="anonymous" onerror="this.parentElement.remove()" src="' + lider.thumbnail + '" class="w-full h-full object-cover" alt="Líder">';
         html += '<div class="absolute top-3 left-3 flex items-center space-x-2">';
-        html += '<span class="px-2.5 sm:px-3 py-1 bg-black/80 backdrop-blur-md rounded-lg text-[10px] sm:text-xs font-mono font-black text-matrix border border-matrix/40">#1 LÍDER ORGÁNICO</span>';
+        html += '<span class="px-3 py-1 bg-black/90 backdrop-blur-md rounded-lg text-xs font-mono font-black text-amber-300 border border-amber-400/60 flex items-center shadow-lg">👑 #1 LÍDER EN VIVO</span>';
         if (isLive) {
-          html += '<span class="px-2.5 sm:px-3 py-1 bg-matrix text-black font-black text-[10px] sm:text-xs rounded-lg tracking-wider animate-pulse shadow-matrix">EN VIVO</span>';
+          html += '<span class="px-2.5 py-1 bg-matrix text-black font-black text-xs rounded-lg tracking-wider animate-pulse shadow-matrix">EN VIVO</span>';
         }
         html += '</div></div>';
       }
 
-      html += '<div id="hero-info-wrapper" class="w-full ' + (hasThumb ? 'lg:w-2/5' : 'max-w-3xl mx-auto') + ' flex flex-col justify-between space-y-4">';
-      html += '<div class="flex items-center space-x-4">';
-      html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(lider.name) + '\\'" src="' + lider.avatar + '" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full ' + (isLive ? 'border-2 border-matrix shadow-matrix' : 'border border-slate-700') + ' object-cover flex-shrink-0">';
+      html += '<div class="w-full ' + (hasThumb ? 'lg:w-2/5' : 'max-w-4xl mx-auto text-center sm:text-left') + ' flex flex-col justify-between space-y-4">';
+      html += '<div class="flex flex-col sm:flex-row items-center sm:items-start space-y-3 sm:space-y-0 sm:space-x-4">';
+      html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(lider.name) + '\\'" src="' + lider.avatar + '" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-amber-400 object-cover shadow-goldGlow flex-shrink-0">';
       html += '<div class="min-w-0">';
+      
       if (!hasThumb) {
-        html += '<div class="flex items-center space-x-2 mb-1">';
-        html += '<span class="px-2.5 py-0.5 bg-black/80 rounded-md text-[10px] sm:text-xs font-mono font-black text-matrix border border-matrix/40">#1 LÍDER ORGÁNICO</span>';
+        html += '<div class="inline-flex items-center space-x-2 mb-1.5">';
+        html += '<span class="px-3 py-1 bg-black/80 rounded-lg text-xs font-mono font-black text-amber-300 border border-amber-400/60">👑 #1 LÍDER EN VIVO</span>';
         if (isLive) {
-          html += '<span class="px-2 py-0.5 bg-matrix text-black font-black text-[10px] rounded-md tracking-wider animate-pulse">EN VIVO</span>';
-        } else {
-          html += '<span class="px-2 py-0.5 bg-slate-800 text-slate-400 font-bold text-[10px] rounded-md">OFFLINE</span>';
+          html += '<span class="px-2.5 py-1 bg-matrix text-black font-black text-xs rounded-lg tracking-wider animate-pulse shadow-matrix">EN VIVO</span>';
         }
         html += '</div>';
       }
-      html += '<h2 class="text-xl sm:text-3xl font-black text-white leading-tight truncate">' + lider.name + '</h2>';
-      html += '<div class="flex flex-wrap items-center gap-1.5 mt-1">';
-      html += '<span class="text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded bg-[#162238] text-slate-300">' + lider.category + '</span>';
-      html += '<span class="text-[10px] sm:text-[11px] font-mono text-matrix truncate">' + lider.subtheme + '</span>';
+
+      html += '<h2 class="text-2xl sm:text-3xl font-black text-white leading-tight truncate">' + lider.name + '</h2>';
+      html += '<div class="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 mt-1">';
+      html += '<span class="text-xs font-semibold px-2.5 py-0.5 rounded bg-[#162238] text-slate-300">' + lider.category + '</span>';
+      html += '<span class="text-xs font-mono text-matrix truncate">' + lider.subtheme + '</span>';
       html += '</div></div></div>';
 
-      html += '<p class="text-xs sm:text-sm text-slate-300 line-clamp-2 italic">"' + lider.title + '"</p>';
+      html += '<p class="text-xs sm:text-sm text-slate-300 italic line-clamp-2">"' + lider.title + '"</p>';
 
-      html += '<div class="p-3.5 sm:p-4 rounded-xl bg-black/40 border border-[#162238]">';
-      html += '<div class="text-[10px] font-mono text-slate-400 uppercase tracking-widest">Audiencia Concurrente Total</div>';
-      html += '<div class="text-3xl sm:text-5xl font-black font-mono text-matrix matrix-glow mt-1">' + formatNum(lider.totalViewers) + '</div>';
-      html += '<div class="text-xs text-slate-400 mt-0.5 font-mono">espectadores simultáneos</div>';
+      html += '<div class="p-3.5 sm:p-4 rounded-xl bg-black/50 border border-amber-400/30 flex items-center justify-between">';
+        html += '<div>';
+          html += '<div class="text-[10px] font-mono text-slate-400 uppercase tracking-widest">Audiencia Concurrente Total</div>';
+          html += '<div class="text-3xl sm:text-4xl font-black font-mono text-matrix matrix-glow mt-0.5">' + formatNum(lider.totalViewers) + '</div>';
+        html += '</div>';
+        html += '<button onclick="abrirDueloConLeader()" class="px-4 py-2.5 rounded-xl bg-matrix text-black hover:bg-emerald-400 font-black text-xs tracking-wider transition-all shadow-matrix">';
+          html += '⚡ RETAR EN DUELO';
+        html += '</button>';
       html += '</div>';
 
       html += '<div class="grid grid-cols-3 gap-2">';
@@ -1530,14 +1606,13 @@ const HTML_APP = `<!DOCTYPE html>
       html += renderizarPlataformaBadge('ki', lider.platforms.kick);
       html += '</div>';
 
-      html += '<button onclick="abrirDueloConLeader()" class="w-full py-2.5 rounded-xl bg-matrix/10 hover:bg-matrix/20 border border-matrix/40 text-matrix text-xs font-black tracking-wider transition-all">';
-      html += '⚡ RETAR EN DUELO 1 VS 1';
-      html += '</button>';
-
       html += '</div></div></div>';
       container.innerHTML = html;
     };
 
+    // ========================================================================
+    // GRILLA GENERAL: SIMETRÍA VISUAL COMPLETA (SIN THUMBNAILS, ALTURA FIJA)
+    // ========================================================================
     const renderizarGrilla = () => {
       const container = document.getElementById('channels-grid');
       let filtrados = solapaActiva === 'Todos'
@@ -1567,72 +1642,59 @@ const HTML_APP = `<!DOCTYPE html>
       filtrados.forEach((c) => {
         const puestoGlobal = canalesData.findIndex(item => item.id === c.id) + 1;
         const isLive = c.isLive;
-        const tieneBotAlert = c.botAlert === true;
-        const hasThumb = Boolean(c.thumbnail);
+        const tieneBotShield = c.bot_shield === true;
 
-        html += '<div class="rounded-2xl bg-[#0b1120] border ' + (tieneBotAlert ? 'border-amber-500/60 shadow-amber-950/40' : 'border-[#162238] hover:border-matrix/40 hover:shadow-matrixSoft') + ' transition-all duration-300 p-4 flex flex-col justify-between group">';
+        // Tarjeta compacta, altura uniforme y 100% simétrica
+        html += '<div class="rounded-2xl bg-[#0b1120] border ' + (tieneBotShield ? 'border-amber-500/70 shadow-amber-950/40' : 'border-[#162238] hover:border-matrix/40 hover:shadow-matrixSoft') + ' transition-all duration-300 p-4 flex flex-col justify-between h-[230px] group relative">';
 
-        // Contenedor de Miniatura: Solo se crea si hay thumbnail disponible
-        if (hasThumb) {
-          html += '<div id="thumb-wrap-' + c.id + '" class="relative w-full aspect-video rounded-xl bg-black overflow-hidden mb-3 border border-[#162238]">';
-          html += '<img crossorigin="anonymous" onerror="colapsarThumb(this, \\'' + c.id + '\\')" src="' + c.thumbnail + '" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="' + c.name + '">';
-          html += '<div class="absolute top-2 left-2 flex items-center space-x-1.5">';
-          html += '<span class="px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-[11px] font-mono font-black text-matrix border border-matrix/30">#' + puestoGlobal + '</span>';
-          if (isLive) {
-            html += '<span class="px-2 py-0.5 rounded-md bg-matrix text-black font-black text-[10px] tracking-wider animate-pulse">EN VIVO</span>';
-          }
-          html += '</div>';
-
-          html += '<button onclick="abrirDueloCon(\\'' + c.id + '\\')" class="absolute top-2 right-2 px-2.5 py-1 rounded-md bg-black/80 hover:bg-matrix hover:text-black transition-all text-matrix text-[10px] font-black border border-matrix/30 flex items-center space-x-1">';
-          html += '<span>⚡</span><span>Comparar</span>';
-          html += '</button>';
-
-          html += '</div>';
-        }
-
-        // Fila de Encabezado: Avatar + Nombre + Estado
-        html += '<div class="flex items-start space-x-3 mb-3">';
-        html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(c.name) + '\\'" src="' + c.avatar + '" class="w-12 h-12 rounded-full ' + (isLive ? 'border-2 border-matrix shadow-matrixSoft' : 'border border-slate-700 opacity-80') + ' object-cover flex-shrink-0 mt-0.5">';
-        html += '<div class="flex-1 min-w-0">';
-        html += '<div class="flex items-center justify-between gap-1">';
+        // Fila 1: Avatar, Nombre, Puesto y Estado
+        html += '<div class="flex items-start justify-between gap-2">';
+        html += '<div class="flex items-center space-x-3 min-w-0">';
+        html += '<img crossorigin="anonymous" onerror="this.onerror=null;this.src=\\'' + getFallbackAvatar(c.name) + '\\'" src="' + c.avatar + '" class="w-12 h-12 rounded-full ' + (isLive ? 'border-2 border-matrix shadow-matrixSoft' : 'border border-slate-700 opacity-80') + ' object-cover flex-shrink-0">';
+        html += '<div class="min-w-0">';
         html += '<h3 class="text-sm font-bold text-white truncate">' + c.name + '</h3>';
         html += '<span class="text-[10px] text-slate-400 font-semibold">' + c.category + '</span>';
-        html += '</div>';
+        html += '</div></div>';
 
-        // Badges alternativos en línea si no hay foto o si se colapsó por error
-        html += '<div id="fallback-badges-' + c.id + '" class="flex items-center space-x-2 my-1 ' + (hasThumb ? 'hidden' : '') + '">';
-        html += '<span class="px-2 py-0.5 rounded-md bg-black/80 text-[10px] font-mono font-black text-matrix border border-matrix/30">#' + puestoGlobal + '</span>';
+        html += '<div class="flex items-center space-x-1.5 flex-shrink-0">';
+        html += '<span class="px-2 py-0.5 rounded-md bg-black/80 text-[11px] font-mono font-black text-matrix border border-matrix/30">#' + puestoGlobal + '</span>';
         if (isLive) {
           html += '<span class="px-2 py-0.5 rounded-md bg-matrix text-black font-black text-[9px] tracking-wider animate-pulse">EN VIVO</span>';
         } else {
           html += '<span class="px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 font-bold text-[9px]">OFFLINE</span>';
         }
-        html += '<button onclick="abrirDueloCon(\\'' + c.id + '\\')" class="ml-auto px-2 py-0.5 rounded-md bg-black/60 hover:bg-matrix hover:text-black transition-all text-matrix text-[10px] font-black border border-matrix/30 flex items-center space-x-1">';
-        html += '<span>⚡</span><span>Comparar</span>';
-        html += '</button>';
-        html += '</div>';
-
-        html += '<p class="text-[11px] text-matrix font-mono truncate">' + c.subtheme + '</p>';
-        html += '<p class="text-xs text-slate-400 truncate mt-0.5">' + c.title + '</p>';
         html += '</div></div>';
 
-        if (tieneBotAlert) {
-          html += '<div class="mb-3 px-3 py-1.5 rounded-lg bg-amber-950/40 border border-amber-500/50 flex items-start space-x-2">';
-          html += '<span class="text-amber-400 text-sm">⚠️</span>';
-          html += '<div class="text-[10px] text-amber-200 leading-tight">';
-          html += '<strong class="font-bold text-amber-300">Alerta de Tráfico No Orgánico:</strong> Métrica bajo auditoría heurística. Datos desacoplados del liderazgo general.';
-          html += '</div></div>';
+        // Fila 2: Programa emitido / Título del directo o Bot Shield
+        html += '<div class="my-auto">';
+        if (tieneBotShield) {
+          html += '<div class="px-2.5 py-1 rounded-lg bg-amber-950/60 border border-amber-500/60 text-[10px] text-amber-200 leading-tight flex items-center space-x-1.5">';
+          html += '<span>🛡️</span>';
+          html += '<span class="truncate"><strong>ALERTA:</strong> Tráfico externo anómalo no atribuible al canal.</span>';
+          html += '</div>';
+        } else {
+          html += '<p class="text-[11px] text-matrix font-mono font-semibold truncate">' + (c.programas && c.programas.length ? c.programas[0] : c.subtheme) + '</p>';
+          html += '<p class="text-xs text-slate-300 truncate mt-0.5 leading-snug">' + (c.title || 'Señal sin transmisión activa') + '</p>';
         }
-
-        html += '<div class="flex items-end justify-between bg-black/30 rounded-xl p-2.5 mb-3 border border-[#162238]">';
-        html += '<div><span class="text-[10px] uppercase font-mono text-slate-400">Total Viewers</span></div>';
-        html += '<div class="text-xl font-black font-mono ' + (tieneBotAlert ? 'text-amber-400' : (isLive ? 'text-matrix matrix-glow' : 'text-slate-500')) + '">' + formatNum(c.totalViewers) + '</div>';
         html += '</div>';
 
-        html += '<div class="grid grid-cols-3 gap-1.5">';
+        // Fila 3: Métricas, Plataformas y Botón Comparar
+        html += '<div class="pt-2 border-t border-[#162238] flex items-center justify-between gap-2">';
+        html += '<div>';
+        html += '<span class="text-[9px] uppercase font-mono text-slate-400 block">Espectadores</span>';
+        html += '<span class="text-lg font-black font-mono ' + (tieneBotShield ? 'text-amber-400' : (isLive ? 'text-matrix matrix-glow' : 'text-slate-500')) + '">' + formatNum(c.totalViewers) + '</span>';
+        html += '</div>';
+
+        html += '<div class="flex items-center space-x-1">';
         html += renderizarPlataformaBadge('yt', c.platforms.youtube);
         html += renderizarPlataformaBadge('tw', c.platforms.twitch);
         html += renderizarPlataformaBadge('ki', c.platforms.kick);
+        html += '</div>';
+
+        html += '<button onclick="abrirDueloCon(\\'' + c.id + '\\')" class="p-1.5 rounded-lg bg-black/60 hover:bg-matrix hover:text-black transition-all text-matrix text-[10px] font-black border border-matrix/30 flex-shrink-0" title="Comparar">';
+        html += '⚡';
+        html += '</button>';
+
         html += '</div>';
 
         html += '</div>';
@@ -1670,7 +1732,7 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     // ========================================================================
-    // LOGICA DE AUDITORÍA HISTÓRICA, SELECTORES DEPENDIENTES Y REPORTES CSV
+    // AUDITORÍA HISTÓRICA & FILTROS CON PROGRAMAS DEPENDIENTES
     // ========================================================================
     const poblarSelectoresReportes = () => {
       const selectCanal = document.getElementById('report-channel-select');
@@ -1773,7 +1835,7 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     // ========================================================================
-    // MODAL DE DUELO 1 VS 1 Y EXPORTACIÓN PNG CON HTML2CANVAS (1:1 CUADRADO)
+    // MODAL DE DUELO 1 VS 1: 1:1 CUADRADO, PROGRAMA PROTAGONISTA, FECHA FLÚOR
     // ========================================================================
     const poblarSelectoresDuelo = () => {
       const selA = document.getElementById('duel-select-a');
@@ -1923,5 +1985,5 @@ app.get('/', (req, res) => {
 // ARRANQUE DEL SERVIDOR
 // ============================================================================
 app.listen(PORT, () => {
-  console.log(`[StreamRank ARG] Servidor ejecutándose en el puerto ${PORT}`);
+  console.log(`[StreamRank ARG] Servidor activo en puerto ${PORT}`);
 });
