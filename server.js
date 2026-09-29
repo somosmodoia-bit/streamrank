@@ -350,7 +350,7 @@ const fetchConTimeout = async (url, opciones = {}, ms = 6000) => {
 };
 
 // ============================================================================
-// YOUTUBE SCRAPER: REDIRECTS, BYPASS Y EXTRACCIÓN DIRECTA
+// YOUTUBE SCRAPER: SIN RETORNO PREMATURO, REDIRECTS, BYPASS Y RESISTENTE
 // ============================================================================
 const scrapeYouTube = async (handle) => {
   if (!handle) return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
@@ -374,34 +374,9 @@ const scrapeYouTube = async (handle) => {
 
     if (!res.ok) return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
 
-    // 1. Extraer videoId desde la URL final tras redirecciones
-    let videoId = '';
-    const finalUrl = res.url || '';
-    if (finalUrl.includes('watch?v=')) {
-      const urlMatch = finalUrl.match(/watch\?v=([a-zA-Z0-9_-]{11})/);
-      if (urlMatch) videoId = urlMatch[1];
-    }
-
     const html = await res.text();
 
-    // 2. Si no provino de la URL final, buscar en tags canónicos y meta
-    if (!videoId) {
-      const canonicalMatch =
-        html.match(/<link\s+rel="canonical"\s+href="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/i) ||
-        html.match(/<meta\s+property="og:url"\s+content="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/i) ||
-        html.match(/<meta\s+itemprop="videoId"\s+content="([a-zA-Z0-9_-]{11})"/i) ||
-        html.match(/"liveStreamabilityRenderer":\s*\{\s*"videoId":\s*"([a-zA-Z0-9_-]{11})"/);
-      if (canonicalMatch && canonicalMatch[1]) {
-        videoId = canonicalMatch[1];
-      }
-    }
-
-    // Si la URL canónica no apunta a un video en watch?v=, el canal está fuera del aire
-    if (!videoId) {
-      return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
-    }
-
-    // 3. Descartar transmisiones programadas o futuras (UPCOMING)
+    // 1. Descartar si el HTML contiene UPCOMING o evento futuro programado
     const isUpcoming =
       /"status":\s*"UPCOMING"/i.test(html) ||
       /\\"status\\":\s*\\"UPCOMING\\"/i.test(html) ||
@@ -410,7 +385,36 @@ const scrapeYouTube = async (handle) => {
       return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
     }
 
-    // 4. Extraer título exclusivo
+    // 2. Extraer Viewers Concurrentes en todo el HTML con soporte de strings escapados
+    const concurrentMatch =
+      html.match(/"concurrentViewers":\s*"(\d+)"/) ||
+      html.match(/\\"concurrentViewers\\":\s*\\"(\d+)\\"/);
+    const originalViewMatch =
+      html.match(/"originalViewCount":\s*"(\d+)"/) ||
+      html.match(/\\"originalViewCount\\":\s*\\"(\d+)\\"/);
+    const viewRunsMatch =
+      html.match(/"viewCount":\s*\{\s*"runs":\s*\[\s*\{\s*"text":\s*"([^"]+)"/) ||
+      html.match(/\\"viewCount\\":\s*\{\s*\\"runs\\":\s*\[\s*\{\s*\\"text\\":\s*\\"([^"]+)\\"/);
+
+    let viewers = 0;
+    if (concurrentMatch) viewers = parseInt(concurrentMatch[1], 10);
+    else if (originalViewMatch) viewers = parseInt(originalViewMatch[1], 10);
+    else if (viewRunsMatch) viewers = parseInt(viewRunsMatch[1].replace(/[^0-9]/g, ''), 10) || 0;
+
+    // 3. Validar si está en vivo
+    const hasLiveSignal =
+      viewers > 20 ||
+      /"isLive":\s*true/i.test(html) ||
+      /\\"isLive\\":\s*true/i.test(html) ||
+      /"isLiveBroadcast":\s*true/i.test(html) ||
+      /\\"isLiveBroadcast\\":\s*true/i.test(html) ||
+      /"isLiveNow":\s*true/i.test(html);
+
+    if (!hasLiveSignal || viewers <= 5) {
+      return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
+    }
+
+    // 4. Extraer título
     let title = '';
     const metaTitle =
       html.match(/<meta\s+name="title"\s+content="([^"]*)"/i) ||
@@ -422,54 +426,36 @@ const scrapeYouTube = async (handle) => {
       if (runsTitle && runsTitle[1]) title = runsTitle[1];
     }
 
-    // Descartar títulos de cortesía y carteles de espera
     const blacklistRegex = /(hasta ma[nñ]ana|pr[oó]ximamente|en espera|directo finalizado)/i;
     if (title && blacklistRegex.test(title)) {
       return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
     }
 
-    // 5. Extraer Viewers Concurrentes
-    let viewers = 0;
-    const concurrentMatch =
-      html.match(/"concurrentViewers":\s*"(\d+)"/) ||
-      html.match(/\\"concurrentViewers\\":\s*\\"(\d+)\\"/);
-    const originalViewMatch =
-      html.match(/"originalViewCount":\s*"(\d+)"/) ||
-      html.match(/\\"originalViewCount\\":\s*\\"(\d+)\\"/);
-    const viewRunsMatch =
-      html.match(/"viewCount":\s*\{\s*"runs":\s*\[\s*\{\s*"text":\s*"([^"]+)"/) ||
-      html.match(/\\"viewCount\\":\s*\{\s*\\"runs\\":\s*\[\s*\{\s*\\"text\\":\s*\\"([^"\\]+)\\"/);
-
-    if (concurrentMatch) {
-      viewers = parseInt(concurrentMatch[1], 10) || 0;
-    } else if (originalViewMatch) {
-      viewers = parseInt(originalViewMatch[1], 10) || 0;
-    } else if (viewRunsMatch && viewRunsMatch[1]) {
-      const limpio = viewRunsMatch[1].replace(/[^0-9]/g, '');
-      viewers = parseInt(limpio, 10) || 0;
+    // 5. Extraer videoId y miniatura (solo una vez confirmado el directo)
+    let videoId = '';
+    const finalUrl = res.url || '';
+    if (finalUrl.includes('watch?v=')) {
+      const urlMatch = finalUrl.match(/watch\?v=([a-zA-Z0-9_-]{11})/);
+      if (urlMatch) videoId = urlMatch[1];
     }
 
-    // 6. Validación de En Vivo: (viewers > 20 o señales live en JSON) y viewers > 5
-    const hasLiveSignal =
-      viewers > 20 ||
-      /"isLive":\s*true/i.test(html) ||
-      /\\"isLive\\":\s*true/i.test(html) ||
-      /"isLiveBroadcast":\s*true/i.test(html) ||
-      /\\"isLiveBroadcast\\":\s*true/i.test(html) ||
-      /"isLiveNow":\s*true/i.test(html) ||
-      /\\"isLiveNow\\":\s*true/i.test(html);
-
-    if (hasLiveSignal && viewers > 5) {
-      console.log(`[YouTube OK] ${handle}: ${viewers} viewers`);
-      return {
-        isLive: true,
-        viewers,
-        title: title || 'Transmisión en directo',
-        thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
-      };
+    if (!videoId) {
+      const canMatch =
+        html.match(/<link\s+rel="canonical"\s+href="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/i) ||
+        html.match(/watch\?v=([a-zA-Z0-9_-]{11})/);
+      if (canMatch) videoId = canMatch[1];
     }
 
-    return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
+    const thumbnail = videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : '';
+
+    console.log(`[YouTube OK] ${handle}: ${viewers} viewers (ID: ${videoId || 'N/A'})`);
+
+    return {
+      isLive: true,
+      viewers,
+      title: title || 'Transmisión en directo',
+      thumbnail
+    };
   } catch (err) {
     console.error(`[YouTube Error] ${handle}:`, err.message);
     return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
