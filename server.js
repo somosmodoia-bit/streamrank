@@ -284,7 +284,7 @@ const CHANNELS = [
 const historicalSnapshots = [];
 const MAX_HISTORICAL_RECORDS = 50000;
 
-// Inicialización de arranque rápido: el servidor sirve la web de inmediato
+// Inicialización de arranque rápido: el servidor sirve la web de inmediato sin bloqueo
 let telemetriaCache = CHANNELS.map((canal) => ({
   id: canal.id,
   name: canal.name,
@@ -439,7 +439,7 @@ const scrapeYouTube = async (handle) => {
       return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
     }
 
-    // 5. Extraer videoId ÚNICAMENTE del reproductor principal o del tag canonical (nunca búsqueda suelta en todo el HTML)
+    // 5. Extraer videoId ÚNICAMENTE del reproductor principal o del tag canonical (nunca búsqueda suelta)
     let videoId = '';
     const finalUrl = res.url || '';
     if (finalUrl.includes('watch?v=')) {
@@ -601,97 +601,110 @@ const evaluarAnomaliaTrafico = (canal, totalViewers) => {
 };
 
 // ============================================================================
-// CICLO DE SCRAPEO SECUENCIAL CON PAUSA DE 120 MS (ANTI 429)
+// CICLO DE SCRAPEO CONCURRENTE EN LOTES (ARRANQUE VELOZ < 5 SEGUNDOS)
 // ============================================================================
+const procesarCanalIndividual = async (canal) => {
+  try {
+    const [ytRes, twRes, kiRes] = await Promise.all([
+      canal.platforms.yt ? scrapeYouTube(canal.platforms.yt) : Promise.resolve({ isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' }),
+      canal.platforms.tw ? scrapeTwitch(canal.platforms.tw) : Promise.resolve({ isLive: false, viewers: 0, title: '', thumbnail: '' }),
+      canal.platforms.ki ? scrapeKick(canal.platforms.ki) : Promise.resolve({ isLive: false, viewers: 0, title: '', thumbnail: '' })
+    ]);
+
+    const isLive = ytRes.isLive || twRes.isLive || kiRes.isLive;
+    const totalViewers = (ytRes.viewers || 0) + (twRes.viewers || 0) + (kiRes.viewers || 0);
+
+    let thumbnail = isLive ? (ytRes.thumbnail || twRes.thumbnail || kiRes.thumbnail || '') : '';
+    let title = isLive ? (ytRes.title || twRes.title || kiRes.title || 'Transmitiendo en directo') : 'Transmisión finalizada';
+
+    const anomalia = isLive ? evaluarAnomaliaTrafico(canal, totalViewers) : { botAlert: false, reason: null, decoupled: false };
+
+    const itemTelemetria = {
+      id: canal.id,
+      name: canal.name,
+      category: canal.category,
+      subtheme: canal.subtheme,
+      avatar: canal.avatar,
+      isEmerging: canal.isEmerging,
+      isLive,
+      totalViewers,
+      title,
+      thumbnail,
+      botAlert: anomalia.botAlert,
+      botReason: anomalia.reason,
+      decoupled: anomalia.decoupled,
+      platforms: {
+        youtube: {
+          active: Boolean(canal.platforms.yt),
+          handle: canal.platforms.yt || null,
+          isLive: ytRes.isLive,
+          viewers: ytRes.viewers || 0
+        },
+        twitch: {
+          active: Boolean(canal.platforms.tw),
+          handle: canal.platforms.tw || null,
+          isLive: twRes.isLive,
+          viewers: twRes.viewers || 0
+        },
+        kick: {
+          active: Boolean(canal.platforms.ki),
+          handle: canal.platforms.ki || null,
+          isLive: kiRes.isLive,
+          viewers: kiRes.viewers || 0
+        }
+      },
+      timestamp: new Date().toISOString()
+    };
+
+    if (isLive && totalViewers > 0) {
+      const bsAsTime = getBuenosAiresTime();
+      historicalSnapshots.push({
+        canal_id: canal.id,
+        nombre: canal.name,
+        categoria: canal.category,
+        subtema: canal.subtheme,
+        titulo_programa: title,
+        viewers_total: totalViewers,
+        viewers_yt: ytRes.viewers || 0,
+        viewers_tw: twRes.viewers || 0,
+        viewers_ki: kiRes.viewers || 0,
+        bot_alert: anomalia.botAlert ? 1 : 0,
+        fecha: bsAsTime.date,
+        hora: bsAsTime.time,
+        timestamp_buenos_aires: bsAsTime.timestamp
+      });
+
+      if (historicalSnapshots.length > MAX_HISTORICAL_RECORDS) {
+        historicalSnapshots.splice(0, historicalSnapshots.length - (MAX_HISTORICAL_RECORDS - 5000));
+      }
+    }
+
+    return itemTelemetria;
+  } catch (canalError) {
+    console.error(`Error procesando telemetría de ${canal.name}:`, canalError);
+    return null;
+  }
+};
+
 const actualizarTelemetria = async () => {
   if (estaScrapeando) return;
   estaScrapeando = true;
 
   try {
     const listaActualizada = [];
-    const bsAsTime = getBuenosAiresTime();
+    const BATCH_SIZE = 6; // Procesamiento en lotes de 6 canales en paralelo
 
-    for (const canal of CHANNELS) {
-      try {
-        const [ytRes, twRes, kiRes] = await Promise.all([
-          canal.platforms.yt ? scrapeYouTube(canal.platforms.yt) : Promise.resolve({ isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' }),
-          canal.platforms.tw ? scrapeTwitch(canal.platforms.tw) : Promise.resolve({ isLive: false, viewers: 0, title: '', thumbnail: '' }),
-          canal.platforms.ki ? scrapeKick(canal.platforms.ki) : Promise.resolve({ isLive: false, viewers: 0, title: '', thumbnail: '' })
-        ]);
-
-        const isLive = ytRes.isLive || twRes.isLive || kiRes.isLive;
-        const totalViewers = (ytRes.viewers || 0) + (twRes.viewers || 0) + (kiRes.viewers || 0);
-
-        let thumbnail = isLive ? (ytRes.thumbnail || twRes.thumbnail || kiRes.thumbnail || '') : '';
-        let title = isLive ? (ytRes.title || twRes.title || kiRes.title || 'Transmitiendo en directo') : 'Transmisión finalizada';
-
-        const anomalia = isLive ? evaluarAnomaliaTrafico(canal, totalViewers) : { botAlert: false, reason: null, decoupled: false };
-
-        const itemTelemetria = {
-          id: canal.id,
-          name: canal.name,
-          category: canal.category,
-          subtheme: canal.subtheme,
-          avatar: canal.avatar,
-          isEmerging: canal.isEmerging,
-          isLive,
-          totalViewers,
-          title,
-          thumbnail,
-          botAlert: anomalia.botAlert,
-          botReason: anomalia.reason,
-          decoupled: anomalia.decoupled,
-          platforms: {
-            youtube: {
-              active: Boolean(canal.platforms.yt),
-              handle: canal.platforms.yt || null,
-              isLive: ytRes.isLive,
-              viewers: ytRes.viewers || 0
-            },
-            twitch: {
-              active: Boolean(canal.platforms.tw),
-              handle: canal.platforms.tw || null,
-              isLive: twRes.isLive,
-              viewers: twRes.viewers || 0
-            },
-            kick: {
-              active: Boolean(canal.platforms.ki),
-              handle: canal.platforms.ki || null,
-              isLive: kiRes.isLive,
-              viewers: kiRes.viewers || 0
-            }
-          },
-          timestamp: new Date().toISOString()
-        };
-
-        listaActualizada.push(itemTelemetria);
-
-        if (isLive && totalViewers > 0) {
-          historicalSnapshots.push({
-            canal_id: canal.id,
-            nombre: canal.name,
-            categoria: canal.category,
-            subtema: canal.subtheme,
-            titulo_programa: title,
-            viewers_total: totalViewers,
-            viewers_yt: ytRes.viewers || 0,
-            viewers_tw: twRes.viewers || 0,
-            viewers_ki: kiRes.viewers || 0,
-            bot_alert: anomalia.botAlert ? 1 : 0,
-            fecha: bsAsTime.date,
-            hora: bsAsTime.time,
-            timestamp_buenos_aires: bsAsTime.timestamp
-          });
-
-          if (historicalSnapshots.length > MAX_HISTORICAL_RECORDS) {
-            historicalSnapshots.splice(0, historicalSnapshots.length - (MAX_HISTORICAL_RECORDS - 5000));
-          }
-        }
-      } catch (canalError) {
-        console.error(`Error procesando telemetría de ${canal.name}:`, canalError);
+    for (let i = 0; i < CHANNELS.length; i += BATCH_SIZE) {
+      const lote = CHANNELS.slice(i, i + BATCH_SIZE);
+      const resultadosLote = await Promise.all(lote.map(procesarCanalIndividual));
+      
+      for (const res of resultadosLote) {
+        if (res) listaActualizada.push(res);
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 120));
+      if (i + BATCH_SIZE < CHANNELS.length) {
+        await new Promise((resolve) => setTimeout(resolve, 80));
+      }
     }
 
     listaActualizada.sort((a, b) => {
@@ -714,7 +727,7 @@ const actualizarTelemetria = async () => {
   }
 };
 
-// Iniciar scrapeo en background sin bloquear peticiones entrantes
+// Iniciar primer ciclo veloz de inmediato y programar chequeo cada 25s
 actualizarTelemetria();
 setInterval(actualizarTelemetria, 25000);
 
@@ -765,14 +778,22 @@ app.get('/api/analytics/export', (req, res) => {
   res.status(200).send(csv);
 });
 
-// 4. Endpoint de Auditoría Histórica con filtros de canal y fecha
+// 4. Endpoint de Auditoría Histórica con filtros de canal, programa y fechas
 app.get('/api/analytics/historical', (req, res) => {
-  const { canal, from, to, format } = req.query;
+  const { canal, programa, from, to, format } = req.query;
 
   let filtrados = historicalSnapshots;
 
   if (canal && canal !== 'todos') {
     filtrados = filtrados.filter((s) => s.canal_id === canal.toLowerCase());
+  }
+
+  if (programa && programa !== 'todos') {
+    const progLower = programa.toLowerCase();
+    filtrados = filtrados.filter((s) =>
+      (s.titulo_programa && s.titulo_programa.toLowerCase().includes(progLower)) ||
+      (s.subtema && s.subtema.toLowerCase().includes(progLower))
+    );
   }
 
   if (from) {
@@ -826,6 +847,7 @@ app.get('/api/analytics/historical', (req, res) => {
     totalSamples: filtrados.length,
     filters: {
       canal: canal || 'todos',
+      programa: programa || 'todos',
       from: from || null,
       to: to || null
     },
@@ -880,7 +902,7 @@ const HTML_APP = `<!DOCTYPE html>
 </head>
 <body class="min-h-screen flex flex-col bg-[#050811] text-slate-100 antialiased selection:bg-[#00ff66] selection:text-black">
 
-  <!-- HEADER -->
+  <!-- HEADER (SIN BOTÓN EXPORTAR CSV) -->
   <header class="sticky top-0 z-40 bg-[#050811]/95 backdrop-blur-md border-b border-[#162238]">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
       
@@ -899,9 +921,9 @@ const HTML_APP = `<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- STATUS & BOTÓN CSV RESPONSIVE -->
+      <!-- STATUS Y AUDIENCIA EN TIEMPO REAL -->
       <div class="flex items-center space-x-2 sm:space-x-3">
-        <div class="hidden lg:flex items-center bg-[#0b1120] border border-[#162238] rounded-xl px-4 py-2 space-x-4">
+        <div class="flex items-center bg-[#0b1120] border border-[#162238] rounded-xl px-3 sm:px-4 py-2 space-x-3 sm:space-x-4">
           <div class="flex items-center space-x-2">
             <span class="inline-block w-2.5 h-2.5 rounded-full bg-matrix shadow-matrix"></span>
             <span class="text-xs font-semibold text-slate-300"><span id="stat-live-count" class="text-matrix font-bold">0</span> En Vivo</span>
@@ -910,18 +932,11 @@ const HTML_APP = `<!DOCTYPE html>
           <div class="text-xs text-slate-400">
             Audiencia: <span id="stat-total-viewers" class="text-white font-mono font-bold">0</span>
           </div>
-          <div class="w-px h-4 bg-slate-700"></div>
-          <div class="text-[11px] font-mono text-slate-400" id="sync-clock">Sinc: --:--:--</div>
+          <div class="hidden sm:block w-px h-4 bg-slate-700"></div>
+          <div class="hidden sm:block text-[11px] font-mono text-slate-400" id="sync-clock">Sinc: --:--:--</div>
         </div>
-
-        <a href="/api/analytics/export" class="inline-flex items-center justify-center px-3 sm:px-4 py-2 text-xs font-black uppercase tracking-wider text-black bg-matrix rounded-xl hover:bg-emerald-400 transition-all shadow-matrix flex-shrink-0">
-          <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-          </svg>
-          <span class="hidden sm:inline">Exportar CSV</span>
-          <span class="sm:hidden text-[11px]">CSV</span>
-        </a>
       </div>
+
     </div>
   </header>
 
@@ -1081,7 +1096,7 @@ const HTML_APP = `<!DOCTYPE html>
 
   </main>
 
-  <!-- MODAL DE REPORTES & AUDITORÍA HISTÓRICA -->
+  <!-- MODAL DE REPORTES & AUDITORÍA HISTÓRICA (CON FILTRO DE PROGRAMA) -->
   <div id="modal-reportes" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden p-4">
     <div class="bg-[#0b1120] border border-[#162238] rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl relative overflow-hidden space-y-5">
       
@@ -1097,13 +1112,23 @@ const HTML_APP = `<!DOCTYPE html>
       </p>
 
       <div class="space-y-3">
+        <!-- CANAL -->
         <div>
           <label class="block text-xs font-semibold text-slate-400 mb-1">CANAL A AUDITAR</label>
-          <select id="report-channel-select" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-matrix">
+          <select id="report-channel-select" onchange="actualizarProgramasAuditModal(this.value)" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-matrix">
             <option value="todos">Todos los Canales Monitoreados</option>
           </select>
         </div>
 
+        <!-- PROGRAMA A AUDITAR (FILTRO DEPENDIENTE) -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">PROGRAMA A AUDITAR</label>
+          <select id="report-program-select" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-matrix">
+            <option value="todos">Todos los programas del canal</option>
+          </select>
+        </div>
+
+        <!-- PERÍODO -->
         <div>
           <label class="block text-xs font-semibold text-slate-400 mb-1">PERÍODO TEMPORAL</label>
           <select id="report-period-select" onchange="ajustarFechasPeriodo(this.value)" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-matrix">
@@ -1413,7 +1438,7 @@ const HTML_APP = `<!DOCTYPE html>
       html += '<div class="flex flex-wrap items-center gap-1.5 mt-0.5">';
       html += '<span class="text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded bg-[#162238] text-slate-300">' + lider.category + '</span>';
       html += '<span class="text-[10px] sm:text-[11px] font-mono text-matrix truncate">' + lider.subtheme + '</span>';
-      </div></div></div>';
+      html += '</div></div></div>';
 
       html += '<p class="text-xs sm:text-sm text-slate-300 line-clamp-2 italic">"' + lider.title + '"</p>';
 
@@ -1558,26 +1583,51 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     // ========================================================================
-    // LOGICA DE AUDITORÍA HISTÓRICA Y REPORTES CSV
+    // LOGICA DE AUDITORÍA HISTÓRICA, SELECTORES DEPENDIENTES Y REPORTES CSV
     // ========================================================================
     const poblarSelectoresReportes = () => {
-      const select = document.getElementById('report-channel-select');
-      if (!select || !canalesData.length) return;
+      const selectCanal = document.getElementById('report-channel-select');
+      if (!selectCanal || !canalesData.length) return;
 
-      const valorPrevio = select.value;
+      const valorPrevio = selectCanal.value;
       let opts = '<option value="todos">Todos los Canales Monitoreados</option>';
 
       canalesData.forEach(c => {
         opts += '<option value="' + c.id + '">' + c.name + '</option>';
       });
 
-      select.innerHTML = opts;
-      if (valorPrevio) select.value = valorPrevio;
+      selectCanal.innerHTML = opts;
+      if (valorPrevio) selectCanal.value = valorPrevio;
+
+      actualizarProgramasAuditModal(selectCanal.value);
+    };
+
+    const actualizarProgramasAuditModal = (canalId) => {
+      const progSelect = document.getElementById('report-program-select');
+      if (!progSelect) return;
+
+      let opts = '<option value="todos">Todos los programas del canal</option>';
+
+      if (canalId !== 'todos') {
+        const canal = canalesData.find(c => c.id === canalId);
+        if (canal) {
+          if (canal.subtheme) {
+            opts += '<option value="' + canal.subtheme + '">' + canal.subtheme + '</option>';
+          }
+          if (canal.title && canal.title !== 'Transmisión finalizada' && canal.title !== 'Sincronizando señal en vivo...') {
+            opts += '<option value="' + canal.title.replace(/"/g, '&quot;') + '">' + canal.title + '</option>';
+          }
+        }
+      }
+
+      progSelect.innerHTML = opts;
+      progSelect.value = 'todos';
     };
 
     const abrirModalReportes = () => {
       document.getElementById('modal-reportes').classList.remove('hidden');
       ajustarFechasPeriodo(document.getElementById('report-period-select').value);
+      actualizarProgramasAuditModal(document.getElementById('report-channel-select').value);
     };
 
     const cerrarModalReportes = () => {
@@ -1620,11 +1670,13 @@ const HTML_APP = `<!DOCTYPE html>
 
     const ejecutarDescargaReporte = () => {
       const canal = document.getElementById('report-channel-select').value;
+      const programa = document.getElementById('report-program-select').value;
       const from = document.getElementById('report-from-date').value;
       const to = document.getElementById('report-to-date').value;
 
       let url = '/api/analytics/historical?format=csv';
       if (canal) url += '&canal=' + encodeURIComponent(canal);
+      if (programa && programa !== 'todos') url += '&programa=' + encodeURIComponent(programa);
       if (from) url += '&from=' + encodeURIComponent(from);
       if (to) url += '&to=' + encodeURIComponent(to);
 
