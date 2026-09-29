@@ -312,7 +312,7 @@ const getBuenosAiresTime = () => {
 };
 
 // ============================================================================
-// MOTOR DE SCRAPING CON TIMEOUT SEGURO Y PROTECCIÓN ANTI-FALSOS POSITIVOS
+// MOTOR DE SCRAPING CON TIMEOUT SEGURO
 // ============================================================================
 const fetchConTimeout = async (url, opciones = {}, ms = 1800) => {
   const controlador = new AbortController();
@@ -327,7 +327,9 @@ const fetchConTimeout = async (url, opciones = {}, ms = 1800) => {
   }
 };
 
-// YouTube Scraper: Extracción canónica estricta para evitar videos ajenos
+// ============================================================================
+// YOUTUBE SCRAPER: DETECCIÓN ROBUSTA, FLEXIBLE Y ANTI-FALSOS POSITIVOS
+// ============================================================================
 const scrapeYouTube = async (handle) => {
   if (!handle) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
   try {
@@ -348,52 +350,17 @@ const scrapeYouTube = async (handle) => {
 
     const html = await res.text();
 
-    // 1. Verificación obligatoria de transmisión activa
-    const isLiveMatch = /"isLive":\s*true/.test(html);
-    const isUpcoming = /"status":\s*"UPCOMING"/.test(html) || /"upcomingEventData"/.test(html);
-    const isPremiere = /"isPremiere":\s*true/.test(html);
-
-    if (!isLiveMatch || isUpcoming || isPremiere) {
+    // 1. Descartar de inmediato transmisiones programadas / en espera UPCOMING
+    const isUpcoming = /"status":\s*"UPCOMING"/.test(html) || /\\"status\\":\s*\\"UPCOMING\\"/.test(html);
+    if (isUpcoming) {
       return { isLive: false, viewers: 0, title: '', thumbnail: '' };
     }
 
-    // 2. Extracción estricta del VideoID canónico (reproductor activo en vivo)
-    let videoId = '';
-    const canonicalMatch = html.match(/<link\s+rel="canonical"\s+href="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/i);
-    const liveStreamabilityMatch = html.match(/"liveStreamabilityRenderer":\s*\{\s*"videoId":\s*"([a-zA-Z0-9_-]{11})"/);
-    const videoDetailsLiveMatch = html.match(/"videoDetails":\s*\{"videoId":\s*"([a-zA-Z0-9_-]{11})"[^}]*"isLive":\s*true/);
-
-    if (liveStreamabilityMatch && liveStreamabilityMatch[1]) {
-      videoId = liveStreamabilityMatch[1];
-    } else if (canonicalMatch && canonicalMatch[1]) {
-      videoId = canonicalMatch[1];
-    } else if (videoDetailsLiveMatch && videoDetailsLiveMatch[1]) {
-      videoId = videoDetailsLiveMatch[1];
-    }
-
-    // Si no hay videoId canónico validado, thumbnail debe ser '' para no tomar videos recomendados ajenos
-    if (!videoId) {
-      return { isLive: false, viewers: 0, title: '', thumbnail: '' };
-    }
-
-    // 3. Extracción de título del stream
-    let title = '';
-    const titleMatch = html.match(/"title":\s*\{\s*"runs":\s*\[\s*\{\s*"text":\s*"([^"]+)"/);
-    if (titleMatch) {
-      title = titleMatch[1];
-    }
-
-    // 4. Filtrado de placas de cortesía y bucles sin emisión activa
-    const blacklistRegex = /(hasta ma[nñ]ana|pr[oó]ximamente|en espera|esperando|comienza en|iniciamos en|arrancamos en|volvemos|transmisi[oó]n finalizada|estreno|directo finalizado)/i;
-    if (blacklistRegex.test(title)) {
-      return { isLive: false, viewers: 0, title: '', thumbnail: '' };
-    }
-
-    // 5. Extracción de espectadores concurrentes
+    // 2. Extracción de Viewers Concurrentes (soporta comillas estándar y escapadas)
     let viewers = 0;
-    const concurrentMatch = html.match(/"concurrentViewers":\s*"(\d+)"/);
-    const simpleViewMatch = html.match(/"originalViewCount":\s*"(\d+)"/);
-    const viewRunsMatch = html.match(/"viewCount":\s*\{\s*"runs":\s*\[\s*\{\s*"text":\s*"([^"]+)"/);
+    const concurrentMatch = html.match(/"concurrentViewers":\s*"(\d+)"/) || html.match(/\\"concurrentViewers\\":\s*\\"(\d+)\\"/);
+    const simpleViewMatch = html.match(/"originalViewCount":\s*"(\d+)"/) || html.match(/\\"originalViewCount\\":\s*\\"(\d+)\\"/);
+    const viewRunsMatch = html.match(/"viewCount":\s*\{\s*"runs":\s*\[\s*\{\s*"text":\s*"([^"]+)"/) || html.match(/\\"viewCount\\":\s*\{\s*\\"runs\\":\s*\[\s*\{\s*\\"text\\":\s*\\"([^"\\]+)\\"/);
 
     if (concurrentMatch) {
       viewers = parseInt(concurrentMatch[1], 10) || 0;
@@ -404,16 +371,49 @@ const scrapeYouTube = async (handle) => {
       viewers = parseInt(limpio, 10) || 0;
     }
 
-    // Descartar streams colgados con audiencia casi nula
-    if (viewers <= 5) {
+    // 3. Extracción de título del stream
+    let title = '';
+    const titleMatch = html.match(/"title":\s*\{\s*"runs":\s*\[\s*\{\s*"text":\s*"([^"]+)"/) ||
+                       html.match(/\\"title\\":\s*\{\s*\\"runs\\":\s*\[\s*\{\s*\\"text\\":\s*\\"([^"\\]+)\\"/);
+    if (titleMatch) {
+      title = titleMatch[1];
+    } else {
+      const metaTitle = html.match(/<meta\s+name="title"\s+content="([^"]*)"/i);
+      if (metaTitle) title = metaTitle[1];
+    }
+
+    // 4. Filtrado estricto de títulos de cortesía / transmisiones terminadas
+    const blacklistRegex = /(hasta ma[nñ]ana|pr[oó]ximamente|en espera|directo finalizado)/i;
+    if (title && blacklistRegex.test(title)) {
       return { isLive: false, viewers: 0, title: '', thumbnail: '' };
     }
+
+    // 5. Criterio flexible de EN VIVO:
+    // Markers estructurales ("isLive":true o "status":"LIVE" con o sin escape) O viewers concurrentes > 25
+    const hasLiveMarker = /"isLive":\s*true/.test(html) ||
+                          /\\"isLive\\":\s*true/.test(html) ||
+                          /"status":\s*"LIVE"/.test(html) ||
+                          /\\"status\\":\s*\\"LIVE\\"/.test(html);
+
+    const isLive = (hasLiveMarker || viewers > 25);
+
+    if (!isLive) {
+      return { isLive: false, viewers: 0, title: '', thumbnail: '' };
+    }
+
+    // 6. Extracción robusta de VideoID y armado de miniatura real
+    const videoIdMatch = html.match(/watch\?v=([a-zA-Z0-9_-]{11})/) ||
+                         html.match(/"videoId":\s*"([a-zA-Z0-9_-]{11})"/) ||
+                         html.match(/\\"videoId\\":\s*\\"([a-zA-Z0-9_-]{11})\\"/);
+    const videoId = videoIdMatch ? videoIdMatch[1] : '';
+
+    const thumbnail = videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : '';
 
     return {
       isLive: true,
       viewers,
       title: title || 'Transmisión en directo',
-      thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+      thumbnail
     };
   } catch (err) {
     return { isLive: false, viewers: 0, title: '', thumbnail: '' };
@@ -555,15 +555,14 @@ const actualizarTelemetria = async () => {
     for (const canal of CHANNELS) {
       try {
         const [ytRes, twRes, kiRes] = await Promise.all([
-          canal.platforms.yt ? scrapeYouTube(canal.platforms.yt) : Promise.resolve({ isLive: false, viewers: 0 }),
-          canal.platforms.tw ? scrapeTwitch(canal.platforms.tw) : Promise.resolve({ isLive: false, viewers: 0 }),
-          canal.platforms.ki ? scrapeKick(canal.platforms.ki) : Promise.resolve({ isLive: false, viewers: 0 })
+          canal.platforms.yt ? scrapeYouTube(canal.platforms.yt) : Promise.resolve({ isLive: false, viewers: 0, title: '', thumbnail: '' }),
+          canal.platforms.tw ? scrapeTwitch(canal.platforms.tw) : Promise.resolve({ isLive: false, viewers: 0, title: '', thumbnail: '' }),
+          canal.platforms.ki ? scrapeKick(canal.platforms.ki) : Promise.resolve({ isLive: false, viewers: 0, title: '', thumbnail: '' })
         ]);
 
         const isLive = ytRes.isLive || twRes.isLive || kiRes.isLive;
         const totalViewers = (ytRes.viewers || 0) + (twRes.viewers || 0) + (kiRes.viewers || 0);
 
-        // Si no está en vivo o no hay miniatura canónica confirmada, permanece vacía
         let thumbnail = isLive ? (ytRes.thumbnail || twRes.thumbnail || kiRes.thumbnail || '') : '';
         let title = isLive ? (ytRes.title || twRes.title || kiRes.title || 'Transmitiendo en directo') : 'Transmisión finalizada';
 
@@ -608,7 +607,7 @@ const actualizarTelemetria = async () => {
 
         listaActualizada.push(itemTelemetria);
 
-        // Registro estructurado en base analítica histórica
+        // Registro en base histórica solo con emisión activa
         if (isLive && totalViewers > 0) {
           historicalSnapshots.push({
             canal_id: canal.id,
@@ -626,7 +625,6 @@ const actualizarTelemetria = async () => {
             timestamp_buenos_aires: bsAsTime.timestamp
           });
 
-          // Poda circular para memoria estable
           if (historicalSnapshots.length > MAX_HISTORICAL_RECORDS) {
             historicalSnapshots.splice(0, historicalSnapshots.length - (MAX_HISTORICAL_RECORDS - 5000));
           }
@@ -665,7 +663,7 @@ setInterval(actualizarTelemetria, 25000);
 // ENDPOINTS DE API
 // ============================================================================
 
-// 1. Healthcheck ultra-rápido para UptimeRobot (sin scraping, respuesta 200 inmediata)
+// 1. Healthcheck inmediato para monitor UptimeRobot
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
@@ -726,7 +724,6 @@ app.get('/api/analytics/historical', (req, res) => {
     filtrados = filtrados.filter((s) => s.fecha <= to);
   }
 
-  // Devolver CSV descargable si se solicita
   if (format === 'csv') {
     const cabeceras = [
       'Canal_ID',
@@ -766,7 +763,6 @@ app.get('/api/analytics/historical', (req, res) => {
     return res.status(200).send(csvData);
   }
 
-  // Respuesta estándar en JSON
   res.json({
     totalSamples: filtrados.length,
     filters: {
@@ -1010,8 +1006,8 @@ const HTML_APP = `<!DOCTYPE html>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
         <div class="space-y-1.5">
-          <h4 class="font-bold text-slate-200">1. Filtrado Estricto de Miniaturas y En Vivo</h4>
-          <p>Se extrae únicamente el VideoID canónico en directo de YouTube. Se omiten por completo videos recomendados o repeticiones finalizadas.</p>
+          <h4 class="font-bold text-slate-200">1. Telemetría Real y Flexible</h4>
+          <p>Detectamos directos activos mediante comprobación cruzada de viewers e indicadores de emisión en vivo, omitiendo placas de cortesía y bucles vacíos.</p>
         </div>
         <div class="space-y-1.5">
           <h4 class="font-bold text-slate-200">2. Detección Heurística de Bots</h4>
@@ -1582,7 +1578,7 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     // ========================================================================
-    // MODAL DE DUELO 1 VS 1 Y EXPORTACIÓN PNG CON HTML2CANVAS
+    // MODAL DE DUELO 1 VS 1 Y EXPORTACIÓN PNG CON HTML2CANVAS (1:1 CUADRADO)
     // ========================================================================
     const poblarSelectoresDuelo = () => {
       const selA = document.getElementById('duel-select-a');
