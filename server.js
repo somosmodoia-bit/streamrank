@@ -284,7 +284,29 @@ const CHANNELS = [
 const historicalSnapshots = [];
 const MAX_HISTORICAL_RECORDS = 50000;
 
-let telemetriaCache = [];
+// Inicialización de arranque inmediato (sin bloqueos HTTP)
+let telemetriaCache = CHANNELS.map((canal) => ({
+  id: canal.id,
+  name: canal.name,
+  category: canal.category,
+  subtheme: canal.subtheme,
+  avatar: canal.avatar,
+  isEmerging: canal.isEmerging,
+  isLive: false,
+  totalViewers: 0,
+  title: 'Sincronizando señal en vivo...',
+  thumbnail: '',
+  botAlert: false,
+  botReason: null,
+  decoupled: false,
+  platforms: {
+    youtube: { active: Boolean(canal.platforms.yt), handle: canal.platforms.yt || null, isLive: false, viewers: 0 },
+    twitch: { active: Boolean(canal.platforms.tw), handle: canal.platforms.tw || null, isLive: false, viewers: 0 },
+    kick: { active: Boolean(canal.platforms.ki), handle: canal.platforms.ki || null, isLive: false, viewers: 0 }
+  },
+  timestamp: new Date().toISOString()
+}));
+
 let ultimaActualizacion = null;
 let estaScrapeando = false;
 const historialLecturas = new Map();
@@ -314,7 +336,7 @@ const getBuenosAiresTime = () => {
 // ============================================================================
 // MOTOR DE SCRAPING CON TIMEOUT SEGURO
 // ============================================================================
-const fetchConTimeout = async (url, opciones = {}, ms = 1800) => {
+const fetchConTimeout = async (url, opciones = {}, ms = 2000) => {
   const controlador = new AbortController();
   const id = setTimeout(() => controlador.abort(), ms);
   try {
@@ -328,7 +350,7 @@ const fetchConTimeout = async (url, opciones = {}, ms = 1800) => {
 };
 
 // ============================================================================
-// YOUTUBE SCRAPER AISLADO: CERO CONTAMINACIÓN DE OTROS CANALES / RECOMENDADOS
+// YOUTUBE SCRAPER CANÓNICO: AISLAMIENTO ABSOLUTO Y CERO CONTAMINACIÓN
 // ============================================================================
 const scrapeYouTube = async (handle) => {
   if (!handle) return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
@@ -343,109 +365,88 @@ const scrapeYouTube = async (handle) => {
           'Accept-Language': 'es-419,es;q=0.9,en;q=0.8'
         }
       },
-      1800
+      2000
     );
 
     if (!res.ok) return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
 
     const html = await res.text();
 
-    // 1. Aislamiento absoluto: Extraer bloques dedicados del reproductor de este canal
-    // Evita capturar miniaturas o títulos de videos recomendados, sidebar o trailers ajenos
-    const microIndex = html.indexOf('"playerMicroformatRenderer"');
-    const microBlock = microIndex !== -1 ? html.substring(microIndex, microIndex + 4000) : '';
+    // 1. Extraer videoId ÚNICAMENTE de etiquetas meta / canónicas del header
+    // Cuando el canal está en vivo en /live, YouTube redirige y coloca watch?v= en la canónica.
+    // Si no está transmitiendo, la canónica apunta al perfil @handle sin watch?v=.
+    const canonicalMatch = html.match(/<link\s+rel="canonical"\s+href="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/i) ||
+                           html.match(/<meta\s+property="og:url"\s+content="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/i) ||
+                           html.match(/<meta\s+itemprop="videoId"\s+content="([a-zA-Z0-9_-]{11})"/i);
 
-    const videoDetailsIndex = html.indexOf('"videoDetails"');
-    const videoDetailsBlock = videoDetailsIndex !== -1 ? html.substring(videoDetailsIndex, videoDetailsIndex + 4000) : '';
-
-    // Si no existen bloques del reproductor de video, el canal no tiene emisión activa
-    if (!microBlock && !videoDetailsBlock) {
+    if (!canonicalMatch || !canonicalMatch[1]) {
       return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
     }
 
-    const playerBlock = `${microBlock} ${videoDetailsBlock}`;
+    const videoId = canonicalMatch[1];
 
-    // 2. Descartar de inmediato transmisiones programadas / en espera UPCOMING
-    const isUpcoming = /"status":\s*"UPCOMING"/i.test(playerBlock) || 
-                       /\\"status\\":\s*\\"UPCOMING\\"/i.test(playerBlock);
+    // 2. Descartar si es estreno programado o emisión futura (UPCOMING)
+    const isUpcoming = /"status":\s*"UPCOMING"/i.test(html) || 
+                       /\\"status\\":\s*\\"UPCOMING\\"/i.test(html) ||
+                       html.includes('"upcomingEventData"');
     if (isUpcoming) {
       return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
     }
 
-    // 3. Validación estricta de Stream en vivo REAL dentro del reproductor del canal
-    const isLiveSignal = /"isLiveNow":\s*true/i.test(playerBlock) ||
-                         /\\"isLiveNow\\":\s*true/i.test(playerBlock) ||
-                         /"isLive":\s*true/i.test(playerBlock) ||
-                         /\\"isLive\\":\s*true/i.test(playerBlock) ||
-                         /"isLiveBroadcast":\s*true/i.test(playerBlock) ||
-                         /\\"isLiveBroadcast\\":\s*true/i.test(playerBlock) ||
-                         /"liveBroadcastDetails"/i.test(playerBlock) ||
-                         /\\"liveBroadcastDetails\\"/i.test(playerBlock);
-
-    if (!isLiveSignal) {
-      return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
-    }
-
-    // 4. Extracción de VideoID ÚNICAMENTE dentro del reproductor aislado o link canónico
-    let videoId = '';
-    const videoIdInBlock = playerBlock.match(/"videoId":\s*"([a-zA-Z0-9_-]{11})"/) ||
-                           playerBlock.match(/\\"videoId\\":\s*\\"([a-zA-Z0-9_-]{11})\\"/);
-    const canonicalMatch = html.match(/<link\s+rel="canonical"\s+href="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/i);
-
-    if (videoIdInBlock) {
-      videoId = videoIdInBlock[1];
-    } else if (canonicalMatch) {
-      videoId = canonicalMatch[1];
-    }
-
-    if (!videoId) {
-      return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
-    }
-
-    // 5. Extracción de Título EXCLUSIVO del bloque del reproductor
+    // 3. Extraer título exclusivo del stream actual desde los metadatos de cabecera
     let title = '';
-    const titleMatch = playerBlock.match(/"title":\s*\{\s*"simpleText":\s*"([^"]+)"/) ||
-                       playerBlock.match(/\\"title\\":\s*\{\s*\\"simpleText\\":\s*\\"([^"\\]+)\\"/) ||
-                       playerBlock.match(/"title":\s*"([^"]+)"/) ||
-                       playerBlock.match(/\\"title\\":\s*\\"([^"\\]+)\\"/);
-    if (titleMatch) {
-      title = titleMatch[1];
+    const metaTitle = html.match(/<meta\s+name="title"\s+content="([^"]*)"/i) ||
+                      html.match(/<meta\s+property="og:title"\s+content="([^"]*)"/i);
+    if (metaTitle && metaTitle[1]) {
+      title = metaTitle[1];
     } else {
-      const metaTitle = html.match(/<meta\s+name="title"\s+content="([^"]*)"/i);
-      if (metaTitle) title = metaTitle[1];
+      const runsTitle = html.match(/"title":\s*\{\s*"runs":\s*\[\s*\{\s*"text":\s*"([^"]+)"/);
+      if (runsTitle && runsTitle[1]) title = runsTitle[1];
     }
 
-    // Descartar títulos de cortesía y carteles de finalización
+    // Descartar títulos de cortesía y carteles de espera
     const blacklistRegex = /(hasta ma[nñ]ana|pr[oó]ximamente|en espera|directo finalizado)/i;
     if (title && blacklistRegex.test(title)) {
       return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
     }
 
-    // 6. Extracción de Viewers Concurrentes reales
+    // 4. Extraer Viewers Concurrentes reales
     let viewers = 0;
     const concurrentMatch = html.match(/"concurrentViewers":\s*"(\d+)"/) || 
                             html.match(/\\"concurrentViewers\\":\s*\\"(\d+)\\"/);
+    const originalViewMatch = html.match(/"originalViewCount":\s*"(\d+)"/) ||
+                              html.match(/\\"originalViewCount\\":\s*\\"(\d+)\\"/);
     const viewRunsMatch = html.match(/"viewCount":\s*\{\s*"runs":\s*\[\s*\{\s*"text":\s*"([^"]+)"/) || 
                           html.match(/\\"viewCount\\":\s*\{\s*\\"runs\\":\s*\[\s*\{\s*\\"text\\":\s*\\"([^"\\]+)\\"/);
 
     if (concurrentMatch) {
       viewers = parseInt(concurrentMatch[1], 10) || 0;
+    } else if (originalViewMatch) {
+      viewers = parseInt(originalViewMatch[1], 10) || 0;
     } else if (viewRunsMatch && viewRunsMatch[1]) {
       const limpio = viewRunsMatch[1].replace(/[^0-9]/g, '');
       viewers = parseInt(limpio, 10) || 0;
     }
 
-    // Si los espectadores detectados son <= 5, se considera transmisión colgada o finalizada
-    if (viewers <= 5) {
-      return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
+    // 5. Criterio de En Vivo real y confirmado
+    const hasLiveSignal = /"isLive":\s*true/i.test(html) ||
+                          /\\"isLive\\":\s*true/i.test(html) ||
+                          /"isLiveBroadcast":\s*true/i.test(html) ||
+                          /\\"isLiveBroadcast\\":\s*true/i.test(html) ||
+                          /"isLiveNow":\s*true/i.test(html) ||
+                          /\\"isLiveNow\\":\s*true/i.test(html) ||
+                          (viewers > 20);
+
+    if (hasLiveSignal && viewers > 5) {
+      return {
+        isLive: true,
+        viewers,
+        title: title || 'Transmisión en directo',
+        thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+      };
     }
 
-    return {
-      isLive: true,
-      viewers,
-      title: title || 'Transmisión en directo',
-      thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
-    };
+    return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
   } catch (err) {
     return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
   }
@@ -638,7 +639,6 @@ const actualizarTelemetria = async () => {
 
         listaActualizada.push(itemTelemetria);
 
-        // Registro estructurado en base histórica solo con transmisión activa
         if (isLive && totalViewers > 0) {
           historicalSnapshots.push({
             canal_id: canal.id,
@@ -667,7 +667,6 @@ const actualizarTelemetria = async () => {
       await new Promise((resolve) => setTimeout(resolve, 120));
     }
 
-    // Ordenamiento: En vivo primero por espectadores descendente, luego offline alfabéticamente
     listaActualizada.sort((a, b) => {
       if (a.isLive && !b.isLive) return -1;
       if (!a.isLive && b.isLive) return 1;
@@ -688,6 +687,7 @@ const actualizarTelemetria = async () => {
   }
 };
 
+// Iniciar scrapeo en background sin bloquear peticiones entrantes
 actualizarTelemetria();
 setInterval(actualizarTelemetria, 25000);
 
@@ -695,7 +695,7 @@ setInterval(actualizarTelemetria, 25000);
 // ENDPOINTS DE API
 // ============================================================================
 
-// 1. Healthcheck inmediato para monitor UptimeRobot
+// 1. Healthcheck ultra-rápido para UptimeRobot
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
@@ -1038,8 +1038,8 @@ const HTML_APP = `<!DOCTYPE html>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
         <div class="space-y-1.5">
-          <h4 class="font-bold text-slate-200">1. Aislamiento Estricto de Reproductor</h4>
-          <p>La telemetría extrae metadatos exclusivamente del bloque de microformato y player propio del canal, eliminando cualquier mezcla de miniaturas o títulos de videos recomendados.</p>
+          <h4 class="font-bold text-slate-200">1. Extracción Canónica Aislada</h4>
+          <p>La telemetría extrae metadatos exclusivamente de la URL canónica y reproductor del stream en directo, impidiendo la captura de miniaturas ajenas o sugerencias de otros canales.</p>
         </div>
         <div class="space-y-1.5">
           <h4 class="font-bold text-slate-200">2. Detección Heurística de Bots</h4>
@@ -1069,7 +1069,6 @@ const HTML_APP = `<!DOCTYPE html>
         Descarga informes consolidados en CSV estructurado con telemetría por programa, canal y franja horaria para análisis de medios y agencias.
       </p>
 
-      <!-- Selector de Filtros -->
       <div class="space-y-3">
         <div>
           <label class="block text-xs font-semibold text-slate-400 mb-1">CANAL A AUDITAR</label>
@@ -1100,7 +1099,6 @@ const HTML_APP = `<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- Acciones de Descarga -->
       <div class="flex flex-col sm:flex-row items-center justify-end gap-3 pt-4 border-t border-[#162238]">
         <button onclick="descargarCorteInstantaneo()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white bg-[#050811] border border-[#162238] transition-colors">
           ⚡ Corte Actual en Vivo
@@ -1116,7 +1114,7 @@ const HTML_APP = `<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- MODAL DUELO 1 VS 1 -->
+  <!-- MODAL DUELO 1 VS 1 (FORMATO 1:1 CUADRADO PARA REDES) -->
   <div id="modal-duel" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden p-4 overflow-y-auto">
     <div class="bg-[#0b1120] border border-[#162238] rounded-2xl max-w-xl sm:max-w-2xl w-full p-4 sm:p-6 shadow-2xl relative my-auto">
       
@@ -1141,15 +1139,13 @@ const HTML_APP = `<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- PLACA PARA CAPTURA HTML2CANVAS (1:1 CUADRADO EXACTO PARA REDES) -->
+      <!-- PLACA PARA CAPTURA HTML2CANVAS (1:1 CUADRADO EXACTO) -->
       <div id="duel-capture-card" class="bg-[#050811] border border-matrix/30 rounded-2xl w-full max-w-[520px] aspect-square mx-auto flex flex-col justify-between p-6 sm:p-8 shadow-glow relative my-3">
         
-        <!-- Header superior de la placa -->
         <div class="text-center pt-1">
           <span class="text-[10px] sm:text-[11px] font-black tracking-widest uppercase bg-matrix/10 text-matrix px-3.5 py-1.5 rounded-full border border-matrix/30">STREAMRANK ARG • DUELO EN DIRECTO</span>
         </div>
 
-        <!-- Canales enfrentados sin truncado ni recorte inferior -->
         <div class="grid grid-cols-2 gap-3 sm:gap-4 items-stretch my-auto">
           
           <!-- Canal A -->
@@ -1180,7 +1176,6 @@ const HTML_APP = `<!DOCTYPE html>
 
         </div>
 
-        <!-- Barras de Share y Metadatos inferiores -->
         <div class="space-y-3 pb-1">
           <div>
             <div class="flex justify-between text-xs font-mono font-bold mb-1.5">
