@@ -5,18 +5,21 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 
 // ============================================================================
-// CONEXIÓN A TURSO DB Y RETENCIÓN DE MÉTRICAS (2 AÑOS)
+// CONEXIÓN A TURSO DB (SQL DIRECTO, .trim() Y RETENCIÓN DE 2 AÑOS)
 // ============================================================================
-const db = (process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN)
+const tursoUrl = process.env.TURSO_DATABASE_URL ? process.env.TURSO_DATABASE_URL.trim() : null;
+const tursoAuthToken = process.env.TURSO_AUTH_TOKEN ? process.env.TURSO_AUTH_TOKEN.trim() : null;
+
+const db = (tursoUrl && tursoAuthToken)
   ? createClient({
-      url: process.env.TURSO_DATABASE_URL,
-      authToken: process.env.TURSO_AUTH_TOKEN
+      url: tursoUrl,
+      authToken: tursoAuthToken
     })
   : null;
 
-const initDb = async () => {
+const initTurso = async () => {
   if (!db) {
-    console.log('[Turso DB] Modo sin credenciales en la nube. Operando con memoria local.');
+    console.log('[Turso DB] Modo sin credenciales. Operando con memoria local.');
     return;
   }
   try {
@@ -32,9 +35,22 @@ const initDb = async () => {
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log('[Turso DB] Tabla metrics_history inicializada y verificada con éxito.');
+    console.log('[Turso DB] Tabla metrics_history inicializada con SQL directo.');
   } catch (err) {
-    console.error('[Turso DB Error] init:', err.message);
+    console.error('[Turso DB Error] initTurso:', err.message);
+  }
+};
+
+const saveMetricToTurso = async (channelId, channelName, viewers, programName, isLive, botAlert) => {
+  if (!db) return;
+  try {
+    await db.execute({
+      sql: `INSERT INTO metrics_history (channel_id, channel_name, viewers, program_name, is_live, bot_alert)
+            VALUES (?, ?, ?, ?, ?, ?)`,
+      args: [channelId, channelName, viewers, programName, isLive ? 1 : 0, botAlert ? 1 : 0]
+    });
+  } catch (err) {
+    console.error(`[Turso DB Error] Guardando métrica de ${channelId}:`, err.message);
   }
 };
 
@@ -42,17 +58,17 @@ const cleanupOldMetrics = async () => {
   if (!db) return;
   try {
     const res = await db.execute(`DELETE FROM metrics_history WHERE timestamp < datetime('now', '-2 years')`);
-    console.log(`[Turso DB] Limpieza automática de retención (2 años): ${res.rowsAffected} registros antiguos depurados.`);
+    console.log(`[Turso DB] Limpieza automática (2 años): ${res.rowsAffected} registros depurados.`);
   } catch (err) {
     console.error('[Turso DB Error] cleanup:', err.message);
   }
 };
 
-initDb();
-setInterval(cleanupOldMetrics, 24 * 60 * 60 * 1000); // Mantenimiento diario
+initTurso();
+setInterval(cleanupOldMetrics, 24 * 60 * 60 * 1000);
 
 // ============================================================================
-// DICCIONARIO OFICIAL DE CANALES, PROGRAMAS Y AVATARS ROBUSTOS
+// DICCIONARIO OFICIAL DE CANALES (RECATEGORIZACIÓN Y AVATARS FIJOS)
 // ============================================================================
 const CHANNELS = [
   // Entretenimiento / Medios
@@ -83,7 +99,7 @@ const CHANNELS = [
     name: 'La Casa Streaming',
     category: 'Entretenimiento',
     subtheme: 'Streaming General',
-    avatar: 'https://unavatar.io/youtube/somoslacasaok',
+    avatar: 'https://yt3.googleusercontent.com/A6Z42adUjC5VGszImuvuTYyAeAy4S7WuW64ZnPMl8FhVT_QDViEGo11EtP_BiYszAFcq0pih0wQ=s900-c-k-c0x00ffffff-no-rj',
     platforms: { yt: 'somoslacasaok' },
     programas: ['Rumis', 'Circus', 'Somos La Casa', 'Tardes de Mate'],
     baselineMax: 45000,
@@ -109,6 +125,28 @@ const CHANNELS = [
     platforms: { yt: 'vorterixoficial', tw: 'vorterixoficial' },
     programas: ['Paren la Mano', 'Maldición Va a Ser un Día Hermoso', 'El Loco y el Cuerdo', 'Decímetro'],
     baselineMax: 35000,
+    isEmerging: false
+  },
+  {
+    id: 'parenlamanotv',
+    name: 'Paren La Mano',
+    category: 'Entretenimiento',
+    subtheme: 'Comedia & Charlas',
+    avatar: 'https://unavatar.io/youtube/parenlamanoclips',
+    platforms: { yt: 'parenlamanoclips' },
+    programas: ['Paren la Mano', 'PLM Highlights', 'Paren el Fútbol'],
+    baselineMax: 40000,
+    isEmerging: false
+  },
+  {
+    id: 'urbanaplay',
+    name: 'Urbana Play 104.3',
+    category: 'Entretenimiento',
+    subtheme: 'Radio Multimedia',
+    avatar: 'https://unavatar.io/youtube/urbanaplayfm',
+    platforms: { yt: 'urbanaplayfm' },
+    programas: ['Perros de la Calle', 'Todo Pasa', 'Vuelta y Media', 'Urbana Play Club'],
+    baselineMax: 25000,
     isEmerging: false
   },
   {
@@ -162,7 +200,7 @@ const CHANNELS = [
     name: 'La Nación+',
     category: 'Política',
     subtheme: 'Análisis Político',
-    avatar: 'https://unavatar.io/youtube/lanacionmas',
+    avatar: 'https://yt3.googleusercontent.com/k9aRM8272xuCmMRcrXKVpoa1lmDIIFFx2OUc6X7l_SoAnfdChpW6v5ypj6xQsp_GaKK5tiWlbw=s900-c-k-c0x00ffffff-no-rj',
     platforms: { yt: 'lanacionmas' },
     programas: ['+Mañana', '+Realidad', '+Voces', '+Nación', 'El Noticiero'],
     baselineMax: 85000,
@@ -188,6 +226,17 @@ const CHANNELS = [
     platforms: { yt: 'cronicatv' },
     programas: ['La Primera', 'Firme Junto al Pueblo', 'Las Tragedias de los Famosos', 'Crónica Central'],
     baselineMax: 45000,
+    isEmerging: false
+  },
+  {
+    id: 'cenital',
+    name: 'Cenital',
+    category: 'Política',
+    subtheme: 'Periodismo & Análisis',
+    avatar: 'https://unavatar.io/youtube/Cenitalcom',
+    platforms: { yt: 'Cenitalcom' },
+    programas: ['540°', 'Off The Record', 'Mundo Propio'],
+    baselineMax: 20000,
     isEmerging: false
   },
   {
@@ -230,8 +279,8 @@ const CHANNELS = [
     name: 'Flavio Azzaro / AZZ',
     category: 'Deportes',
     subtheme: 'Debate Futbolero',
-    avatar: 'https://unavatar.io/youtube/FlavioAzzaroOficial',
-    platforms: { yt: 'FlavioAzzaroOficial' },
+    avatar: 'https://yt3.googleusercontent.com/ISC3Kd6jDr8DOIzS_R1T5I8W_knmL9BJKbZRydIkfbqgTqiQOnrrg7xC60qulkVZH7qdej7E=s900-c-k-c0x00ffffff-no-rj',
+    platforms: { yt: 'somosazz' },
     programas: ['El Show del Fútbol', 'Azzaro al Horno', 'AZZ Transmisiones', 'Fútbol Total'],
     baselineMax: 65000,
     isEmerging: false
@@ -316,44 +365,33 @@ const CHANNELS = [
     isEmerging: false
   },
 
-  // Emergentes
+  // Emergentes reales (Comunidad e independientes en crecimiento)
   {
-    id: 'cenital',
-    name: 'Cenital',
-    category: 'Política',
-    subtheme: 'Periodismo Independiente',
-    avatar: 'https://unavatar.io/youtube/Cenitalcom',
-    platforms: { yt: 'Cenitalcom' },
-    programas: ['540°', 'Off The Record', 'Mundo Propio'],
-    baselineMax: 20000,
+    id: 'estudio2',
+    name: 'Estudio 2 Stream',
+    category: 'Emergentes',
+    subtheme: 'Comedia & Cultura Pop',
+    avatar: 'https://unavatar.io/youtube/estudio2stream',
+    platforms: { yt: 'estudio2stream' },
+    programas: ['La Mesa Chica', 'Tarde Pero Seguro'],
+    baselineMax: 10000,
     isEmerging: true
   },
   {
-    id: 'urbanaplay',
-    name: 'Urbana Play 104.3',
-    category: 'Entretenimiento',
-    subtheme: 'Radio Multimedia',
-    avatar: 'https://unavatar.io/youtube/urbanaplayfm',
-    platforms: { yt: 'urbanaplayfm' },
-    programas: ['Perros de la Calle', 'Todo Pasa', 'Vuelta y Media', 'Urbana Play Club'],
-    baselineMax: 25000,
-    isEmerging: true
-  },
-  {
-    id: 'parenlamanotv',
-    name: 'Paren La Mano',
-    category: 'Entretenimiento',
-    subtheme: 'Comedia & Charlas',
-    avatar: 'https://unavatar.io/youtube/parenlamanoclips',
-    platforms: { yt: 'parenlamanoclips' },
-    programas: ['Paren la Mano', 'PLM Highlights', 'Paren el Fútbol'],
-    baselineMax: 40000,
+    id: 'posdatastream',
+    name: 'Posdata Stream',
+    category: 'Emergentes',
+    subtheme: 'Actualidad & Debate Joven',
+    avatar: 'https://unavatar.io/youtube/posdatastream',
+    platforms: { yt: 'posdatastream' },
+    programas: ['El Resumen', 'En Off'],
+    baselineMax: 8000,
     isEmerging: true
   }
 ];
 
 // ============================================================================
-// MEMORIA EN TIEMPO REAL & RETENCIÓN DE MUESTRAS
+// MEMORIA EN TIEMPO REAL
 // ============================================================================
 const historicalSnapshots = [];
 const MAX_HISTORICAL_RECORDS = 50000;
@@ -384,7 +422,7 @@ let telemetriaCache = CHANNELS.map((canal) => ({
 
 let ultimaActualizacion = null;
 let estaScrapeando = false;
-const historialLecturas = new Map(); // canalId -> [{ viewers, time }]
+const historialLecturas = new Map();
 const lastThumbnails = new Map();
 
 const getBuenosAiresTime = () => {
@@ -422,7 +460,7 @@ const fetchConTimeout = async (url, opciones = {}, ms = 6000) => {
 };
 
 // ============================================================================
-// YOUTUBE SCRAPER: AISLAMIENTO CANÓNICO Y TIEMPO DE RESPUESTA
+// SCRAPERS: YOUTUBE, TWITCH Y KICK
 // ============================================================================
 const scrapeYouTube = async (handle) => {
   if (!handle) return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: null };
@@ -551,7 +589,6 @@ const scrapeYouTube = async (handle) => {
   }
 };
 
-// Twitch GQL Scraper (Público)
 const scrapeTwitch = async (login) => {
   if (!login) return { isLive: false, viewers: 0, title: '', thumbnail: null };
   try {
@@ -597,7 +634,6 @@ const scrapeTwitch = async (login) => {
   }
 };
 
-// Kick API v2 Scraper (Público)
 const scrapeKick = async (slug) => {
   if (!slug) return { isLive: false, viewers: 0, title: '', thumbnail: null };
   try {
@@ -634,21 +670,20 @@ const scrapeKick = async (slug) => {
 };
 
 // ============================================================================
-// ESCUDO ANTI-BOTS (DETECCIÓN PREVENTIVA DE TRÁFICO EXTERNO ANÓMALO)
+// ESCUDO ANTI-BOTS (ANÁLISIS DE ACELERACIÓN EN < 3 MINUTOS)
 // ============================================================================
 const evaluarAnomaliaTrafico = (canal, totalViewers) => {
   const ahora = Date.now();
   const historial = historialLecturas.get(canal.id) || [];
   
   historial.push({ viewers: totalViewers, time: ahora });
-  if (historial.length > 3) historial.shift(); // Mantiene las 3 últimas muestras
+  if (historial.length > 3) historial.shift();
   historialLecturas.set(canal.id, historial);
 
   if (!totalViewers || totalViewers < 2000) {
     return { bot_shield: false, bot_alert: 0, reason: null, decoupled: false };
   }
 
-  // Análisis de aceleración atípica en menos de 3 minutos
   if (historial.length >= 2) {
     const anterior = historial[historial.length - 2];
     const deltaViewers = totalViewers - anterior.viewers;
@@ -668,7 +703,6 @@ const evaluarAnomaliaTrafico = (canal, totalViewers) => {
     }
   }
 
-  // Límite histórico individual del canal
   if (canal.baselineMax && totalViewers > canal.baselineMax * 2.8) {
     return {
       bot_shield: true,
@@ -739,7 +773,6 @@ const procesarCanalIndividual = async (canal) => {
       timestamp: new Date().toISOString()
     };
 
-    // 1. Guardar en memoria para queries rápidas
     if (isLive && totalViewers > 0) {
       const bsAsTime = getBuenosAiresTime();
       historicalSnapshots.push({
@@ -762,14 +795,7 @@ const procesarCanalIndividual = async (canal) => {
         historicalSnapshots.splice(0, historicalSnapshots.length - (MAX_HISTORICAL_RECORDS - 5000));
       }
 
-      // 2. Persistencia en Turso DB (2 años de retención)
-      if (db) {
-        db.execute({
-          sql: `INSERT INTO metrics_history (channel_id, channel_name, viewers, program_name, is_live, bot_alert)
-                VALUES (?, ?, ?, ?, ?, ?)`,
-          args: [canal.id, canal.name, totalViewers, title, 1, anomalia.bot_alert]
-        }).catch((e) => console.error('[Turso DB Insert Error]:', e.message));
-      }
+      saveMetricToTurso(canal.id, canal.name, totalViewers, title, isLive, anomalia.bot_alert);
     }
 
     return itemTelemetria;
@@ -826,7 +852,6 @@ setInterval(actualizarTelemetria, 25000);
 // ============================================================================
 // ENDPOINTS DE API
 // ============================================================================
-
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
@@ -968,13 +993,13 @@ app.get('/api/analytics/historical', async (req, res) => {
 });
 
 // ============================================================================
-// FRONTEND SERVIDO EN GET / (DISEÑO LIMPIO, SIN BANNER HERO GIGANTE)
+// FRONTEND SERVIDO EN GET / (DISEÑO LIMPIO, RESPONSIVE MOBILE-FIRST)
 // ============================================================================
 const HTML_APP = `<!DOCTYPE html>
 <html lang="es" class="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>StreamRank ARG | Monitor de Audiencia en Vivo</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -1008,6 +1033,7 @@ const HTML_APP = `<!DOCTYPE html>
       background-color: #050811;
       color: #e2e8f0;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, sans-serif;
+      overflow-x: hidden;
     }
     .matrix-glow {
       text-shadow: 0 0 10px rgba(0, 255, 102, 0.7), 0 0 22px rgba(0, 255, 102, 0.35);
@@ -1015,51 +1041,58 @@ const HTML_APP = `<!DOCTYPE html>
     .gold-glow {
       text-shadow: 0 0 10px rgba(255, 215, 0, 0.8), 0 0 20px rgba(255, 215, 0, 0.4);
     }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col bg-[#050811] text-slate-100 antialiased selection:bg-[#00ff66] selection:text-black">
 
-  <!-- HEADER COMPACTO -->
+  <!-- HEADER COMPACTO RESPONSIVE -->
   <header class="sticky top-0 z-40 bg-[#050811]/95 backdrop-blur-md border-b border-[#162238]">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2">
       
-      <div class="flex items-center space-x-2.5 sm:space-x-3">
+      <div class="flex items-center space-x-2 sm:space-x-3 min-w-0">
         <div class="relative flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-black border border-matrix/50 shadow-matrixSoft flex-shrink-0">
           <span class="absolute w-3 h-3 rounded-full bg-matrix animate-ping opacity-75"></span>
           <span class="w-2.5 h-2.5 rounded-full bg-matrix"></span>
         </div>
-        <div>
+        <div class="min-w-0">
           <div class="flex items-center space-x-1.5 sm:space-x-2">
-            <span class="text-base sm:text-xl font-black tracking-wider text-white">STREAMRANK</span>
-            <span class="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded font-black tracking-widest bg-matrix/20 text-matrix border border-matrix/40">ARG</span>
+            <span class="text-base sm:text-xl font-black tracking-wider text-white truncate">STREAMRANK</span>
+            <span class="text-[9px] sm:text-xs px-1 sm:px-2 py-0.5 rounded font-black tracking-widest bg-matrix/20 text-matrix border border-matrix/40 flex-shrink-0">ARG</span>
           </div>
-          <p class="text-[10px] sm:text-[11px] text-slate-400 truncate max-w-[190px] sm:max-w-none">Telemetría en Vivo de Streaming Argentino</p>
+          <p class="text-[9px] sm:text-[11px] text-slate-400 truncate hidden xs:block">Telemetría de Streaming en Vivo</p>
         </div>
       </div>
 
-      <div class="flex items-center space-x-2 sm:space-x-3">
-        <div class="flex items-center bg-[#0b1120] border border-[#162238] rounded-xl px-3 sm:px-4 py-1.5 sm:py-2 space-x-2.5 sm:space-x-4">
-          <div class="flex items-center space-x-1.5 sm:space-x-2">
+      <div class="flex items-center space-x-2 flex-shrink-0">
+        <div class="flex items-center bg-[#0b1120] border border-[#162238] rounded-xl px-2.5 sm:px-4 py-1.5 sm:py-2 space-x-2 sm:space-x-4">
+          <div class="flex items-center space-x-1.5">
             <span class="inline-block w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-matrix shadow-matrix"></span>
-            <span class="text-xs font-semibold text-slate-300"><span id="stat-live-count" class="text-matrix font-bold">0</span> En Vivo</span>
+            <span class="text-[11px] sm:text-xs font-semibold text-slate-300"><span id="stat-live-count" class="text-matrix font-bold">0</span> <span class="hidden sm:inline">En Vivo</span></span>
           </div>
-          <div class="w-px h-3.5 sm:h-4 bg-slate-700"></div>
-          <div class="text-xs text-slate-400">
-            Audiencia: <span id="stat-total-viewers" class="text-white font-mono font-bold">0</span>
+          <div class="w-px h-3 sm:h-4 bg-slate-700"></div>
+          <div class="text-[11px] sm:text-xs text-slate-400">
+            <span class="hidden md:inline">Audiencia: </span><span id="stat-total-viewers" class="text-white font-mono font-bold">0</span>
           </div>
-          <div class="hidden sm:block w-px h-4 bg-slate-700"></div>
-          <div class="hidden sm:block text-[11px] font-mono text-slate-400" id="sync-clock">Sinc: --:--:--</div>
+          <div class="hidden lg:block w-px h-4 bg-slate-700"></div>
+          <div class="hidden lg:block text-[11px] font-mono text-slate-400" id="sync-clock">Sinc: --:--:--</div>
         </div>
       </div>
 
     </div>
   </header>
 
-  <!-- CONTENIDO PRINCIPAL: LA GRILLA COMIENZA INMEDIATAMENTE BAJO BÚSQUEDA Y FILTROS -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 space-y-5">
+  <!-- CONTENIDO PRINCIPAL: COMIENZA DE INMEDIATO SIN BANNER HERO GIGANTE -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-5">
     
     <!-- BARRA CON BUSCADOR Y BOTÓN MODAL DE AUDITORÍA HISTÓRICA -->
-    <section class="w-full flex flex-col sm:flex-row items-center gap-3">
+    <section class="w-full flex flex-col sm:flex-row items-center gap-2.5 sm:gap-3">
       <div class="relative flex-1 w-full">
         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
           <svg class="w-4 h-4 text-matrix" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1070,7 +1103,7 @@ const HTML_APP = `<!DOCTYPE html>
           type="text" 
           id="channel-search-input" 
           oninput="filtrarPorBusqueda(this.value)" 
-          placeholder="Buscar canal en vivo por nombre (ej: Olga, Luzu, TN, Azzaro, Davoo)..." 
+          placeholder="Buscar canal por nombre (ej: Olga, Luzu, TN, Azzaro, Davoo)..." 
           class="w-full pl-10 pr-4 py-2.5 sm:py-3 bg-[#0b1120] border border-[#162238] rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-matrix focus:shadow-matrixSoft transition-all"
         >
       </div>
@@ -1084,29 +1117,35 @@ const HTML_APP = `<!DOCTYPE html>
       </button>
     </section>
 
-    <!-- NAVEGACIÓN Y FILTROS RESPONSIVE -->
+    <!-- NAVEGACIÓN Y FILTROS RESPONSIVE CON SCROLL TÁCTIL SUAVE -->
     <section class="space-y-3">
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b border-[#162238] pb-3">
         
-        <div class="flex flex-wrap gap-2" id="tab-buttons">
-          <button onclick="cambiarSolapa('Todos')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-matrix text-black shadow-matrix">
-            🔥 General
-          </button>
-          <button onclick="cambiarSolapa('Entretenimiento')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
-            🎭 Entretenimiento
-          </button>
-          <button onclick="cambiarSolapa('Política')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
-            🏛️ Política
-          </button>
-          <button onclick="cambiarSolapa('Deportes')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
-            ⚽ Deportes
-          </button>
-          <button onclick="cambiarSolapa('Streamers')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
-            🎮 Streamers
-          </button>
+        <!-- Scroll horizontal suave para botones en pantallas táctiles pequeñas -->
+        <div class="overflow-x-auto whitespace-nowrap no-scrollbar py-1 -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div class="inline-flex gap-2" id="tab-buttons">
+            <button onclick="cambiarSolapa('Todos')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-matrix text-black shadow-matrix">
+              🔥 General
+            </button>
+            <button onclick="cambiarSolapa('Entretenimiento')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
+              🎭 Entretenimiento
+            </button>
+            <button onclick="cambiarSolapa('Política')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
+              🏛️ Política
+            </button>
+            <button onclick="cambiarSolapa('Deportes')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
+              ⚽ Deportes
+            </button>
+            <button onclick="cambiarSolapa('Streamers')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
+              🎮 Streamers
+            </button>
+            <button onclick="cambiarSolapa('Emergentes')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
+              🚀 Emergentes
+            </button>
+          </div>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div class="flex flex-row items-center gap-2 sm:gap-3 w-full md:w-auto">
           <div class="relative flex-1 sm:flex-initial">
             <select id="subtheme-dropdown" onchange="cambiarSubtema(this.value)" class="w-full sm:w-auto bg-[#0b1120] border border-[#162238] hover:border-matrix/40 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 focus:outline-none focus:border-matrix">
               <option value="TODOS">Todos los subtemas</option>
@@ -1125,26 +1164,9 @@ const HTML_APP = `<!DOCTYPE html>
       </div>
     </section>
 
-    <!-- GRILLA COMPACTA Y SIMÉTRICA (SIN THUMBNAILS, ALTURA UNIFORME, #1 DESTACADO DORADO) -->
+    <!-- GRILLA RESPONSIVE MOBILE-FIRST (1 COL EN CELULAR, 2 EN TABLETS, 3/4 EN DESKTOP) -->
     <section>
-      <div id="channels-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-      </div>
-    </section>
-
-    <!-- CANALES EMERGENTES & NUEVAS PROMESAS -->
-    <section class="mt-8 bg-gradient-to-br from-[#0b1120] to-[#050811] rounded-2xl border border-[#162238] p-4 sm:p-5 space-y-3">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-2">
-          <span class="text-xl">🚀</span>
-          <div>
-            <h2 class="text-sm sm:text-base font-black text-white">Canales Emergentes & Nuevas Promesas</h2>
-            <p class="text-xs text-slate-400">Comunidades en ascenso, proyectos independientes y radios digitales.</p>
-          </div>
-        </div>
-        <span class="text-[10px] sm:text-xs font-mono font-bold text-matrix bg-matrix/10 border border-matrix/20 px-2.5 sm:px-3 py-1 rounded-full">RADAR ARG</span>
-      </div>
-
-      <div id="emerging-channels-grid" class="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-1">
+      <div id="channels-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
       </div>
     </section>
 
@@ -1156,16 +1178,16 @@ const HTML_APP = `<!DOCTYPE html>
           <h3 class="text-base sm:text-lg font-black text-white">Conecta con la industria del streaming argentino</h3>
           <p class="text-xs text-slate-400">Presencia directa ante agencias, marcas y creadores de contenido.</p>
         </div>
-        <a href="mailto:info@modoia.online" class="px-5 py-2.5 rounded-xl bg-[#0b1120] hover:bg-matrix hover:text-black border border-matrix/40 text-matrix text-xs font-black transition-all shadow-matrixSoft flex-shrink-0">
+        <a href="mailto:info@modoia.online" class="w-full md:w-auto px-5 py-2.5 rounded-xl bg-[#0b1120] hover:bg-matrix hover:text-black border border-matrix/40 text-matrix text-xs font-black transition-all shadow-matrixSoft flex-shrink-0 text-center">
           CONTACTAR PUBLICIDAD
         </a>
       </div>
     </section>
 
     <!-- SECCIÓN INTERACTIVA DE FAQS (PREGUNTAS FRECUENTES EN MODO OSCURO) -->
-    <section class="bg-[#0b1120] rounded-2xl border border-[#162238] p-5 sm:p-6 space-y-4 text-xs text-slate-300 leading-relaxed">
+    <section class="bg-[#0b1120] rounded-2xl border border-[#162238] p-4 sm:p-6 space-y-4 text-xs text-slate-300 leading-relaxed">
       <div class="flex items-center space-x-2 text-white font-bold text-sm">
-        <svg class="w-5 h-5 text-matrix" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-5 h-5 text-matrix flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
         <span class="text-base font-black">Centro de Transparencia & Preguntas Frecuentes (FAQs)</span>
@@ -1175,10 +1197,10 @@ const HTML_APP = `<!DOCTYPE html>
         <!-- FAQ 1: Escudo Anti-Bots -->
         <div class="p-4 rounded-xl bg-[#050811] border border-[#162238] space-y-1.5">
           <h4 class="font-bold text-white text-sm flex items-center text-matrix">
-            <span class="mr-2">🛡️</span> ¿Cómo detectamos las inyecciones de bots externos?
+            <span class="mr-2">🛡️</span> ¿Cómo detectamos los ataques de bots externos?
           </h4>
           <p class="text-slate-400 text-xs">
-            StreamRank ARG cuenta con un algoritmo de análisis de aceleración en tiempo real que evalúa las últimas 3 muestras concurrentes por canal. Si una transmisión experimenta un salto atípico repentino de más del <strong>160% de incremento o más de +18.000 espectadores en menos de 3 minutos</strong> fuera de un pase de programa verificado, el sistema activa de forma automática una insignia de protección preventiva (<strong>Bot Shield</strong>). Esta alerta protege explícitamente al canal, dejando en claro ante agencias y audiencia que se trata de una inyección de tráfico externa y artificial no atribuible al creador, al tiempo que desacopla la métrica adulterada del liderazgo del ranking.
+            StreamRank ARG analiza la aceleración en tiempo real de la audiencia. Si se detecta un salto atípico repentino de más del <strong>160% de incremento o más de +18.000 espectadores en menos de 3 minutos</strong> fuera de un pase de programa verificado, se activa automáticamente una alerta preventiva (<strong>Bot Shield</strong>) para proteger la reputación del canal, dejando en claro que se trata de una inyección de tráfico externa y ajena al creador.
           </p>
         </div>
 
@@ -1188,7 +1210,7 @@ const HTML_APP = `<!DOCTYPE html>
             <span class="mr-2">⏳</span> ¿Cuál es la política de retención y almacenamiento de métricas?
           </h4>
           <p class="text-slate-400 text-xs">
-            Todas las mediciones se sincronizan en una base de datos distribuida en <strong>Turso DB</strong> con una política estricta de <strong>retención completa de 2 años</strong>. Esto permite que productoras, canales y marcas auditen y descarguen informes históricos fidedignos de cualquier fecha o programa pasado. Al cumplirse la ventana de 2 años, el motor ejecuta una purga automatizada para preservar la máxima velocidad de respuesta de la plataforma.
+            StreamRank conserva el historial analítico completo durante <strong>2 años</strong> mediante Turso DB antes de reiniciar y depurar los registros antiguos, garantizando la velocidad del sistema y permitiendo auditorías fidedignas para agencias y marcas.
           </p>
         </div>
 
@@ -1198,7 +1220,7 @@ const HTML_APP = `<!DOCTYPE html>
             <span class="mr-2">⚡</span> ¿Cómo se calcula la audiencia en vivo multiplataforma?
           </h4>
           <p class="text-slate-400 text-xs">
-            Cada 25 segundos, el backend consulta directamente la URL canónica de YouTube Live, los endpoints de GraphQL de Twitch y la API oficial de Kick de forma simultánea. Se contabilizan exclusivamente usuarios concurrentes viendo el stream activo en ese instante (CCV), sumando las plataformas para obtener el share global en tiempo real.
+            Cada 25 segundos, el backend consulta directamente la URL canónica de YouTube Live, los endpoints de GraphQL de Twitch y la API oficial de Kick de forma simultánea. Se contabilizan exclusivamente usuarios concurrentes viendo el stream activo en ese instante (CCV).
           </p>
         </div>
       </div>
@@ -1208,11 +1230,11 @@ const HTML_APP = `<!DOCTYPE html>
 
   <!-- MODAL DE REPORTES & AUDITORÍA HISTÓRICA -->
   <div id="modal-reportes" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden p-4">
-    <div class="bg-[#0b1120] border border-[#162238] rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl relative overflow-hidden space-y-5">
+    <div class="bg-[#0b1120] border border-[#162238] rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl relative overflow-hidden space-y-4">
       
       <div class="flex items-center justify-between pb-3 border-b border-[#162238]">
         <div class="flex items-center space-x-2">
-          <span class="text-matrix font-black text-lg">📊 REPORTES & AUDITORÍA HISTÓRICA</span>
+          <span class="text-matrix font-black text-base sm:text-lg">📊 REPORTES & AUDITORÍA HISTÓRICA</span>
         </div>
         <button onclick="cerrarModalReportes()" class="text-slate-400 hover:text-white transition-colors text-2xl font-bold">&times;</button>
       </div>
@@ -1258,11 +1280,11 @@ const HTML_APP = `<!DOCTYPE html>
         </div>
       </div>
 
-      <div class="flex flex-col sm:flex-row items-center justify-end gap-3 pt-4 border-t border-[#162238]">
-        <button onclick="descargarCorteInstantaneo()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white bg-[#050811] border border-[#162238] transition-colors">
+      <div class="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-4 border-t border-[#162238]">
+        <button onclick="descargarCorteInstantaneo()" class="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold text-slate-300 hover:text-white bg-[#050811] border border-[#162238] transition-colors">
           ⚡ Corte Actual en Vivo
         </button>
-        <button onclick="ejecutarDescargaReporte()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-matrix text-black hover:bg-emerald-400 transition-all shadow-matrix flex items-center justify-center space-x-1.5">
+        <button onclick="ejecutarDescargaReporte()" class="w-full sm:w-auto px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-matrix text-black hover:bg-emerald-400 transition-all shadow-matrix flex items-center justify-center space-x-1.5">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
           </svg>
@@ -1273,14 +1295,14 @@ const HTML_APP = `<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- MODAL DUELO 1 VS 1 (FORMATO 1:1 CUADRADO, TOTALMENTE SIMÉTRICO, SIN THUMBNAILS DE VIDEO) -->
+  <!-- MODAL DUELO 1 VS 1 -->
   <div id="modal-duel" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden p-4 overflow-y-auto">
     <div class="bg-[#0b1120] border border-[#162238] rounded-2xl max-w-xl sm:max-w-2xl w-full p-4 sm:p-6 shadow-2xl relative my-auto">
       
       <div class="flex items-center justify-between pb-3 border-b border-[#162238]">
         <div class="flex items-center space-x-2">
           <span class="text-matrix font-extrabold text-base sm:text-lg">⚡ DUELO 1 VS 1</span>
-          <span class="text-xs text-slate-400">Comparativa directa en vivo</span>
+          <span class="text-xs text-slate-400">Comparativa directa</span>
         </div>
         <button onclick="cerrarModalDuelo()" class="text-slate-400 hover:text-white transition-colors text-2xl font-bold">&times;</button>
       </div>
@@ -1299,60 +1321,59 @@ const HTML_APP = `<!DOCTYPE html>
       </div>
 
       <!-- PLACA PARA CAPTURA HTML2CANVAS (1:1 CUADRADO EXACTO, SIN THUMBNAILS) -->
-      <div id="duel-capture-card" class="bg-[#050811] border border-matrix/30 rounded-2xl w-full max-w-[520px] aspect-square mx-auto flex flex-col justify-between p-6 sm:p-8 shadow-glow relative my-3">
+      <div id="duel-capture-card" class="bg-[#050811] border border-matrix/30 rounded-2xl w-full max-w-[500px] aspect-square mx-auto flex flex-col justify-between p-5 sm:p-7 shadow-glow relative my-2">
         
         <div class="text-center pt-1">
           <span class="text-[10px] sm:text-[11px] font-black tracking-widest uppercase bg-matrix/10 text-matrix px-3.5 py-1.5 rounded-full border border-matrix/30">STREAMRANK ARG • DUELO EN DIRECTO</span>
         </div>
 
-        <!-- Enfrentamiento Simétrico: Logos, Programas Protagonistas y Audiencia -->
-        <div class="grid grid-cols-2 gap-4 items-stretch my-auto">
+        <div class="grid grid-cols-2 gap-3 sm:gap-4 items-stretch my-auto">
           
           <!-- Canal A -->
-          <div class="text-center p-4 rounded-xl bg-[#0b1120]/90 border border-[#162238] flex flex-col justify-between h-[210px]">
+          <div class="text-center p-3.5 rounded-xl bg-[#0b1120]/90 border border-[#162238] flex flex-col justify-between h-[190px] sm:h-[210px]">
             <div>
-              <img id="duel-a-avatar" crossorigin="anonymous" src="" class="w-14 h-14 rounded-full mx-auto border-2 border-matrix object-cover shadow-matrixSoft mb-1.5" alt="A">
-              <div id="duel-a-program" class="font-black text-white text-base sm:text-lg leading-tight line-clamp-2 break-words mt-1">--</div>
-              <h4 id="duel-a-name" class="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-0.5 truncate">--</h4>
-              <p id="duel-a-status" class="text-[10px] font-mono text-matrix">OFFLINE</p>
+              <img id="duel-a-avatar" crossorigin="anonymous" src="" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full mx-auto border-2 border-matrix object-cover shadow-matrixSoft mb-1.5" alt="A">
+              <div id="duel-a-program" class="font-black text-white text-sm sm:text-base leading-tight line-clamp-2 break-words mt-0.5">--</div>
+              <h4 id="duel-a-name" class="text-[11px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider mt-0.5 truncate">--</h4>
+              <p id="duel-a-status" class="text-[9px] sm:text-[10px] font-mono text-matrix">OFFLINE</p>
             </div>
             <div>
-              <div id="duel-a-viewers" class="text-3xl font-black font-mono text-matrix matrix-glow">0</div>
-              <div class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Espectadores</div>
+              <div id="duel-a-viewers" class="text-2xl sm:text-3xl font-black font-mono text-matrix matrix-glow">0</div>
+              <div class="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Espectadores</div>
             </div>
           </div>
 
           <!-- Canal B -->
-          <div class="text-center p-4 rounded-xl bg-[#0b1120]/90 border border-[#162238] flex flex-col justify-between h-[210px]">
+          <div class="text-center p-3.5 rounded-xl bg-[#0b1120]/90 border border-[#162238] flex flex-col justify-between h-[190px] sm:h-[210px]">
             <div>
-              <img id="duel-b-avatar" crossorigin="anonymous" src="" class="w-14 h-14 rounded-full mx-auto border-2 border-cyan-400 object-cover shadow-cyan-500/50 mb-1.5" alt="B">
-              <div id="duel-b-program" class="font-black text-white text-base sm:text-lg leading-tight line-clamp-2 break-words mt-1">--</div>
-              <h4 id="duel-b-name" class="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-0.5 truncate">--</h4>
-              <p id="duel-b-status" class="text-[10px] font-mono text-cyan-400">OFFLINE</p>
+              <img id="duel-b-avatar" crossorigin="anonymous" src="" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full mx-auto border-2 border-cyan-400 object-cover shadow-cyan-500/50 mb-1.5" alt="B">
+              <div id="duel-b-program" class="font-black text-white text-sm sm:text-base leading-tight line-clamp-2 break-words mt-0.5">--</div>
+              <h4 id="duel-b-name" class="text-[11px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider mt-0.5 truncate">--</h4>
+              <p id="duel-b-status" class="text-[9px] sm:text-[10px] font-mono text-cyan-400">OFFLINE</p>
             </div>
             <div>
-              <div id="duel-b-viewers" class="text-3xl font-black font-mono text-cyan-400">0</div>
-              <div class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Espectadores</div>
+              <div id="duel-b-viewers" class="text-2xl sm:text-3xl font-black font-mono text-cyan-400">0</div>
+              <div class="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Espectadores</div>
             </div>
           </div>
 
         </div>
 
-        <!-- Barras de Share y Pie con Fecha/Hora Flúor -->
-        <div class="space-y-3 pb-1">
+        <!-- Barras de Share y Pie -->
+        <div class="space-y-2.5 pb-1">
           <div>
-            <div class="flex justify-between text-xs font-mono font-bold mb-1.5">
+            <div class="flex justify-between text-xs font-mono font-bold mb-1">
               <span id="duel-pct-a" class="text-matrix">50%</span>
               <span class="text-slate-400 text-[10px] sm:text-xs tracking-wider">SHARE DE AUDIENCIA</span>
               <span id="duel-pct-b" class="text-cyan-400">50%</span>
             </div>
-            <div class="w-full h-4 bg-slate-900 rounded-full overflow-hidden flex border border-[#162238] p-0.5">
+            <div class="w-full h-3.5 sm:h-4 bg-slate-900 rounded-full overflow-hidden flex border border-[#162238] p-0.5">
               <div id="duel-bar-a" class="h-full bg-matrix rounded-l-full transition-all duration-500 shadow-matrix" style="width: 50%"></div>
               <div id="duel-bar-b" class="h-full bg-cyan-400 rounded-r-full transition-all duration-500 shadow-cyan-400" style="width: 50%"></div>
             </div>
           </div>
 
-          <div class="flex items-center justify-between text-xs sm:text-sm font-mono pt-2 border-t border-[#162238]/80">
+          <div class="flex items-center justify-between text-xs sm:text-sm font-mono pt-1.5 border-t border-[#162238]/80">
             <span id="duel-timestamp" class="text-[#00FF66] font-bold tracking-wide">--</span>
             <span class="text-slate-400 font-bold text-[10px] sm:text-xs tracking-wider">STREAMRANK.AR</span>
           </div>
@@ -1364,7 +1385,7 @@ const HTML_APP = `<!DOCTYPE html>
         <button onclick="cerrarModalDuelo()" class="px-3 sm:px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-colors">
           Cerrar
         </button>
-        <button onclick="descargarDueloPNG()" class="px-4 sm:px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-matrix text-black hover:bg-emerald-400 transition-all shadow-matrix flex items-center">
+        <button onclick="descargarDueloPNG()" class="px-4 sm:px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-matrix text-black hover:bg-emerald-400 transition-all shadow-matrix flex items-center">
           <svg class="w-4 h-4 mr-1.5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
           </svg>
@@ -1389,7 +1410,7 @@ const HTML_APP = `<!DOCTYPE html>
   </div>
 
   <!-- FOOTER SUTIL -->
-  <footer class="border-t border-[#162238] bg-[#050811] py-8 text-center text-xs text-slate-500 font-mono space-y-2.5">
+  <footer class="border-t border-[#162238] bg-[#050811] py-6 sm:py-8 text-center text-xs text-slate-500 font-mono space-y-2">
     <div>StreamRank ARG • Monitor en Tiempo Real de Streaming de Argentina</div>
     <div>
       <a href="https://modoia.online" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-matrix underline transition-colors">Desarrollado por Modo IA</a>
@@ -1406,7 +1427,6 @@ const HTML_APP = `<!DOCTYPE html>
 
     const formatNum = (num) => new Intl.NumberFormat('es-AR').format(num || 0);
 
-    // Fallback estático con SVG de iniciales sobre degradé oscuro
     function getFallbackAvatar(name) {
       const initials = (name || 'SR')
         .replace(/[^a-zA-Z0-9 ]/g, '')
@@ -1500,7 +1520,6 @@ const HTML_APP = `<!DOCTYPE html>
         if (clockEl) clockEl.innerText = 'Sinc: ' + fechaArg + ' ART';
 
         renderizarGrilla();
-        renderizarEmergentes();
         poblarSelectoresDuelo();
         poblarSelectoresReportes();
       } catch (err) {
@@ -1531,14 +1550,14 @@ const HTML_APP = `<!DOCTYPE html>
 
       const svgIcon = document.getElementById('svg-' + tipo).outerHTML;
 
-      return '<div class="flex items-center space-x-1.5 px-2 py-1 rounded-lg border ' + estilo + '">' +
-        '<div class="w-3.5 h-3.5 ' + iconColor + '">' + svgIcon + '</div>' +
-        '<span class="text-[10px] font-mono font-bold truncate">' + valor + '</span>' +
+      return '<div class="flex items-center space-x-1 px-1.5 py-0.5 rounded-lg border ' + estilo + '">' +
+        '<div class="w-3 h-3 ' + iconColor + '">' + svgIcon + '</div>' +
+        '<span class="text-[9px] font-mono font-bold truncate">' + valor + '</span>' +
       '</div>';
     };
 
     // ========================================================================
-    // GRILLA GENERAL DE CANALES (100% SIMÉTRICA, ALTURA FIJA, #1 DESTACADO)
+    // GRILLA RESPONSIVE (1 COL EN CELULAR, 2 EN TABLET, 3/4 EN DESKTOP)
     // ========================================================================
     const renderizarGrilla = () => {
       const container = document.getElementById('channels-grid');
@@ -1560,19 +1579,14 @@ const HTML_APP = `<!DOCTYPE html>
         filtrados = filtrados.filter(c => c.name.toLowerCase().includes(busquedaTexto));
       }
 
-      if (!filtrados.length) {
-        container.innerHTML = '<div class="col-span-full py-16 text-center text-slate-500 font-mono text-xs sm:text-sm">No se encontraron canales con los filtros seleccionados.</div>';
-        return;
-      }
-
       let html = '';
+
       filtrados.forEach((c, index) => {
         const puestoGlobal = canalesData.findIndex(item => item.id === c.id) + 1;
         const isLive = c.isLive;
         const tieneBotShield = c.bot_shield === true;
-        const esTopVisible = (index === 0 && isLive); // Destacado #1 del ranking activo visible
+        const esTopVisible = (index === 0 && isLive);
 
-        // Tarjeta simétrica y compacta de altura idéntica
         let borderClass = 'border-[#162238] hover:border-matrix/40 hover:shadow-matrixSoft';
         if (tieneBotShield) {
           borderClass = 'border-amber-500/70 shadow-amber-950/40';
@@ -1580,12 +1594,12 @@ const HTML_APP = `<!DOCTYPE html>
           borderClass = 'border-2 border-amber-400/80 shadow-goldGlow bg-gradient-to-b from-[#0b1120] to-[#0a101f]';
         }
 
-        html += '<div class="rounded-2xl bg-[#0b1120] ' + borderClass + ' transition-all duration-300 p-4 flex flex-col justify-between h-[215px] group relative">';
+        html += '<div class="w-full rounded-2xl bg-[#0b1120] ' + borderClass + ' transition-all duration-300 p-4 flex flex-col justify-between h-[215px] group relative">';
 
-        // Fila 1: Logo circular con fallback onerror, Nombre, Insignia #1 o Puesto
+        // Fila 1: Avatar, Nombre, Puesto y Estado
         html += '<div class="flex items-start justify-between gap-2">';
         html += '<div class="flex items-center space-x-3 min-w-0">';
-        html += '<img crossorigin="anonymous" onerror="this.onerror=null; this.src=getFallbackAvatar(\\'' + c.name.replace(/'/g, "\\\\'") + '\\')" src="' + c.avatar + '" class="w-12 h-12 rounded-full ' + (esTopVisible ? 'border-2 border-amber-400 shadow-goldGlow' : (isLive ? 'border-2 border-matrix shadow-matrixSoft' : 'border border-slate-700 opacity-80')) + ' object-cover flex-shrink-0">';
+        html += '<img crossorigin="anonymous" onerror="this.onerror=null; this.src=getFallbackAvatar(\\'' + c.name.replace(/'/g, "\\\\'") + '\\')" src="' + c.avatar + '" class="w-11 h-11 rounded-full ' + (esTopVisible ? 'border-2 border-amber-400 shadow-goldGlow' : (isLive ? 'border-2 border-matrix shadow-matrixSoft' : 'border border-slate-700 opacity-80')) + ' object-cover flex-shrink-0">';
         html += '<div class="min-w-0">';
         html += '<h3 class="text-sm font-bold text-white truncate">' + c.name + '</h3>';
         html += '<span class="text-[10px] text-slate-400 font-semibold">' + c.category + '</span>';
@@ -1610,7 +1624,7 @@ const HTML_APP = `<!DOCTYPE html>
         if (tieneBotShield) {
           html += '<div class="px-2.5 py-1 rounded-lg bg-amber-950/60 border border-amber-500/60 text-[10px] text-amber-200 leading-tight flex items-center space-x-1.5">';
           html += '<span>🛡️</span>';
-          html += '<span class="truncate"><strong>ALERTA:</strong> Posible inyección externa de tráfico/bots detectada. Tráfico anómalo no atribuible al canal.</span>';
+          html += '<span class="truncate"><strong>ALERTA:</strong> Tráfico externo anómalo no atribuible al canal.</span>';
           html += '</div>';
         } else {
           html += '<p class="text-[11px] text-matrix font-mono font-semibold truncate">' + (c.programas && c.programas.length ? c.programas[0] : c.subtheme) + '</p>';
@@ -1619,13 +1633,13 @@ const HTML_APP = `<!DOCTYPE html>
         html += '</div>';
 
         // Fila 3: Conteo de Viewers, Plataformas y Botón Comparar
-        html += '<div class="pt-2 border-t border-[#162238] flex items-center justify-between gap-2">';
+        html += '<div class="pt-2 border-t border-[#162238] flex items-center justify-between gap-1.5">';
         html += '<div>';
         html += '<span class="text-[9px] uppercase font-mono text-slate-400 block">Espectadores</span>';
-        html += '<span class="text-lg font-black font-mono ' + (tieneBotShield ? 'text-amber-400' : (isLive ? 'text-matrix matrix-glow' : 'text-slate-500')) + '">' + formatNum(c.totalViewers) + '</span>';
+        html += '<span class="text-base sm:text-lg font-black font-mono ' + (tieneBotShield ? 'text-amber-400' : (isLive ? 'text-matrix matrix-glow' : 'text-slate-500')) + '">' + formatNum(c.totalViewers) + '</span>';
         html += '</div>';
 
-        html += '<div class="flex items-center space-x-1">';
+        html += '<div class="flex items-center space-x-1 overflow-x-hidden">';
         html += renderizarPlataformaBadge('yt', c.platforms.youtube);
         html += renderizarPlataformaBadge('tw', c.platforms.twitch);
         html += renderizarPlataformaBadge('ki', c.platforms.kick);
@@ -1640,33 +1654,19 @@ const HTML_APP = `<!DOCTYPE html>
         html += '</div>';
       });
 
-      container.innerHTML = html;
-    };
-
-    const renderizarEmergentes = () => {
-      const container = document.getElementById('emerging-channels-grid');
-      const emergentes = canalesData.filter(c => c.isEmerging);
-
-      if (!emergentes.length) {
-        container.innerHTML = '<div class="col-span-full text-slate-500 text-xs font-mono">No hay canales destacados en el radar actualmente.</div>';
-        return;
+      // TARJETA DE POSTULACIÓN DE CANAL (CTA CARD EN CATEGORÍA EMERGENTES O GENERAL)
+      if (solapaActiva === 'Emergentes' || solapaActiva === 'Todos') {
+        html += '<div class="w-full rounded-2xl bg-gradient-to-br from-[#0c1527] to-[#050811] border-2 border-dashed border-matrix/40 p-4 flex flex-col justify-between h-[215px] text-center shadow-matrixSoft">';
+        html += '<div class="space-y-1.5 my-auto">';
+        html += '<span class="text-2xl">📡</span>';
+        html += '<h4 class="text-sm font-black text-white leading-snug">¿Tenés un canal y querés aparecer en StreamRank?</h4>';
+        html += '<p class="text-[11px] text-slate-400 leading-tight">Sumate a las métricas oficiales de la escena nacional.</p>';
+        html += '</div>';
+        html += '<a href="mailto:info@modoia.online?subject=Postulacion%20de%20Canal%20-%20StreamRank" class="w-full py-2 rounded-xl bg-matrix text-black font-black text-xs uppercase tracking-wider hover:bg-emerald-400 transition-all shadow-matrix text-center block">';
+        html += 'Postular Mi Canal';
+        html += '</a>';
+        html += '</div>';
       }
-
-      let html = '';
-      emergentes.forEach(c => {
-        html += '<div class="p-3.5 rounded-xl bg-[#050811] border border-[#162238] flex items-center justify-between space-x-3">';
-        html += '<div class="flex items-center space-x-3 min-w-0">';
-        html += '<img crossorigin="anonymous" onerror="this.onerror=null; this.src=getFallbackAvatar(\\'' + c.name.replace(/'/g, "\\\\'") + '\\')" src="' + c.avatar + '" class="w-10 h-10 rounded-full border border-matrix/30 object-cover flex-shrink-0">';
-        html += '<div class="min-w-0">';
-        html += '<h4 class="text-xs font-bold text-white truncate">' + c.name + '</h4>';
-        html += '<p class="text-[10px] text-slate-400 truncate">' + c.subtheme + '</p>';
-        html += '</div></div>';
-
-        html += '<div class="text-right flex-shrink-0">';
-        html += '<span class="text-xs font-mono font-bold ' + (c.isLive ? 'text-matrix' : 'text-slate-500') + '">' + formatNum(c.totalViewers) + '</span>';
-        html += '<div class="text-[9px] font-mono ' + (c.isLive ? 'text-matrix' : 'text-slate-600') + '">' + (c.isLive ? 'EN VIVO' : 'OFFLINE') + '</div>';
-        html += '</div></div>';
-      });
 
       container.innerHTML = html;
     };
@@ -1775,7 +1775,7 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     // ========================================================================
-    // MODAL DE DUELO 1 VS 1: 1:1 CUADRADO, PROGRAMAS PROTAGONISTAS, FECHA FLÚOR
+    // MODAL DE DUELO 1 VS 1: 1:1 CUADRADO, SIN THUMBNAILS, TOTALMENTE SIMÉTRICO
     // ========================================================================
     const poblarSelectoresDuelo = () => {
       const selA = document.getElementById('duel-select-a');
