@@ -1,5 +1,10 @@
 const express = require('express');
-const { createClient } = require('@libsql/client');
+let createClient;
+try {
+  createClient = require('@libsql/client/web').createClient;
+} catch (_) {
+  createClient = require('@libsql/client').createClient;
+}
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -8,10 +13,11 @@ const PORT = process.env.PORT || 10000;
 const ACCESS_TOKEN_SECRET = (process.env.STREAMRANK_ACCESS_TOKEN || 'STREAMRANK2026').trim();
 
 // ============================================================================
-// CONEXIÓN A TURSO DB (SQL DIRECTO Y PURO, .trim() Y RETENCIÓN DE 2 AÑOS)
+// CONEXIÓN DIRECTA A TURSO DB (@libsql/client/web, PROTOCOLO libsql:// Y SQL PURO)
 // ============================================================================
-const tursoUrl = process.env.TURSO_DATABASE_URL ? process.env.TURSO_DATABASE_URL.trim() : null;
-const tursoAuthToken = process.env.TURSO_AUTH_TOKEN ? process.env.TURSO_AUTH_TOKEN.trim() : null;
+const rawUrl = (process.env.TURSO_DATABASE_URL || '').trim();
+const tursoUrl = rawUrl ? (rawUrl.startsWith('libsql://') ? rawUrl : rawUrl.replace(/^https?:\/\//, 'libsql://')) : null;
+const tursoAuthToken = (process.env.TURSO_AUTH_TOKEN || '').trim();
 
 const db = (tursoUrl && tursoAuthToken)
   ? createClient({
@@ -27,16 +33,7 @@ const initTurso = async () => {
   }
   try {
     await db.execute({
-      sql: `CREATE TABLE IF NOT EXISTS metrics_history (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        channel_id TEXT,
-        channel_name TEXT,
-        viewers INTEGER,
-        program_name TEXT,
-        is_live INTEGER,
-        bot_alert INTEGER DEFAULT 0,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-      );`,
+      sql: 'CREATE TABLE IF NOT EXISTS metrics_history (id INTEGER PRIMARY KEY AUTOINCREMENT, channel_id TEXT, channel_name TEXT, viewers INTEGER, program_name TEXT, is_live INTEGER, bot_alert INTEGER DEFAULT 0, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)',
       args: []
     });
     console.log('[Turso DB] Tabla metrics_history inicializada con SQL directo.');
@@ -49,8 +46,7 @@ const saveMetricToTurso = async (channelId, channelName, viewers, programName, i
   if (!db) return;
   try {
     await db.execute({
-      sql: `INSERT INTO metrics_history (channel_id, channel_name, viewers, program_name, is_live, bot_alert)
-            VALUES (?, ?, ?, ?, ?, ?)`,
+      sql: 'INSERT INTO metrics_history (channel_id, channel_name, viewers, program_name, is_live, bot_alert) VALUES (?, ?, ?, ?, ?, ?)',
       args: [
         String(channelId),
         String(channelName),
@@ -379,7 +375,7 @@ const CHANNELS = [
     isEmerging: false
   },
 
-  // Emergentes reales (Comunidades independientes en crecimiento)
+  // Emergentes reales
   {
     id: 'posdatastream',
     name: 'Posdata Stream',
@@ -680,7 +676,7 @@ const evaluarAnomaliaTrafico = (canal, totalViewers) => {
   const historial = historialLecturas.get(canal.id) || [];
   
   historial.push({ viewers: totalViewers, time: ahora });
-  if (historial.length > 3) historial.shift();
+  if (historial.length > 3) historial.shift(); // Mantiene las 3 últimas muestras
   historialLecturas.set(canal.id, historial);
 
   if (!totalViewers || totalViewers < 2000) {
@@ -894,27 +890,27 @@ app.get('/api/export-csv', async (req, res) => {
 
   if (db) {
     try {
-      let query = `SELECT * FROM metrics_history WHERE 1=1`;
+      let query = 'SELECT * FROM metrics_history WHERE 1=1';
       const params = [];
 
       if (canal && canal !== 'todos') {
-        query += ` AND channel_id = ?`;
+        query += ' AND channel_id = ?';
         params.push(canal.toLowerCase());
       }
       if (programa && programa !== 'todos') {
-        query += ` AND program_name LIKE ?`;
+        query += ' AND program_name LIKE ?';
         params.push(`%${programa}%`);
       }
       if (from) {
-        query += ` AND timestamp >= ?`;
+        query += ' AND timestamp >= ?';
         params.push(`${from} 00:00:00`);
       }
       if (to) {
-        query += ` AND timestamp <= ?`;
+        query += ' AND timestamp <= ?';
         params.push(`${to} 23:59:59`);
       }
 
-      query += ` ORDER BY timestamp DESC LIMIT 10000`;
+      query += ' ORDER BY timestamp DESC LIMIT 10000';
       const dbResult = await db.execute({ sql: query, args: params });
       rows = dbResult.rows.map(r => [
         `"${r.channel_id}"`,
@@ -1047,7 +1043,7 @@ const HTML_APP = `<!DOCTYPE html>
             "category": "Entretenimiento"
           },
           {
-            "@type": "OLGA",
+            "@type": "DataFeedItem",
             "name": "OLGA",
             "category": "Entretenimiento"
           },
@@ -1157,6 +1153,20 @@ const HTML_APP = `<!DOCTYPE html>
   <!-- CONTENIDO PRINCIPAL -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-5">
     
+    <!-- TITULO PRINCIPAL & BAJADA CLARA -->
+    <section class="text-center sm:text-left space-y-1 pt-1 sm:pt-2">
+      <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-matrix/10 border border-matrix/30 text-matrix text-[11px] font-mono font-bold tracking-wider mb-1">
+        <span class="w-2 h-2 rounded-full bg-matrix animate-ping"></span>
+        <span>DATOS OFICIALES EN TIEMPO REAL</span>
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight">
+        StreamRank <span class="text-matrix font-light">|</span> Monitor de Audiencia en Vivo
+      </h1>
+      <p class="text-xs sm:text-sm text-slate-400 max-w-3xl leading-relaxed">
+        Telemetría y métricas oficiales de streaming en Argentina en tiempo real. Auditado minuto a minuto.
+      </p>
+    </section>
+
     <!-- BARRA CON BUSCADOR Y ACCIÓN DE DESCARGA CSV INSTITUCIONAL (DATA ROOM) -->
     <section class="w-full flex flex-col sm:flex-row items-center gap-2.5 sm:gap-3">
       <div class="relative flex-1 w-full">
@@ -1170,7 +1180,7 @@ const HTML_APP = `<!DOCTYPE html>
           id="channel-search-input" 
           oninput="filtrarPorBusqueda(this.value)" 
           placeholder="Buscar canal por nombre (ej: Olga, Luzu, TN, Azzaro, Davoo)..." 
-          class="w-full pl-10 pr-4 py-2.5 sm:py-3 bg-[#0b1120] border border-[#162238] rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-matrix focus:shadow-matrixSoft transition-all"
+          class="w-full pl-10 pr-4 py-2.5 sm:py-3 bg-[#0b1120] border-2 border-slate-700/80 hover:border-slate-500 focus:border-matrix focus:shadow-matrixSoft rounded-xl text-xs sm:text-sm text-white placeholder-slate-400 transition-all shadow-md"
         >
       </div>
 
@@ -1229,7 +1239,7 @@ const HTML_APP = `<!DOCTYPE html>
       </div>
     </section>
 
-    <!-- GRILLA RESPONSIVE MOBILE-FIRST (1 COL EN SMARTPHONE, 2 EN TABLET, 3/4 EN DESKTOP) -->
+    <!-- GRILLA RESPONSIVE MOBILE-FIRST (BORDE NÍTIDO EN MOBILE, SIN DESBORDES) -->
     <section>
       <div id="channels-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
       </div>
@@ -1250,7 +1260,7 @@ const HTML_APP = `<!DOCTYPE html>
     </section>
 
     <!-- SECCIÓN INTERACTIVA DE FAQS (PREGUNTAS FRECUENTES EN MODO OSCURO) -->
-    <section class="bg-[#0b1120] rounded-2xl border border-[#162238] p-4 sm:p-6 space-y-4 text-xs text-slate-300 leading-relaxed">
+    <section class="bg-[#0b1120] rounded-2xl border border-slate-700/60 sm:border-[#162238] p-4 sm:p-6 space-y-4 text-xs text-slate-300 leading-relaxed shadow-lg">
       <div class="flex items-center space-x-2 text-white font-bold text-sm">
         <svg class="w-5 h-5 text-matrix flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -1260,7 +1270,7 @@ const HTML_APP = `<!DOCTYPE html>
 
       <div class="space-y-3">
         <!-- FAQ 1: Escudo Anti-Bots -->
-        <div class="p-4 rounded-xl bg-[#050811] border border-[#162238] space-y-1.5">
+        <div class="p-4 rounded-xl bg-[#050811] border border-slate-700/60 sm:border-[#162238] space-y-1.5">
           <h4 class="font-bold text-white text-sm flex items-center text-matrix">
             <span class="mr-2">🛡️</span> ¿Cómo detectamos los ataques de bots externos?
           </h4>
@@ -1270,7 +1280,7 @@ const HTML_APP = `<!DOCTYPE html>
         </div>
 
         <!-- FAQ 2: Retención 2 años en Turso DB -->
-        <div class="p-4 rounded-xl bg-[#050811] border border-[#162238] space-y-1.5">
+        <div class="p-4 rounded-xl bg-[#050811] border border-slate-700/60 sm:border-[#162238] space-y-1.5">
           <h4 class="font-bold text-white text-sm flex items-center text-matrix">
             <span class="mr-2">⏳</span> ¿Cuál es la política de retención y almacenamiento de métricas?
           </h4>
@@ -1280,7 +1290,7 @@ const HTML_APP = `<!DOCTYPE html>
         </div>
 
         <!-- FAQ 3: Telemetría sin intermediarios -->
-        <div class="p-4 rounded-xl bg-[#050811] border border-[#162238] space-y-1.5">
+        <div class="p-4 rounded-xl bg-[#050811] border border-slate-700/60 sm:border-[#162238] space-y-1.5">
           <h4 class="font-bold text-white text-sm flex items-center text-matrix">
             <span class="mr-2">⚡</span> ¿Cómo se calcula la audiencia en vivo multiplataforma?
           </h4>
@@ -1325,7 +1335,7 @@ const HTML_APP = `<!DOCTYPE html>
             type="password" 
             id="token-input" 
             placeholder="Ingresá tu código institucional..." 
-            class="flex-1 px-3 py-2 bg-[#050811] border border-[#162238] rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-matrix focus:shadow-matrixSoft"
+            class="flex-1 px-3 py-2 bg-[#050811] border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-matrix focus:shadow-matrixSoft"
           >
           <button 
             onclick="validarYAbrirDescarga()" 
@@ -1368,21 +1378,21 @@ const HTML_APP = `<!DOCTYPE html>
       <div class="space-y-3">
         <div>
           <label class="block text-xs font-semibold text-slate-400 mb-1">CANAL A AUDITAR</label>
-          <select id="report-channel-select" onchange="actualizarProgramasAuditModal(this.value)" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-matrix">
+          <select id="report-channel-select" onchange="actualizarProgramasAuditModal(this.value)" class="w-full bg-[#050811] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-matrix">
             <option value="todos">Todos los Canales Monitoreados</option>
           </select>
         </div>
 
         <div>
           <label class="block text-xs font-semibold text-slate-400 mb-1">PROGRAMA A AUDITAR</label>
-          <select id="report-program-select" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-matrix">
+          <select id="report-program-select" class="w-full bg-[#050811] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-matrix">
             <option value="todos">Todos los programas del canal</option>
           </select>
         </div>
 
         <div>
           <label class="block text-xs font-semibold text-slate-400 mb-1">PERÍODO TEMPORAL</label>
-          <select id="report-period-select" onchange="ajustarFechasPeriodo(this.value)" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-matrix">
+          <select id="report-period-select" onchange="ajustarFechasPeriodo(this.value)" class="w-full bg-[#050811] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-matrix">
             <option value="hoy">Hoy (Día en curso)</option>
             <option value="7dias">Últimos 7 Días</option>
             <option value="mes">Todo el Mes</option>
@@ -1393,11 +1403,11 @@ const HTML_APP = `<!DOCTYPE html>
         <div id="custom-dates-container" class="grid grid-cols-2 gap-3 hidden">
           <div>
             <label class="block text-[11px] font-semibold text-slate-400 mb-1">DESDE (FROM)</label>
-            <input type="date" id="report-from-date" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-matrix">
+            <input type="date" id="report-from-date" class="w-full bg-[#050811] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-matrix">
           </div>
           <div>
             <label class="block text-[11px] font-semibold text-slate-400 mb-1">HASTA (TO)</label>
-            <input type="date" id="report-to-date" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-matrix">
+            <input type="date" id="report-to-date" class="w-full bg-[#050811] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-matrix">
           </div>
         </div>
       </div>
@@ -1429,12 +1439,12 @@ const HTML_APP = `<!DOCTYPE html>
       <div class="grid grid-cols-2 gap-3 sm:gap-4 my-3">
         <div>
           <label class="block text-[11px] sm:text-xs font-semibold text-slate-400 mb-1">CANAL A</label>
-          <select id="duel-select-a" onchange="renderizarContenidoDuelo()" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-2.5 sm:px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-matrix">
+          <select id="duel-select-a" onchange="renderizarContenidoDuelo()" class="w-full bg-[#050811] border border-slate-700 rounded-xl px-2.5 sm:px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-matrix">
           </select>
         </div>
         <div>
           <label class="block text-[11px] sm:text-xs font-semibold text-slate-400 mb-1">CANAL B</label>
-          <select id="duel-select-b" onchange="renderizarContenidoDuelo()" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-2.5 sm:px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-matrix">
+          <select id="duel-select-b" onchange="renderizarContenidoDuelo()" class="w-full bg-[#050811] border border-slate-700 rounded-xl px-2.5 sm:px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-matrix">
           </select>
         </div>
       </div>
@@ -1449,7 +1459,7 @@ const HTML_APP = `<!DOCTYPE html>
         <div class="grid grid-cols-2 gap-3 sm:gap-4 items-stretch my-auto">
           
           <!-- Canal A -->
-          <div class="text-center p-3.5 rounded-xl bg-[#0b1120]/90 border border-[#162238] flex flex-col justify-between h-[190px] sm:h-[210px]">
+          <div class="text-center p-3.5 rounded-xl bg-[#0b1120]/90 border border-slate-700/70 flex flex-col justify-between h-[190px] sm:h-[210px]">
             <div>
               <img id="duel-a-avatar" crossorigin="anonymous" src="" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full mx-auto border-2 border-matrix object-cover shadow-matrixSoft mb-1.5" alt="A">
               <div id="duel-a-program" class="font-black text-white text-sm sm:text-base leading-tight line-clamp-2 break-words mt-0.5">--</div>
@@ -1463,7 +1473,7 @@ const HTML_APP = `<!DOCTYPE html>
           </div>
 
           <!-- Canal B -->
-          <div class="text-center p-3.5 rounded-xl bg-[#0b1120]/90 border border-[#162238] flex flex-col justify-between h-[190px] sm:h-[210px]">
+          <div class="text-center p-3.5 rounded-xl bg-[#0b1120]/90 border border-slate-700/70 flex flex-col justify-between h-[190px] sm:h-[210px]">
             <div>
               <img id="duel-b-avatar" crossorigin="anonymous" src="" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full mx-auto border-2 border-cyan-400 object-cover shadow-cyan-500/50 mb-1.5" alt="B">
               <div id="duel-b-program" class="font-black text-white text-sm sm:text-base leading-tight line-clamp-2 break-words mt-0.5">--</div>
@@ -1545,6 +1555,13 @@ const HTML_APP = `<!DOCTYPE html>
     let busquedaTexto = '';
 
     const formatNum = (num) => new Intl.NumberFormat('es-AR').format(num || 0);
+
+    const formatBadgeNum = (num) => {
+      if (!num) return '0';
+      if (num >= 100000) return Math.round(num / 1000) + 'k';
+      if (num >= 10000) return (num / 1000).toFixed(1) + 'k';
+      return formatNum(num);
+    };
 
     function getFallbackAvatar(name) {
       const initials = (name || 'SR')
@@ -1647,9 +1664,9 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     const renderizarPlataformaBadge = (tipo, plat) => {
-      let estilo = 'text-slate-500 border-[#162238] bg-black/30';
+      let estilo = 'text-slate-500 border-[#162238] bg-black/40';
       let iconColor = 'text-slate-600';
-      let valor = 'Offline';
+      let valor = 'Off';
 
       if (plat && plat.isLive) {
         if (tipo === 'yt') {
@@ -1662,21 +1679,21 @@ const HTML_APP = `<!DOCTYPE html>
           estilo = 'text-emerald-400 border-[#53FC18]/40 bg-emerald-950/20';
           iconColor = 'text-[#53FC18]';
         }
-        valor = formatNum(plat.viewers);
+        valor = formatBadgeNum(plat.viewers);
       } else if (plat && !plat.active) {
-        valor = 'N/A';
+        valor = '-';
       }
 
       const svgIcon = document.getElementById('svg-' + tipo).outerHTML;
 
-      return '<div class="flex items-center space-x-1 px-1.5 py-0.5 rounded-lg border ' + estilo + '">' +
-        '<div class="w-3 h-3 ' + iconColor + '">' + svgIcon + '</div>' +
-        '<span class="text-[9px] font-mono font-bold truncate">' + valor + '</span>' +
+      return '<div class="flex items-center space-x-1 px-1.5 py-0.5 rounded-md border shrink-0 ' + estilo + '">' +
+        '<div class="w-3 h-3 shrink-0 ' + iconColor + '">' + svgIcon + '</div>' +
+        '<span class="text-[9px] font-mono font-bold leading-none">' + valor + '</span>' +
       '</div>';
     };
 
     // ========================================================================
-    // GRILLA RESPONSIVE CON BOTÓN "VS" Y SIMETRÍA VISUAL
+    // GRILLA RESPONSIVE (1 COL EN CELULAR, 2 EN TABLET, 3/4 EN DESKTOP)
     // ========================================================================
     const renderizarGrilla = () => {
       const container = document.getElementById('channels-grid');
@@ -1706,18 +1723,18 @@ const HTML_APP = `<!DOCTYPE html>
         const tieneBotShield = c.bot_shield === true;
         const esTopVisible = (index === 0 && isLive);
 
-        let borderClass = 'border-[#162238] hover:border-matrix/40 hover:shadow-matrixSoft';
+        let borderClass = 'border border-slate-700/70 sm:border-[#162238] hover:border-matrix/40 hover:shadow-matrixSoft';
         if (tieneBotShield) {
-          borderClass = 'border-amber-500/70 shadow-amber-950/40';
+          borderClass = 'border-2 border-amber-500/80 shadow-amber-950/40 bg-gradient-to-b from-[#1c120c] to-[#0b1120]';
         } else if (esTopVisible) {
-          borderClass = 'border-2 border-amber-400/80 shadow-goldGlow bg-gradient-to-b from-[#0b1120] to-[#0a101f]';
+          borderClass = 'border-2 border-amber-400/90 shadow-goldGlow bg-gradient-to-b from-[#0b1329] to-[#0b1120]';
         }
 
-        html += '<div class="w-full rounded-2xl bg-[#0b1120] ' + borderClass + ' transition-all duration-300 p-4 flex flex-col justify-between h-[215px] group relative">';
+        html += '<div class="w-full rounded-2xl bg-[#0b1120] ' + borderClass + ' shadow-md shadow-black/40 transition-all duration-300 p-3.5 sm:p-4 flex flex-col justify-between min-h-[220px] h-auto sm:h-[225px] group relative">';
 
         // Fila 1: Avatar, Nombre, Puesto e Insignia #1
         html += '<div class="flex items-start justify-between gap-2">';
-        html += '<div class="flex items-center space-x-3 min-w-0">';
+        html += '<div class="flex items-center space-x-2.5 sm:space-x-3 min-w-0">';
         html += '<img crossorigin="anonymous" onerror="this.onerror=null; this.src=getFallbackAvatar(\\'' + c.name.replace(/'/g, "\\\\'") + '\\')" src="' + c.avatar + '" class="w-11 h-11 rounded-full ' + (esTopVisible ? 'border-2 border-amber-400 shadow-goldGlow' : (isLive ? 'border-2 border-matrix shadow-matrixSoft' : 'border border-slate-700 opacity-80')) + ' object-cover flex-shrink-0">';
         html += '<div class="min-w-0">';
         html += '<h3 class="text-sm font-bold text-white truncate">' + c.name + '</h3>';
@@ -1739,10 +1756,10 @@ const HTML_APP = `<!DOCTYPE html>
         html += '</div></div>';
 
         // Fila 2: Programa emitido o Alerta Bot Shield
-        html += '<div class="my-auto">';
+        html += '<div class="my-auto py-1">';
         if (tieneBotShield) {
-          html += '<div class="px-2.5 py-1 rounded-lg bg-amber-950/60 border border-amber-500/60 text-[10px] text-amber-200 leading-tight flex items-center space-x-1.5">';
-          html += '<span>🛡️</span>';
+          html += '<div class="px-2.5 py-1.5 rounded-lg bg-amber-950/70 border border-amber-500/70 text-[10px] text-amber-200 leading-tight flex items-center space-x-1.5">';
+          html += '<span class="shrink-0 text-sm">🛡️</span>';
           html += '<span class="truncate"><strong>ALERTA:</strong> Posible inyección externa de tráfico/bots detectada. Tráfico anómalo no atribuible al canal.</span>';
           html += '</div>';
         } else {
@@ -1751,20 +1768,26 @@ const HTML_APP = `<!DOCTYPE html>
         }
         html += '</div>';
 
-        // Fila 3: Conteo de Viewers, Plataformas y Botón "VS"
-        html += '<div class="pt-2 border-t border-[#162238] flex items-center justify-between gap-1.5">';
-        html += '<div>';
-        html += '<span class="text-[9px] uppercase font-mono text-slate-400 block">Espectadores</span>';
-        html += '<span class="text-base sm:text-lg font-black font-mono ' + (tieneBotShield ? 'text-amber-400' : (isLive ? 'text-matrix matrix-glow' : 'text-slate-500')) + '">' + formatNum(c.totalViewers) + '</span>';
+        // Fila 3: Conteo de Viewers, Plataformas y Botón VS (Separación perfecta sin recortar Kick)
+        html += '<div class="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-1.5 sm:gap-2">';
+        
+        // Bloque de Datos (Espectadores + Badges)
+        html += '<div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 overflow-hidden">';
+        html += '<div class="shrink-0 min-w-[65px]">';
+        html += '<span class="text-[9px] uppercase font-mono text-slate-400 block leading-tight">Espectadores</span>';
+        html += '<span class="text-base sm:text-lg font-black font-mono leading-tight ' + (tieneBotShield ? 'text-amber-400' : (isLive ? 'text-matrix matrix-glow' : 'text-slate-500')) + '">' + formatNum(c.totalViewers) + '</span>';
         html += '</div>';
 
-        html += '<div class="flex items-center space-x-1 overflow-x-hidden">';
+        // Contenedor de Badges con shrink-0 (YouTube, Twitch, Kick siempre visibles)
+        html += '<div class="flex items-center gap-1 sm:gap-1.5 shrink-0">';
         html += renderizarPlataformaBadge('yt', c.platforms.youtube);
         html += renderizarPlataformaBadge('tw', c.platforms.twitch);
         html += renderizarPlataformaBadge('ki', c.platforms.kick);
         html += '</div>';
+        html += '</div>';
 
-        html += '<button onclick="abrirDueloCon(\\'' + c.id + '\\')" class="px-2.5 py-1 rounded-lg bg-black/70 hover:bg-matrix hover:text-black transition-all text-matrix font-black text-xs border border-matrix/40 shadow-matrixSoft flex-shrink-0" title="Duelo Versus">';
+        // Botón VS a la derecha con ancho fijo shrink-0
+        html += '<button onclick="abrirDueloCon(\\'' + c.id + '\\')" class="px-2.5 py-1.5 rounded-lg bg-black/80 hover:bg-matrix hover:text-black transition-all text-matrix font-black text-xs border border-matrix/40 shadow-matrixSoft shrink-0 ml-auto" title="Duelo Versus">';
         html += 'VS';
         html += '</button>';
 
@@ -1775,7 +1798,7 @@ const HTML_APP = `<!DOCTYPE html>
 
       // TARJETA DE POSTULACIÓN DE CANAL (CTA CARD EN CATEGORÍA EMERGENTES O GENERAL)
       if (solapaActiva === 'Emergentes' || solapaActiva === 'Todos') {
-        html += '<div class="w-full rounded-2xl bg-gradient-to-br from-[#0c1527] to-[#050811] border-2 border-dashed border-matrix/40 p-4 flex flex-col justify-between h-[215px] text-center shadow-matrixSoft">';
+        html += '<div class="w-full rounded-2xl bg-gradient-to-br from-[#0c1527] to-[#050811] border-2 border-dashed border-matrix/40 p-4 flex flex-col justify-between min-h-[220px] h-auto sm:h-[225px] text-center shadow-matrixSoft">';
         html += '<div class="space-y-1.5 my-auto">';
         html += '<span class="text-2xl">📡</span>';
         html += '<h4 class="text-sm font-black text-white leading-snug">¿Tenés un canal y querés aparecer en StreamRank?</h4>';
