@@ -350,7 +350,12 @@ const fetchConTimeout = async (url, opciones = {}, ms = 6000) => {
 };
 
 // ============================================================================
-// YOUTUBE SCRAPER: SIN RETORNO PREMATURO, REDIRECTS, BYPASS Y RESISTENTE
+// MAP DE PERSISTENCIA DE MINIATURAS (EVITA CAMBIOS Y PARPADEOS)
+// ============================================================================
+const lastThumbnails = new Map();
+
+// ============================================================================
+// YOUTUBE SCRAPER: EXTRACCIÓN ESTRICTA DE VIDEOID Y MINIATURA EN VIVO
 // ============================================================================
 const scrapeYouTube = async (handle) => {
   if (!handle) return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
@@ -382,6 +387,7 @@ const scrapeYouTube = async (handle) => {
       /\\"status\\":\s*\\"UPCOMING\\"/i.test(html) ||
       html.includes('"upcomingEventData"');
     if (isUpcoming) {
+      lastThumbnails.delete(handle);
       return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
     }
 
@@ -394,7 +400,7 @@ const scrapeYouTube = async (handle) => {
       html.match(/\\"originalViewCount\\":\s*\\"(\d+)\\"/);
     const viewRunsMatch =
       html.match(/"viewCount":\s*\{\s*"runs":\s*\[\s*\{\s*"text":\s*"([^"]+)"/) ||
-      html.match(/\\"viewCount\\":\s*\{\s*\\"runs\\":\s*\[\s*\{\s*\\"text\\":\s*\\"([^"]+)\\"/);
+      html.match(/\\"viewCount\\":\s*\{\s*\\"runs\\":\s*\[\s*\{\s*\\"text\\":\s*\\"([^"\\]+)\\"/);
 
     let viewers = 0;
     if (concurrentMatch) viewers = parseInt(concurrentMatch[1], 10);
@@ -411,6 +417,7 @@ const scrapeYouTube = async (handle) => {
       /"isLiveNow":\s*true/i.test(html);
 
     if (!hasLiveSignal || viewers <= 5) {
+      lastThumbnails.delete(handle);
       return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
     }
 
@@ -428,10 +435,11 @@ const scrapeYouTube = async (handle) => {
 
     const blacklistRegex = /(hasta ma[nñ]ana|pr[oó]ximamente|en espera|directo finalizado)/i;
     if (title && blacklistRegex.test(title)) {
+      lastThumbnails.delete(handle);
       return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
     }
 
-    // 5. Extraer videoId y miniatura (solo una vez confirmado el directo)
+    // 5. Extraer videoId ÚNICAMENTE del reproductor principal o del tag canonical (nunca búsqueda suelta en todo el HTML)
     let videoId = '';
     const finalUrl = res.url || '';
     if (finalUrl.includes('watch?v=')) {
@@ -440,16 +448,24 @@ const scrapeYouTube = async (handle) => {
     }
 
     if (!videoId) {
-      const canMatch =
-        html.match(/<link\s+rel="canonical"\s+href="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/i) ||
-        html.match(/watch\?v=([a-zA-Z0-9_-]{11})/);
-      if (canMatch) videoId = canMatch[1];
+      const vDetailsMatch = html.match(/"videoDetails":\s*\{[^}]*"videoId":\s*"([a-zA-Z0-9_-]{11})"/);
+      const liveStreamMatch = html.match(/"liveStreamabilityRenderer":\s*\{\s*"videoId":\s*"([a-zA-Z0-9_-]{11})"/);
+      const canMatch = html.match(/<link\s+rel="canonical"\s+href="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/i);
+      if (vDetailsMatch && vDetailsMatch[1]) videoId = vDetailsMatch[1];
+      else if (liveStreamMatch && liveStreamMatch[1]) videoId = liveStreamMatch[1];
+      else if (canMatch && canMatch[1]) videoId = canMatch[1];
     }
 
-    const thumbnail = videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : '';
+    // 6. Asignación y persistencia de miniatura en vivo
+    let thumbnail = videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : '';
 
-    console.log(`[YouTube OK] ${handle}: ${viewers} viewers (ID: ${videoId || 'N/A'})`);
+    if (!thumbnail && lastThumbnails.has(handle)) {
+      thumbnail = lastThumbnails.get(handle);
+    } else if (thumbnail) {
+      lastThumbnails.set(handle, thumbnail);
+    }
 
+    console.log(`[YouTube OK] ${handle}: ${viewers} viewers (ID: ${videoId || 'CACHED'})`);
     return {
       isLive: true,
       viewers,
@@ -457,6 +473,7 @@ const scrapeYouTube = async (handle) => {
       thumbnail
     };
   } catch (err) {
+    lastThumbnails.delete(handle);
     console.error(`[YouTube Error] ${handle}:`, err.message);
     return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
   }
@@ -1396,7 +1413,7 @@ const HTML_APP = `<!DOCTYPE html>
       html += '<div class="flex flex-wrap items-center gap-1.5 mt-0.5">';
       html += '<span class="text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded bg-[#162238] text-slate-300">' + lider.category + '</span>';
       html += '<span class="text-[10px] sm:text-[11px] font-mono text-matrix truncate">' + lider.subtheme + '</span>';
-      html += '</div></div></div>';
+      </div></div></div>';
 
       html += '<p class="text-xs sm:text-sm text-slate-300 line-clamp-2 italic">"' + lider.title + '"</p>';
 
