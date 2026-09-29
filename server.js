@@ -334,9 +334,9 @@ const getBuenosAiresTime = () => {
 };
 
 // ============================================================================
-// MOTOR DE SCRAPING CON TIMEOUT SEGURO
+// MOTOR DE SCRAPING CON TIMEOUT DE RED ROBUSTO (6000 MS)
 // ============================================================================
-const fetchConTimeout = async (url, opciones = {}, ms = 2500) => {
+const fetchConTimeout = async (url, opciones = {}, ms = 6000) => {
   const controlador = new AbortController();
   const id = setTimeout(() => controlador.abort(), ms);
   try {
@@ -350,7 +350,7 @@ const fetchConTimeout = async (url, opciones = {}, ms = 2500) => {
 };
 
 // ============================================================================
-// YOUTUBE SCRAPER: REDIRECTS, BYPASS DE CONSENTIMIENTO Y EXTRACCIÓN ROBUSTA
+// YOUTUBE SCRAPER: REDIRECTS, BYPASS Y EXTRACCIÓN DIRECTA
 // ============================================================================
 const scrapeYouTube = async (handle) => {
   if (!handle) return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
@@ -369,12 +369,12 @@ const scrapeYouTube = async (handle) => {
           'Cookie': 'SOCS=CAESEwgDEgk0ODE3Nzk3MjQaAmVuIAEaBgiA_LyaBg; CONSENT=YES+'
         }
       },
-      2500
+      6000
     );
 
     if (!res.ok) return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
 
-    // 1. Obtener URL final tras seguir redirecciones HTTP 302/303
+    // 1. Extraer videoId desde la URL final tras redirecciones
     let videoId = '';
     const finalUrl = res.url || '';
     if (finalUrl.includes('watch?v=')) {
@@ -401,7 +401,7 @@ const scrapeYouTube = async (handle) => {
       return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
     }
 
-    // 3. Descartar si es estreno programado o emisión futura (UPCOMING)
+    // 3. Descartar transmisiones programadas o futuras (UPCOMING)
     const isUpcoming =
       /"status":\s*"UPCOMING"/i.test(html) ||
       /\\"status\\":\s*\\"UPCOMING\\"/i.test(html) ||
@@ -410,7 +410,7 @@ const scrapeYouTube = async (handle) => {
       return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
     }
 
-    // 4. Extraer título exclusivo del directo actual
+    // 4. Extraer título exclusivo
     let title = '';
     const metaTitle =
       html.match(/<meta\s+name="title"\s+content="([^"]*)"/i) ||
@@ -449,7 +449,7 @@ const scrapeYouTube = async (handle) => {
       viewers = parseInt(limpio, 10) || 0;
     }
 
-    // 6. Validación de En Vivo real y confirmado
+    // 6. Validación de En Vivo: (viewers > 20 o señales live en JSON) y viewers > 5
     const hasLiveSignal =
       viewers > 20 ||
       /"isLive":\s*true/i.test(html) ||
@@ -460,7 +460,7 @@ const scrapeYouTube = async (handle) => {
       /\\"isLiveNow\\":\s*true/i.test(html);
 
     if (hasLiveSignal && viewers > 5) {
-      console.log(`[YouTube] ${handle}: EN VIVO con ${viewers} viewers (ID: ${videoId})`);
+      console.log(`[YouTube OK] ${handle}: ${viewers} viewers`);
       return {
         isLive: true,
         viewers,
@@ -471,11 +471,12 @@ const scrapeYouTube = async (handle) => {
 
     return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
   } catch (err) {
+    console.error(`[YouTube Error] ${handle}:`, err.message);
     return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: '' };
   }
 };
 
-// Twitch GQL Scraper
+// Twitch GQL Scraper (Público, sin API keys)
 const scrapeTwitch = async (login) => {
   if (!login) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
   try {
@@ -499,7 +500,7 @@ const scrapeTwitch = async (login) => {
           variables: { login }
         })
       },
-      1800
+      6000
     );
 
     if (!res.ok) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
@@ -521,7 +522,7 @@ const scrapeTwitch = async (login) => {
   }
 };
 
-// Kick API v2 Scraper
+// Kick API v2 Scraper (Público, sin API keys)
 const scrapeKick = async (slug) => {
   if (!slug) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
   try {
@@ -534,7 +535,7 @@ const scrapeKick = async (slug) => {
           Accept: 'application/json'
         }
       },
-      1800
+      6000
     );
 
     if (!res.ok) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
