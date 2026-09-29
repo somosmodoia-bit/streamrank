@@ -278,10 +278,38 @@ const CHANNELS = [
   }
 ];
 
+// ============================================================================
+// PERSISTENCIA HISTÓRICA EN MEMORIA (MOTOR ANALÍTICO PARA AUDITORÍA)
+// ============================================================================
+const historicalSnapshots = [];
+const MAX_HISTORICAL_RECORDS = 50000;
+
 let telemetriaCache = [];
 let ultimaActualizacion = null;
 let estaScrapeando = false;
 const historialLecturas = new Map();
+
+// Helper de Fecha y Hora en zona horaria Buenos Aires (America/Argentina/Buenos_Aires)
+const getBuenosAiresTime = () => {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).split('/').reverse().join('-');
+
+  const timeStr = now.toLocaleTimeString('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    hour12: false
+  });
+
+  return {
+    date: dateStr,
+    time: timeStr,
+    timestamp: `${dateStr} ${timeStr}`
+  };
+};
 
 // ============================================================================
 // MOTOR DE SCRAPING CON TIMEOUT SEGURO Y PROTECCIÓN ANTI-FALSOS POSITIVOS
@@ -299,7 +327,7 @@ const fetchConTimeout = async (url, opciones = {}, ms = 1800) => {
   }
 };
 
-// YouTube Live Scraper con Filtrado Estricto de Cortesía y Modos de Espera
+// YouTube Scraper: Extracción canónica estricta para evitar videos ajenos
 const scrapeYouTube = async (handle) => {
   if (!handle) return { isLive: false, viewers: 0, title: '', thumbnail: '' };
   try {
@@ -320,7 +348,7 @@ const scrapeYouTube = async (handle) => {
 
     const html = await res.text();
 
-    // 1. Validaciones estructurales de YouTube Live
+    // 1. Verificación obligatoria de transmisión activa
     const isLiveMatch = /"isLive":\s*true/.test(html);
     const isUpcoming = /"status":\s*"UPCOMING"/.test(html) || /"upcomingEventData"/.test(html);
     const isPremiere = /"isPremiere":\s*true/.test(html);
@@ -329,20 +357,39 @@ const scrapeYouTube = async (handle) => {
       return { isLive: false, viewers: 0, title: '', thumbnail: '' };
     }
 
-    // 2. Extracción de título
+    // 2. Extracción estricta del VideoID canónico (reproductor activo en vivo)
+    let videoId = '';
+    const canonicalMatch = html.match(/<link\s+rel="canonical"\s+href="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/i);
+    const liveStreamabilityMatch = html.match(/"liveStreamabilityRenderer":\s*\{\s*"videoId":\s*"([a-zA-Z0-9_-]{11})"/);
+    const videoDetailsLiveMatch = html.match(/"videoDetails":\s*\{"videoId":\s*"([a-zA-Z0-9_-]{11})"[^}]*"isLive":\s*true/);
+
+    if (liveStreamabilityMatch && liveStreamabilityMatch[1]) {
+      videoId = liveStreamabilityMatch[1];
+    } else if (canonicalMatch && canonicalMatch[1]) {
+      videoId = canonicalMatch[1];
+    } else if (videoDetailsLiveMatch && videoDetailsLiveMatch[1]) {
+      videoId = videoDetailsLiveMatch[1];
+    }
+
+    // Si no hay videoId canónico validado, thumbnail debe ser '' para no tomar videos recomendados ajenos
+    if (!videoId) {
+      return { isLive: false, viewers: 0, title: '', thumbnail: '' };
+    }
+
+    // 3. Extracción de título del stream
     let title = '';
     const titleMatch = html.match(/"title":\s*\{\s*"runs":\s*\[\s*\{\s*"text":\s*"([^"]+)"/);
     if (titleMatch) {
       title = titleMatch[1];
     }
 
-    // 3. Filtrado de placas de cortesía, bucles y modos de espera
+    // 4. Filtrado de placas de cortesía y bucles sin emisión activa
     const blacklistRegex = /(hasta ma[nñ]ana|pr[oó]ximamente|en espera|esperando|comienza en|iniciamos en|arrancamos en|volvemos|transmisi[oó]n finalizada|estreno|directo finalizado)/i;
     if (blacklistRegex.test(title)) {
       return { isLive: false, viewers: 0, title: '', thumbnail: '' };
     }
 
-    // 4. Extracción de espectadores concurrentes
+    // 5. Extracción de espectadores concurrentes
     let viewers = 0;
     const concurrentMatch = html.match(/"concurrentViewers":\s*"(\d+)"/);
     const simpleViewMatch = html.match(/"originalViewCount":\s*"(\d+)"/);
@@ -357,24 +404,16 @@ const scrapeYouTube = async (handle) => {
       viewers = parseInt(limpio, 10) || 0;
     }
 
-    // 5. Umbral de corte real: descartar transmisiones colgadas con 5 o menos viewers
+    // Descartar streams colgados con audiencia casi nula
     if (viewers <= 5) {
       return { isLive: false, viewers: 0, title: '', thumbnail: '' };
     }
-
-    let videoId = '';
-    const videoIdMatch = html.match(/"videoId":\s*"([a-zA-Z0-9_-]{11})"/);
-    if (videoIdMatch) {
-      videoId = videoIdMatch[1];
-    }
-
-    const thumbnail = videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : '';
 
     return {
       isLive: true,
       viewers,
       title: title || 'Transmisión en directo',
-      thumbnail
+      thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
     };
   } catch (err) {
     return { isLive: false, viewers: 0, title: '', thumbnail: '' };
@@ -477,7 +516,6 @@ const evaluarAnomaliaTrafico = (canal, totalViewers) => {
     return { botAlert: false, reason: null, decoupled: false };
   }
 
-  // 1. Exceso crítico sobre el límite histórico del canal
   if (canal.baselineMax && totalViewers > canal.baselineMax * 2.8) {
     return {
       botAlert: true,
@@ -486,7 +524,6 @@ const evaluarAnomaliaTrafico = (canal, totalViewers) => {
     };
   }
 
-  // 2. Disparada repentina respecto al promedio reciente de las últimas 5 muestras
   if (historial.length >= 4) {
     const lecturasAnteriores = historial.slice(0, -1).filter((v) => v > 0);
     if (lecturasAnteriores.length >= 2) {
@@ -494,7 +531,7 @@ const evaluarAnomaliaTrafico = (canal, totalViewers) => {
       if (promedioPrevio > 500 && totalViewers > promedioPrevio * 4.2 && totalViewers > 15000) {
         return {
           botAlert: true,
-          reason: 'Variación anómala repentina de usuarios simultáneos sin correlación orgánica',
+          reason: 'Variación anómala repentina sin correlación orgánica',
           decoupled: true
         };
       }
@@ -513,6 +550,7 @@ const actualizarTelemetria = async () => {
 
   try {
     const listaActualizada = [];
+    const bsAsTime = getBuenosAiresTime();
 
     for (const canal of CHANNELS) {
       try {
@@ -525,12 +563,13 @@ const actualizarTelemetria = async () => {
         const isLive = ytRes.isLive || twRes.isLive || kiRes.isLive;
         const totalViewers = (ytRes.viewers || 0) + (twRes.viewers || 0) + (kiRes.viewers || 0);
 
-        let thumbnail = ytRes.thumbnail || twRes.thumbnail || kiRes.thumbnail || '';
-        let title = ytRes.title || twRes.title || kiRes.title || (isLive ? 'Transmitiendo en directo' : 'Canal fuera de línea');
+        // Si no está en vivo o no hay miniatura canónica confirmada, permanece vacía
+        let thumbnail = isLive ? (ytRes.thumbnail || twRes.thumbnail || kiRes.thumbnail || '') : '';
+        let title = isLive ? (ytRes.title || twRes.title || kiRes.title || 'Transmitiendo en directo') : 'Transmisión finalizada';
 
         const anomalia = isLive ? evaluarAnomaliaTrafico(canal, totalViewers) : { botAlert: false, reason: null, decoupled: false };
 
-        listaActualizada.push({
+        const itemTelemetria = {
           id: canal.id,
           name: canal.name,
           category: canal.category,
@@ -565,7 +604,33 @@ const actualizarTelemetria = async () => {
             }
           },
           timestamp: new Date().toISOString()
-        });
+        };
+
+        listaActualizada.push(itemTelemetria);
+
+        // Registro estructurado en base analítica histórica
+        if (isLive && totalViewers > 0) {
+          historicalSnapshots.push({
+            canal_id: canal.id,
+            nombre: canal.name,
+            categoria: canal.category,
+            subtema: canal.subtheme,
+            titulo_programa: title,
+            viewers_total: totalViewers,
+            viewers_yt: ytRes.viewers || 0,
+            viewers_tw: twRes.viewers || 0,
+            viewers_ki: kiRes.viewers || 0,
+            bot_alert: anomalia.botAlert ? 1 : 0,
+            fecha: bsAsTime.date,
+            hora: bsAsTime.time,
+            timestamp_buenos_aires: bsAsTime.timestamp
+          });
+
+          // Poda circular para memoria estable
+          if (historicalSnapshots.length > MAX_HISTORICAL_RECORDS) {
+            historicalSnapshots.splice(0, historicalSnapshots.length - (MAX_HISTORICAL_RECORDS - 5000));
+          }
+        }
       } catch (canalError) {
         console.error(`Error procesando telemetría de ${canal.name}:`, canalError);
       }
@@ -599,10 +664,13 @@ setInterval(actualizarTelemetria, 25000);
 // ============================================================================
 // ENDPOINTS DE API
 // ============================================================================
+
+// 1. Healthcheck ultra-rápido para UptimeRobot (sin scraping, respuesta 200 inmediata)
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
+// 2. Telemetría en tiempo real
 app.get('/api/ranks', (req, res) => {
   const liveCount = telemetriaCache.filter((c) => c.isLive).length;
   const organicAudience = telemetriaCache.filter((c) => !c.decoupled).reduce((acc, c) => acc + c.totalViewers, 0);
@@ -616,13 +684,9 @@ app.get('/api/ranks', (req, res) => {
   });
 });
 
+// 3. Exportación de corte instantáneo CSV
 app.get('/api/analytics/export', (req, res) => {
-  const formateadorFecha = new Intl.DateTimeFormat('es-AR', {
-    timeZone: 'America/Argentina/Buenos_Aires',
-    dateStyle: 'short',
-    timeStyle: 'medium'
-  });
-  const fechaAr = formateadorFecha.format(new Date());
+  const bsAsTime = getBuenosAiresTime();
 
   const cabeceras = ['Canal', 'Categoria', 'Subtema', 'Espectadores_Totales', 'En_Vivo', 'Alerta_Bots', 'YouTube', 'Twitch', 'Kick', 'Fecha_Hora_Buenos_Aires'];
   const lineas = telemetriaCache.map((c) => [
@@ -635,13 +699,83 @@ app.get('/api/analytics/export', (req, res) => {
     c.platforms.youtube.viewers || 0,
     c.platforms.twitch.viewers || 0,
     c.platforms.kick.viewers || 0,
-    `"${fechaAr}"`
+    `"${bsAsTime.timestamp}"`
   ]);
 
   const csv = [cabeceras.join(','), ...lineas.map((l) => l.join(','))].join('\n');
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', `attachment; filename="streamrank_arg_${Date.now()}.csv"`);
+  res.setHeader('Content-Disposition', `attachment; filename="streamrank_instantaneo_${Date.now()}.csv"`);
   res.status(200).send(csv);
+});
+
+// 4. Endpoint de Auditoría Histórica con filtros de canal y fecha
+app.get('/api/analytics/historical', (req, res) => {
+  const { canal, from, to, format } = req.query;
+
+  let filtrados = historicalSnapshots;
+
+  if (canal && canal !== 'todos') {
+    filtrados = filtrados.filter((s) => s.canal_id === canal.toLowerCase());
+  }
+
+  if (from) {
+    filtrados = filtrados.filter((s) => s.fecha >= from);
+  }
+
+  if (to) {
+    filtrados = filtrados.filter((s) => s.fecha <= to);
+  }
+
+  // Devolver CSV descargable si se solicita
+  if (format === 'csv') {
+    const cabeceras = [
+      'Canal_ID',
+      'Nombre',
+      'Categoria',
+      'Subtema',
+      'Titulo_Programa',
+      'Viewers_Total',
+      'Viewers_YouTube',
+      'Viewers_Twitch',
+      'Viewers_Kick',
+      'Alerta_Bots',
+      'Fecha',
+      'Hora',
+      'Timestamp_Buenos_Aires'
+    ];
+
+    const filas = filtrados.map((s) => [
+      `"${s.canal_id}"`,
+      `"${s.nombre.replace(/"/g, '""')}"`,
+      `"${s.categoria}"`,
+      `"${s.subtema}"`,
+      `"${s.titulo_programa.replace(/"/g, '""')}"`,
+      s.viewers_total,
+      s.viewers_yt,
+      s.viewers_tw,
+      s.viewers_ki,
+      s.bot_alert,
+      `"${s.fecha}"`,
+      `"${s.hora}"`,
+      `"${s.timestamp_buenos_aires}"`
+    ]);
+
+    const csvData = [cabeceras.join(','), ...filas.map((f) => f.join(','))].join('\n');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="streamrank_auditoria_${canal || 'general'}_${from || 'inicio'}_${to || 'hoy'}.csv"`);
+    return res.status(200).send(csvData);
+  }
+
+  // Respuesta estándar en JSON
+  res.json({
+    totalSamples: filtrados.length,
+    filters: {
+      canal: canal || 'todos',
+      from: from || null,
+      to: to || null
+    },
+    data: filtrados
+  });
 });
 
 // ============================================================================
@@ -725,7 +859,6 @@ const HTML_APP = `<!DOCTYPE html>
           <div class="text-[11px] font-mono text-slate-400" id="sync-clock">Sinc: --:--:--</div>
         </div>
 
-        <!-- BOTÓN CSV OPTIMIZADO PARA MÓVILES -->
         <a href="/api/analytics/export" class="inline-flex items-center justify-center px-3 sm:px-4 py-2 text-xs font-black uppercase tracking-wider text-black bg-matrix rounded-xl hover:bg-emerald-400 transition-all shadow-matrix flex-shrink-0">
           <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -759,9 +892,9 @@ const HTML_APP = `<!DOCTYPE html>
       </div>
     </section>
 
-    <!-- BUSCADOR INSTANTÁNEO DE CANALES -->
-    <section class="w-full">
-      <div class="relative w-full max-w-2xl mx-auto">
+    <!-- BARRA CON BUSCADOR INSTANTÁNEO Y BOTÓN MODAL AUDITORÍA HISTÓRICA -->
+    <section class="w-full flex flex-col sm:flex-row items-center gap-3">
+      <div class="relative flex-1 w-full">
         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
           <svg class="w-4 h-4 text-matrix" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -775,6 +908,15 @@ const HTML_APP = `<!DOCTYPE html>
           class="w-full pl-10 pr-4 py-3 bg-[#0b1120] border border-[#162238] rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-matrix focus:shadow-matrixSoft transition-all"
         >
       </div>
+
+      <!-- BOTÓN MODAL REPORTES & AUDITORÍA HISTÓRICA -->
+      <button 
+        onclick="abrirModalReportes()" 
+        class="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#0b1120] border border-matrix/50 text-matrix hover:bg-matrix hover:text-black transition-all shadow-matrixSoft text-xs font-black uppercase tracking-wider flex items-center justify-center space-x-2 flex-shrink-0"
+      >
+        <span>📊</span>
+        <span>Reportes & Auditoría Histórica</span>
+      </button>
     </section>
 
     <!-- NAVEGACIÓN Y FILTROS RESPONSIVE -->
@@ -851,7 +993,7 @@ const HTML_APP = `<!DOCTYPE html>
           <h3 class="text-base sm:text-lg font-black text-white">Conecta con la industria del streaming argentino</h3>
           <p class="text-xs text-slate-400">Presencia directa ante agencias, marcas y creadores de contenido.</p>
         </div>
-        <a href="mailto:contacto@streamrank.ar" class="px-5 py-2.5 rounded-xl bg-[#0b1120] hover:bg-matrix hover:text-black border border-matrix/40 text-matrix text-xs font-black transition-all shadow-matrixSoft flex-shrink-0">
+        <a href="mailto:info@modoia.online" class="px-5 py-2.5 rounded-xl bg-[#0b1120] hover:bg-matrix hover:text-black border border-matrix/40 text-matrix text-xs font-black transition-all shadow-matrixSoft flex-shrink-0">
           CONTACTAR PUBLICIDAD
         </a>
       </div>
@@ -868,27 +1010,89 @@ const HTML_APP = `<!DOCTYPE html>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
         <div class="space-y-1.5">
-          <h4 class="font-bold text-slate-200">1. Filtrado Estricto de Falsos Positivos</h4>
-          <p>Se omiten placas estáticas con textos como 'Hasta mañana', 'Próximamente' o emisiones programadas sin espectadores reales en curso.</p>
+          <h4 class="font-bold text-slate-200">1. Filtrado Estricto de Miniaturas y En Vivo</h4>
+          <p>Se extrae únicamente el VideoID canónico en directo de YouTube. Se omiten por completo videos recomendados o repeticiones finalizadas.</p>
         </div>
         <div class="space-y-1.5">
           <h4 class="font-bold text-slate-200">2. Detección Heurística de Bots</h4>
           <p>Las subidas abruptas y anormales de audiencia sin correlación orgánica son auditadas y desacopladas del ranking general para preservar la transparencia.</p>
         </div>
         <div class="space-y-1.5">
-          <h4 class="font-bold text-slate-200">3. Telemetría Pública y Multiplataforma</h4>
-          <p>Consolidamos los directos de YouTube, Twitch y Kick sin sesgos editoriales ni estimaciones ficticias.</p>
+          <h4 class="font-bold text-slate-200">3. Auditoría Histórica Abierta</h4>
+          <p>Disponibilizamos descargas en CSV estructuradas por programa y fecha para verificación pública y auditoría de pautas de agencias.</p>
         </div>
       </div>
     </section>
 
   </main>
 
-  <!-- MODAL DUELO 1 VS 1 -->
-  <div id="modal-duel" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden p-4">
-    <div class="bg-[#0b1120] border border-[#162238] rounded-2xl max-w-3xl w-full p-5 sm:p-6 shadow-2xl relative overflow-hidden">
+  <!-- MODAL DE REPORTES & AUDITORÍA HISTÓRICA -->
+  <div id="modal-reportes" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden p-4">
+    <div class="bg-[#0b1120] border border-[#162238] rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl relative overflow-hidden space-y-5">
       
-      <div class="flex items-center justify-between pb-4 border-b border-[#162238]">
+      <div class="flex items-center justify-between pb-3 border-b border-[#162238]">
+        <div class="flex items-center space-x-2">
+          <span class="text-matrix font-black text-lg">📊 REPORTES & AUDITORÍA HISTÓRICA</span>
+        </div>
+        <button onclick="cerrarModalReportes()" class="text-slate-400 hover:text-white transition-colors text-2xl font-bold">&times;</button>
+      </div>
+
+      <p class="text-xs text-slate-300">
+        Descarga informes consolidados en CSV estructurado con telemetría por programa, canal y franja horaria para análisis de medios y agencias.
+      </p>
+
+      <!-- Selector de Filtros -->
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">CANAL A AUDITAR</label>
+          <select id="report-channel-select" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-matrix">
+            <option value="todos">Todos los Canales Monitoreados</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">PERÍODO TEMPORAL</label>
+          <select id="report-period-select" onchange="ajustarFechasPeriodo(this.value)" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-matrix">
+            <option value="hoy">Hoy (Día en curso)</option>
+            <option value="7dias">Últimos 7 Días</option>
+            <option value="mes">Todo el Mes</option>
+            <option value="custom">Rango Personalizado</option>
+          </select>
+        </div>
+
+        <div id="custom-dates-container" class="grid grid-cols-2 gap-3 hidden">
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-400 mb-1">DESDE (FROM)</label>
+            <input type="date" id="report-from-date" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-matrix">
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-400 mb-1">HASTA (TO)</label>
+            <input type="date" id="report-to-date" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-matrix">
+          </div>
+        </div>
+      </div>
+
+      <!-- Acciones de Descarga -->
+      <div class="flex flex-col sm:flex-row items-center justify-end gap-3 pt-4 border-t border-[#162238]">
+        <button onclick="descargarCorteInstantaneo()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white bg-[#050811] border border-[#162238] transition-colors">
+          ⚡ Corte Actual en Vivo
+        </button>
+        <button onclick="ejecutarDescargaReporte()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-matrix text-black hover:bg-emerald-400 transition-all shadow-matrix flex items-center justify-center space-x-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+          </svg>
+          <span>Descargar Reporte CSV</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL DUELO 1 VS 1 -->
+  <div id="modal-duel" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden p-4 overflow-y-auto">
+    <div class="bg-[#0b1120] border border-[#162238] rounded-2xl max-w-xl sm:max-w-2xl w-full p-4 sm:p-6 shadow-2xl relative my-auto">
+      
+      <div class="flex items-center justify-between pb-3 border-b border-[#162238]">
         <div class="flex items-center space-x-2">
           <span class="text-matrix font-extrabold text-base sm:text-lg">⚡ DUELO 1 VS 1</span>
           <span class="text-xs text-slate-400">Comparativa directa en vivo</span>
@@ -896,7 +1100,7 @@ const HTML_APP = `<!DOCTYPE html>
         <button onclick="cerrarModalDuelo()" class="text-slate-400 hover:text-white transition-colors text-2xl font-bold">&times;</button>
       </div>
 
-      <div class="grid grid-cols-2 gap-3 sm:gap-4 my-4">
+      <div class="grid grid-cols-2 gap-3 sm:gap-4 my-3">
         <div>
           <label class="block text-[11px] sm:text-xs font-semibold text-slate-400 mb-1">CANAL A</label>
           <select id="duel-select-a" onchange="renderizarContenidoDuelo()" class="w-full bg-[#050811] border border-[#162238] rounded-xl px-2.5 sm:px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-matrix">
@@ -909,48 +1113,68 @@ const HTML_APP = `<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- PLACA PARA CAPTURA HTML2CANVAS -->
-      <div id="duel-capture-card" class="bg-[#050811] border border-matrix/30 rounded-2xl p-4 sm:p-6 shadow-glow relative my-4">
-        <div class="text-center mb-4">
-          <span class="text-[9px] sm:text-[10px] font-black tracking-widest uppercase bg-matrix/10 text-matrix px-3 py-1 rounded-full border border-matrix/30">STREAMRANK ARG • TELEMETRÍA EN DIRECTO</span>
+      <!-- PLACA PARA CAPTURA HTML2CANVAS (1:1 CUADRADO EXACTO PARA REDES) -->
+      <div id="duel-capture-card" class="bg-[#050811] border border-matrix/30 rounded-2xl w-full max-w-[520px] aspect-square mx-auto flex flex-col justify-between p-6 sm:p-8 shadow-glow relative my-3">
+        
+        <!-- Header superior de la placa -->
+        <div class="text-center pt-1">
+          <span class="text-[10px] sm:text-[11px] font-black tracking-widest uppercase bg-matrix/10 text-matrix px-3.5 py-1.5 rounded-full border border-matrix/30">STREAMRANK ARG • DUELO EN DIRECTO</span>
         </div>
 
-        <div class="grid grid-cols-2 gap-3 sm:gap-4 items-center">
-          <div class="text-center p-3 sm:p-4 rounded-xl bg-[#0b1120]/80 border border-[#162238]">
-            <img id="duel-a-avatar" crossorigin="anonymous" src="" class="w-14 h-14 sm:w-16 sm:h-16 rounded-full mx-auto border-2 border-matrix object-cover shadow-matrixSoft mb-2" alt="A">
-            <h3 id="duel-a-name" class="font-extrabold text-white text-sm sm:text-base truncate">--</h3>
-            <p id="duel-a-status" class="text-[10px] sm:text-xs font-mono text-slate-400 mb-2">OFFLINE</p>
-            <div id="duel-a-viewers" class="text-xl sm:text-2xl font-black font-mono text-matrix matrix-glow">0</div>
-            <div class="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider">Espectadores</div>
+        <!-- Canales enfrentados sin truncado ni recorte inferior -->
+        <div class="grid grid-cols-2 gap-3 sm:gap-4 items-stretch my-auto">
+          
+          <!-- Canal A -->
+          <div class="text-center p-3.5 sm:p-4 rounded-xl bg-[#0b1120]/90 border border-[#162238] flex flex-col justify-between">
+            <div>
+              <img id="duel-a-avatar" crossorigin="anonymous" src="" class="w-14 h-14 sm:w-16 sm:h-16 rounded-full mx-auto border-2 border-matrix object-cover shadow-matrixSoft mb-1.5" alt="A">
+              <h3 id="duel-a-name" class="font-extrabold text-white text-sm sm:text-base leading-normal break-words mt-1 mb-1">--</h3>
+              <p id="duel-a-status" class="text-[10px] sm:text-xs font-mono text-slate-400 mb-2">OFFLINE</p>
+            </div>
+            <div>
+              <div id="duel-a-viewers" class="text-2xl sm:text-3xl font-black font-mono text-matrix matrix-glow">0</div>
+              <div class="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Espectadores</div>
+            </div>
           </div>
 
-          <div class="text-center p-3 sm:p-4 rounded-xl bg-[#0b1120]/80 border border-[#162238]">
-            <img id="duel-b-avatar" crossorigin="anonymous" src="" class="w-14 h-14 sm:w-16 sm:h-16 rounded-full mx-auto border-2 border-cyan-400 object-cover shadow-cyan-500/50 mb-2" alt="B">
-            <h3 id="duel-b-name" class="font-extrabold text-white text-sm sm:text-base truncate">--</h3>
-            <p id="duel-b-status" class="text-[10px] sm:text-xs font-mono text-slate-400 mb-2">OFFLINE</p>
-            <div id="duel-b-viewers" class="text-xl sm:text-2xl font-black font-mono text-cyan-400">0</div>
-            <div class="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider">Espectadores</div>
+          <!-- Canal B -->
+          <div class="text-center p-3.5 sm:p-4 rounded-xl bg-[#0b1120]/90 border border-[#162238] flex flex-col justify-between">
+            <div>
+              <img id="duel-b-avatar" crossorigin="anonymous" src="" class="w-14 h-14 sm:w-16 sm:h-16 rounded-full mx-auto border-2 border-cyan-400 object-cover shadow-cyan-500/50 mb-1.5" alt="B">
+              <h3 id="duel-b-name" class="font-extrabold text-white text-sm sm:text-base leading-normal break-words mt-1 mb-1">--</h3>
+              <p id="duel-b-status" class="text-[10px] sm:text-xs font-mono text-slate-400 mb-2">OFFLINE</p>
+            </div>
+            <div>
+              <div id="duel-b-viewers" class="text-2xl sm:text-3xl font-black font-mono text-cyan-400">0</div>
+              <div class="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Espectadores</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Barras de Share y Metadatos inferiores -->
+        <div class="space-y-3 pb-1">
+          <div>
+            <div class="flex justify-between text-xs font-mono font-bold mb-1.5">
+              <span id="duel-pct-a" class="text-matrix">50%</span>
+              <span class="text-slate-400 text-[10px] sm:text-xs tracking-wider">SHARE DE AUDIENCIA</span>
+              <span id="duel-pct-b" class="text-cyan-400">50%</span>
+            </div>
+            <div class="w-full h-4 sm:h-5 bg-slate-900 rounded-full overflow-hidden flex border border-[#162238] p-0.5">
+              <div id="duel-bar-a" class="h-full bg-matrix rounded-l-full transition-all duration-500 shadow-matrix" style="width: 50%"></div>
+              <div id="duel-bar-b" class="h-full bg-cyan-400 rounded-r-full transition-all duration-500 shadow-cyan-400" style="width: 50%"></div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between text-[9px] sm:text-[10px] font-mono text-slate-500 pt-1 border-t border-[#162238]/60">
+            <span id="duel-timestamp">--</span>
+            <span class="text-slate-400">streamrank.ar</span>
           </div>
         </div>
 
-        <div class="mt-4 sm:mt-6">
-          <div class="flex justify-between text-xs font-mono font-bold mb-1">
-            <span id="duel-pct-a" class="text-matrix">50%</span>
-            <span class="text-slate-500 text-[10px] sm:text-xs">SHARE CONJUNTO</span>
-            <span id="duel-pct-b" class="text-cyan-400">50%</span>
-          </div>
-          <div class="w-full h-3.5 sm:h-4 bg-slate-900 rounded-full overflow-hidden flex border border-[#162238]">
-            <div id="duel-bar-a" class="h-full bg-matrix transition-all duration-500 shadow-matrix" style="width: 50%"></div>
-            <div id="duel-bar-b" class="h-full bg-cyan-400 transition-all duration-500 shadow-cyan-400" style="width: 50%"></div>
-          </div>
-        </div>
-
-        <div class="mt-4 text-center">
-          <span class="text-[9px] sm:text-[10px] font-mono text-slate-500" id="duel-timestamp">--</span>
-        </div>
       </div>
 
-      <div class="flex items-center justify-end space-x-3 pt-4 border-t border-[#162238]">
+      <div class="flex items-center justify-end space-x-3 pt-3 border-t border-[#162238]">
         <button onclick="cerrarModalDuelo()" class="px-3 sm:px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-colors">
           Cerrar
         </button>
@@ -978,7 +1202,7 @@ const HTML_APP = `<!DOCTYPE html>
     </svg>
   </div>
 
-  <!-- FOOTER CON CRÉDITO EXACTO DE MODO IA -->
+  <!-- FOOTER -->
   <footer class="border-t border-[#162238] bg-[#050811] py-8 text-center text-xs text-slate-500 font-mono space-y-2.5">
     <div>StreamRank ARG • Monitor en Tiempo Real de Streaming de Argentina</div>
     <div>
@@ -1071,6 +1295,7 @@ const HTML_APP = `<!DOCTYPE html>
         renderizarGrilla();
         renderizarEmergentes();
         poblarSelectoresDuelo();
+        poblarSelectoresReportes();
       } catch (err) {
         console.error('Error al sincronizar datos:', err);
       }
@@ -1283,6 +1508,80 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     // ========================================================================
+    // LOGICA DE AUDITORÍA HISTÓRICA Y REPORTES CSV
+    // ========================================================================
+    const poblarSelectoresReportes = () => {
+      const select = document.getElementById('report-channel-select');
+      if (!select || !canalesData.length) return;
+
+      const valorPrevio = select.value;
+      let opts = '<option value="todos">Todos los Canales Monitoreados</option>';
+
+      canalesData.forEach(c => {
+        opts += '<option value="' + c.id + '">' + c.name + '</option>';
+      });
+
+      select.innerHTML = opts;
+      if (valorPrevio) select.value = valorPrevio;
+    };
+
+    const abrirModalReportes = () => {
+      document.getElementById('modal-reportes').classList.remove('hidden');
+      ajustarFechasPeriodo(document.getElementById('report-period-select').value);
+    };
+
+    const cerrarModalReportes = () => {
+      document.getElementById('modal-reportes').classList.add('hidden');
+    };
+
+    const ajustarFechasPeriodo = (periodo) => {
+      const customContainer = document.getElementById('custom-dates-container');
+      const inputFrom = document.getElementById('report-from-date');
+      const inputTo = document.getElementById('report-to-date');
+
+      const hoy = new Date();
+      const formatIso = (d) => d.toISOString().split('T')[0];
+
+      inputTo.value = formatIso(hoy);
+
+      if (periodo === 'custom') {
+        customContainer.classList.remove('hidden');
+        return;
+      }
+
+      customContainer.classList.add('hidden');
+
+      if (periodo === 'hoy') {
+        inputFrom.value = formatIso(hoy);
+      } else if (periodo === '7dias') {
+        const d7 = new Date();
+        d7.setDate(hoy.getDate() - 7);
+        inputFrom.value = formatIso(d7);
+      } else if (periodo === 'mes') {
+        const d30 = new Date();
+        d30.setDate(1);
+        inputFrom.value = formatIso(d30);
+      }
+    };
+
+    const descargarCorteInstantaneo = () => {
+      window.location.href = '/api/analytics/export';
+    };
+
+    const ejecutarDescargaReporte = () => {
+      const canal = document.getElementById('report-channel-select').value;
+      const from = document.getElementById('report-from-date').value;
+      const to = document.getElementById('report-to-date').value;
+
+      let url = '/api/analytics/historical?format=csv';
+      if (canal) url += '&canal=' + encodeURIComponent(canal);
+      if (from) url += '&from=' + encodeURIComponent(from);
+      if (to) url += '&to=' + encodeURIComponent(to);
+
+      window.location.href = url;
+    };
+
+    // ========================================================================
     // MODAL DE DUELO 1 VS 1 Y EXPORTACIÓN PNG CON HTML2CANVAS
     // ========================================================================
     const poblarSelectoresDuelo = () => {
@@ -1376,7 +1675,7 @@ const HTML_APP = `<!DOCTYPE html>
         timeStyle: 'medium'
       }).format(new Date());
 
-      document.getElementById('duel-timestamp').innerText = 'Captura en directo: ' + fechaActual + ' ART';
+      document.getElementById('duel-timestamp').innerText = 'Captura: ' + fechaActual + ' ART';
     };
 
     const descargarDueloPNG = async () => {
@@ -1386,7 +1685,15 @@ const HTML_APP = `<!DOCTYPE html>
           backgroundColor: '#050811',
           scale: 2,
           useCORS: true,
-          allowTaint: false
+          allowTaint: false,
+          logging: false,
+          onclone: (clonedDoc) => {
+            const clonedCard = clonedDoc.getElementById('duel-capture-card');
+            if (clonedCard) {
+              clonedCard.style.letterSpacing = 'normal';
+              clonedCard.style.overflow = 'visible';
+            }
+          }
         });
         const enlace = document.createElement('a');
         enlace.href = canvas.toDataURL('image/png');
