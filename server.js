@@ -1,65 +1,109 @@
 const express = require('express');
-let createClient;
-try {
-  createClient = require('@libsql/client/web').createClient;
-} catch (_) {
-  createClient = require('@libsql/client').createClient;
-}
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Token de acceso institucional para descarga de telemetría B2B / Agencias
+// Token institucional para descarga de telemetría B2B / Agencias
 const ACCESS_TOKEN_SECRET = (process.env.STREAMRANK_ACCESS_TOKEN || 'STREAMRANK2026').trim();
 
 // ============================================================================
-// CONEXIÓN DIRECTA A TURSO DB (@libsql/client/web CON PROTOCOLO libsql://)
+// CONEXIÓN DIRECTA VIA HTTP PIPELINE (CERO LIBRERÍAS EXTERNAS, CERO MIGRACIONES)
 // ============================================================================
-const rawUrl = (process.env.TURSO_DATABASE_URL || '').trim();
-const tursoUrl = rawUrl ? (rawUrl.startsWith('libsql://') ? rawUrl : rawUrl.replace(/^https?:\/\//, 'libsql://')) : null;
-const tursoAuthToken = (process.env.TURSO_AUTH_TOKEN || '').trim();
+const rawTursoUrl = (process.env.TURSO_DATABASE_URL || '').trim();
+const tursoHttpUrl = rawTursoUrl
+  .replace(/^libsql:\/\//, 'https://')
+  .replace(/^http:\/\//, 'https://')
+  .replace(/\/$/, '');
+const tursoToken = (process.env.TURSO_AUTH_TOKEN || '').trim();
 
-const db = (tursoUrl && tursoAuthToken)
-  ? createClient({
-      url: tursoUrl,
-      authToken: tursoAuthToken
-    })
-  : null;
+async function executeTursoQuery(sql, args = []) {
+  if (!tursoHttpUrl || !tursoToken) return null;
 
-// Inserción directa sin gestores de esquemas
-const saveMetricToTurso = async (channelId, channelName, viewers, programName, isLive, botAlert) => {
-  if (!db) return;
+  const namedArgs = args.map((arg) => {
+    if (arg === null || arg === undefined) return { type: 'null' };
+    if (typeof arg === 'number') {
+      return Number.isInteger(arg)
+        ? { type: 'integer', value: String(arg) }
+        : { type: 'float', value: arg };
+    }
+    return { type: 'text', value: String(arg) };
+  });
+
   try {
-    await db.execute({
-      sql: 'INSERT INTO metrics_history (channel_id, channel_name, viewers, program_name, is_live, bot_alert) VALUES (?, ?, ?, ?, ?, ?)',
-      args: [
-        String(channelId),
-        String(channelName),
-        Number(viewers) || 0,
-        String(programName || ''),
-        isLive ? 1 : 0,
-        botAlert ? 1 : 0
-      ]
+    const res = await fetch(`${tursoHttpUrl}/v2/pipeline`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${tursoToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        requests: [
+          { type: 'execute', stmt: { sql, args: namedArgs } },
+          { type: 'close' }
+        ]
+      })
     });
-  } catch (err) {
-    console.error(`[Turso DB Error] ${channelId}:`, err.message);
-  }
-};
 
-const cleanupOldMetrics = async () => {
-  if (!db) return;
-  try {
-    const res = await db.execute({
-      sql: "DELETE FROM metrics_history WHERE timestamp < datetime('now', '-2 years')",
-      args: []
-    });
-    console.log(`[Turso DB] Depuración de registros antiguos (2 años): ${res.rowsAffected} filas eliminadas.`);
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error(`[Turso HTTP Error ${res.status}]`, errText);
+      return null;
+    }
+    return await res.json();
   } catch (err) {
-    console.error('[Turso DB Error] cleanup:', err.message);
+    console.error('[Turso Fetch Error]', err.message);
+    return null;
   }
-};
+}
 
+// Inicializar tabla mediante SQL puro
+async function initTurso() {
+  await executeTursoQuery(`
+    CREATE TABLE IF NOT EXISTS metrics_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      channel_id TEXT,
+      channel_name TEXT,
+      viewers INTEGER,
+      program_name TEXT,
+      is_live INTEGER,
+      bot_alert INTEGER DEFAULT 0,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  console.log('[Turso DB] Inicialización completada.');
+}
+
+// Inserción de métrica sin gestores de esquemas
+async function saveMetricToTurso(channelId, channelName, viewers, programName, isLive, botAlert = 0) {
+  await executeTursoQuery(
+    'INSERT INTO metrics_history (channel_id, channel_name, viewers, program_name, is_live, bot_alert) VALUES (?, ?, ?, ?, ?, ?)',
+    [channelId, channelName, viewers || 0, programName || 'Transmisión en vivo', isLive ? 1 : 0, botAlert ? 1 : 0]
+  );
+}
+
+// Depuración automática de registros mayores a 2 años
+async function cleanupOldMetrics() {
+  await executeTursoQuery("DELETE FROM metrics_history WHERE timestamp < datetime('now', '-2 years')");
+}
+
+initTurso();
 setInterval(cleanupOldMetrics, 24 * 60 * 60 * 1000);
+
+// Helper para desempaquetar filas de respuestas de Turso Pipeline
+function extractTursoRows(pipelineJson) {
+  if (!pipelineJson || !pipelineJson.results || !pipelineJson.results[0]) return [];
+  const res = pipelineJson.results[0];
+  if (res.type !== 'ok' || !res.response || !res.response.result) return [];
+  const { cols, rows } = res.response.result;
+  return rows.map((row) => {
+    const obj = {};
+    row.forEach((valObj, idx) => {
+      const colName = cols[idx].name;
+      obj[colName] = valObj.value !== undefined ? valObj.value : null;
+    });
+    return obj;
+  });
+}
 
 // ============================================================================
 // DICCIONARIO OFICIAL DE CANALES (AVATARS ESTABLES, RECATEGORIZACIÓN OFICIAL)
@@ -456,10 +500,10 @@ const scrapeYouTube = async (handle) => {
         headers: {
           'User-Agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-          'Accept':
+          Accept:
             'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
           'Accept-Language': 'es-419,es;q=0.9,en;q=0.8',
-          'Cookie': 'SOCS=CAESEwgDEgk0ODE3Nzk3MjQaAmVuIAEaBgiA_LyaBg; CONSENT=YES+'
+          Cookie: 'SOCS=CAESEwgDEgk0ODE3Nzk3MjQaAmVuIAEaBgiA_LyaBg; CONSENT=YES+'
         }
       },
       6000
@@ -477,17 +521,22 @@ const scrapeYouTube = async (handle) => {
     const html = await res.text();
 
     if (!videoId) {
-      const currentEndpointMatch = html.match(/"currentVideoEndpoint":\s*\{\s*"watchEndpoint":\s*\{\s*"videoId":\s*"([a-zA-Z0-9_-]{11})"/i) ||
-                                   html.match(/\\"currentVideoEndpoint\\":\s*\{\s*\\"watchEndpoint\\":\s*\{\s*\\"videoId\\":\s*\\"([a-zA-Z0-9_-]{11})\\"/i);
-      const canonicalBaseMatch = html.match(/"canonicalBaseUrl":\s*"\/watch\?v=([a-zA-Z0-9_-]{11})"/i) ||
-                                 html.match(/\\"canonicalBaseUrl\\":\s*"\/watch\?v=([a-zA-Z0-9_-]{11})\\"/i);
-      const vDetailsMatch = html.match(/"videoDetails":\s*\{[^}]*"videoId":\s*"([a-zA-Z0-9_-]{11})"/i) ||
-                            html.match(/\\"videoDetails\\":\s*\{[^}]*\\"videoId\\":\s*\\"([a-zA-Z0-9_-]{11})\\"/i);
-      const liveStreamMatch = html.match(/"liveStreamabilityRenderer":\s*\{\s*"videoId":\s*"([a-zA-Z0-9_-]{11})"/i) ||
-                              html.match(/\\"liveStreamabilityRenderer\\":\s*\{\s*\\"videoId\\":\s*\\"([a-zA-Z0-9_-]{11})\\"/i);
-      const canMatch = html.match(/<link\s+rel="canonical"\s+href="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/i) ||
-                       html.match(/<meta\s+property="og:url"\s+content="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/i) ||
-                       html.match(/<meta\s+itemprop="videoId"\s+content="([a-zA-Z0-9_-]{11})"/i);
+      const currentEndpointMatch =
+        html.match(/"currentVideoEndpoint":\s*\{\s*"watchEndpoint":\s*\{\s*"videoId":\s*"([a-zA-Z0-9_-]{11})"/i) ||
+        html.match(/\\"currentVideoEndpoint\\":\s*\{\s*\\"watchEndpoint\\":\s*\{\s*\\"videoId\\":\s*\\"([a-zA-Z0-9_-]{11})\\"/i);
+      const canonicalBaseMatch =
+        html.match(/"canonicalBaseUrl":\s*"\/watch\?v=([a-zA-Z0-9_-]{11})"/i) ||
+        html.match(/\\"canonicalBaseUrl\\":\s*"\/watch\?v=([a-zA-Z0-9_-]{11})\\"/i);
+      const vDetailsMatch =
+        html.match(/"videoDetails":\s*\{[^}]*"videoId":\s*"([a-zA-Z0-9_-]{11})"/i) ||
+        html.match(/\\"videoDetails\\":\s*\{[^}]*\\"videoId\\":\s*\\"([a-zA-Z0-9_-]{11})\\"/i);
+      const liveStreamMatch =
+        html.match(/"liveStreamabilityRenderer":\s*\{\s*"videoId":\s*"([a-zA-Z0-9_-]{11})"/i) ||
+        html.match(/\\"liveStreamabilityRenderer\\":\s*\{\s*\\"videoId\\":\s*\\"([a-zA-Z0-9_-]{11})\\"/i);
+      const canMatch =
+        html.match(/<link\s+rel="canonical"\s+href="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/i) ||
+        html.match(/<meta\s+property="og:url"\s+content="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/i) ||
+        html.match(/<meta\s+itemprop="videoId"\s+content="([a-zA-Z0-9_-]{11})"/i);
 
       if (currentEndpointMatch && currentEndpointMatch[1]) videoId = currentEndpointMatch[1];
       else if (canonicalBaseMatch && canonicalBaseMatch[1]) videoId = canonicalBaseMatch[1];
@@ -658,9 +707,9 @@ const scrapeKick = async (slug) => {
 const evaluarAnomaliaTrafico = (canal, totalViewers) => {
   const ahora = Date.now();
   const historial = historialLecturas.get(canal.id) || [];
-  
+
   historial.push({ viewers: totalViewers, time: ahora });
-  if (historial.length > 3) historial.shift(); // Mantiene las 3 últimas muestras
+  if (historial.length > 3) historial.shift();
   historialLecturas.set(canal.id, historial);
 
   if (!totalViewers || totalViewers < 2000) {
@@ -670,11 +719,11 @@ const evaluarAnomaliaTrafico = (canal, totalViewers) => {
   if (historial.length >= 2) {
     const anterior = historial[historial.length - 2];
     const deltaViewers = totalViewers - anterior.viewers;
-    const porcentajeSalto = anterior.viewers > 0 ? (deltaViewers / anterior.viewers) : 0;
+    const porcentajeSalto = anterior.viewers > 0 ? deltaViewers / anterior.viewers : 0;
     const tiempoDiff = ahora - anterior.time;
 
     if (tiempoDiff <= 180000) {
-      const saltoDesmedido = (porcentajeSalto > 1.6 && deltaViewers > 3500) || (deltaViewers >= 18000);
+      const saltoDesmedido = (porcentajeSalto > 1.6 && deltaViewers > 3500) || deltaViewers >= 18000;
       if (saltoDesmedido) {
         return {
           bot_shield: true,
@@ -704,18 +753,28 @@ const evaluarAnomaliaTrafico = (canal, totalViewers) => {
 const procesarCanalIndividual = async (canal) => {
   try {
     const [ytRes, twRes, kiRes] = await Promise.all([
-      canal.platforms.yt ? scrapeYouTube(canal.platforms.yt) : Promise.resolve({ isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: null }),
-      canal.platforms.tw ? scrapeTwitch(canal.platforms.tw) : Promise.resolve({ isLive: false, viewers: 0, title: '', thumbnail: null }),
-      canal.platforms.ki ? scrapeKick(canal.platforms.ki) : Promise.resolve({ isLive: false, viewers: 0, title: '', thumbnail: null })
+      canal.platforms.yt
+        ? scrapeYouTube(canal.platforms.yt)
+        : Promise.resolve({ isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: null }),
+      canal.platforms.tw
+        ? scrapeTwitch(canal.platforms.tw)
+        : Promise.resolve({ isLive: false, viewers: 0, title: '', thumbnail: null }),
+      canal.platforms.ki
+        ? scrapeKick(canal.platforms.ki)
+        : Promise.resolve({ isLive: false, viewers: 0, title: '', thumbnail: null })
     ]);
 
     const isLive = ytRes.isLive || twRes.isLive || kiRes.isLive;
     const totalViewers = (ytRes.viewers || 0) + (twRes.viewers || 0) + (kiRes.viewers || 0);
 
-    let thumbnail = isLive ? (ytRes.thumbnail || twRes.thumbnail || kiRes.thumbnail || null) : null;
-    let title = isLive ? (ytRes.title || twRes.title || kiRes.title || 'Transmitiendo en directo') : 'Transmisión finalizada';
+    let thumbnail = isLive ? ytRes.thumbnail || twRes.thumbnail || kiRes.thumbnail || null : null;
+    let title = isLive
+      ? ytRes.title || twRes.title || kiRes.title || 'Transmitiendo en directo'
+      : 'Transmisión finalizada';
 
-    const anomalia = isLive ? evaluarAnomaliaTrafico(canal, totalViewers) : { bot_shield: false, bot_alert: 0, reason: null, decoupled: false };
+    const anomalia = isLive
+      ? evaluarAnomaliaTrafico(canal, totalViewers)
+      : { bot_shield: false, bot_alert: 0, reason: null, decoupled: false };
 
     const itemTelemetria = {
       id: canal.id,
@@ -799,7 +858,7 @@ const actualizarTelemetria = async () => {
     for (let i = 0; i < CHANNELS.length; i += BATCH_SIZE) {
       const lote = CHANNELS.slice(i, i + BATCH_SIZE);
       const resultadosLote = await Promise.all(lote.map(procesarCanalIndividual));
-      
+
       for (const res of resultadosLote) {
         if (res) listaActualizada.push(res);
       }
@@ -872,7 +931,7 @@ app.get('/api/export-csv', async (req, res) => {
 
   let rows = [];
 
-  if (db) {
+  if (tursoHttpUrl && tursoToken) {
     try {
       let query = 'SELECT * FROM metrics_history WHERE 1=1';
       const params = [];
@@ -895,8 +954,10 @@ app.get('/api/export-csv', async (req, res) => {
       }
 
       query += ' ORDER BY timestamp DESC LIMIT 10000';
-      const dbResult = await db.execute({ sql: query, args: params });
-      rows = dbResult.rows.map(r => [
+      const dbResult = await executeTursoQuery(query, params);
+      const parsedRows = extractTursoRows(dbResult);
+
+      rows = parsedRows.map((r) => [
         `"${r.channel_id}"`,
         `"${(r.channel_name || '').replace(/"/g, '""')}"`,
         r.viewers,
@@ -917,15 +978,16 @@ app.get('/api/export-csv', async (req, res) => {
     }
     if (programa && programa !== 'todos') {
       const progLower = programa.toLowerCase();
-      filtrados = filtrados.filter((s) =>
-        (s.titulo_programa && s.titulo_programa.toLowerCase().includes(progLower)) ||
-        (s.subtema && s.subtema.toLowerCase().includes(progLower))
+      filtrados = filtrados.filter(
+        (s) =>
+          (s.titulo_programa && s.titulo_programa.toLowerCase().includes(progLower)) ||
+          (s.subtema && s.subtema.toLowerCase().includes(progLower))
       );
     }
     if (from) filtrados = filtrados.filter((s) => s.fecha >= from);
     if (to) filtrados = filtrados.filter((s) => s.fecha <= to);
 
-    rows = filtrados.map(s => [
+    rows = filtrados.map((s) => [
       `"${s.canal_id}"`,
       `"${s.nombre.replace(/"/g, '""')}"`,
       s.viewers_total,
@@ -945,7 +1007,7 @@ app.get('/api/export-csv', async (req, res) => {
     ['Canal_ID', 'Canal_Nombre', 'Espectadores_Concurrentes', 'Programa_Emitido', 'En_Vivo', 'Alerta_Bots_Shield', 'Timestamp'].join(',')
   ];
 
-  const csvContent = [...fileHeaders, ...rows.map(r => r.join(','))].join('\n');
+  const csvContent = [...fileHeaders, ...rows.map((r) => r.join(','))].join('\n');
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename="streamrank_telemetria_oficial_${Date.now()}.csv"`);
   return res.status(200).send(csvContent);
@@ -1754,7 +1816,7 @@ const HTML_APP = `<!DOCTYPE html>
 
         // Fila 3: Estructura en 2 niveles (Línea A: Espectadores y VS; Línea B: Badges holgados sin recortar Kick)
         html += '<div class="pt-2 border-t border-slate-800/80 space-y-2">';
-        
+
         // Línea A: Espectadores y botón VS
         html += '<div class="flex items-center justify-between gap-2">';
         html += '<div class="flex items-baseline space-x-1.5 min-w-0">';
@@ -1838,7 +1900,7 @@ const HTML_APP = `<!DOCTYPE html>
       const valorPrevio = selectCanal.value;
       let opts = '<option value="todos">Todos los Canales Monitoreados</option>';
 
-      canalesData.forEach(c => {
+      canalesData.forEach((c) => {
         opts += '<option value="' + c.id + '">' + c.name + '</option>';
       });
 
@@ -1855,14 +1917,19 @@ const HTML_APP = `<!DOCTYPE html>
       let opts = '<option value="todos">Todos los programas del canal</option>';
 
       if (canalId !== 'todos') {
-        const canal = canalesData.find(c => c.id === canalId);
+        const canal = canalesData.find((c) => c.id === canalId);
         if (canal) {
           if (canal.programas && Array.isArray(canal.programas)) {
-            canal.programas.forEach(prog => {
+            canal.programas.forEach((prog) => {
               opts += '<option value="' + prog.replace(/"/g, '&quot;') + '">' + prog + '</option>';
             });
           }
-          if (canal.title && canal.title !== 'Transmisión finalizada' && canal.title !== 'Sincronizando señal en vivo...' && (!canal.programas || !canal.programas.includes(canal.title))) {
+          if (
+            canal.title &&
+            canal.title !== 'Transmisión finalizada' &&
+            canal.title !== 'Sincronizando señal en vivo...' &&
+            (!canal.programas || !canal.programas.includes(canal.title))
+          ) {
             opts += '<option value="' + canal.title.replace(/"/g, '&quot;') + '">🔴 ' + canal.title + '</option>';
           }
         }
@@ -1940,20 +2007,20 @@ const HTML_APP = `<!DOCTYPE html>
       const prevB = selB.value;
 
       let opciones = '';
-      canalesData.forEach(c => {
+      canalesData.forEach((c) => {
         opciones += '<option value="' + c.id + '">' + c.name + ' (' + formatNum(c.totalViewers) + ' viewers)</option>';
       });
 
       selA.innerHTML = opciones;
       selB.innerHTML = opciones;
 
-      if (prevA && canalesData.some(c => c.id === prevA)) {
+      if (prevA && canalesData.some((c) => c.id === prevA)) {
         selA.value = prevA;
       } else {
         selA.value = canalesData[0].id;
       }
 
-      if (prevB && canalesData.some(c => c.id === prevB)) {
+      if (prevB && canalesData.some((c) => c.id === prevB)) {
         selB.value = prevB;
       } else if (canalesData.length > 1) {
         selB.value = canalesData[1].id;
@@ -1968,7 +2035,7 @@ const HTML_APP = `<!DOCTYPE html>
       const selB = document.getElementById('duel-select-b');
 
       selA.value = canalId;
-      const alternativo = canalesData.find(c => c.id !== canalId);
+      const alternativo = canalesData.find((c) => c.id !== canalId);
       if (alternativo) selB.value = alternativo.id;
 
       renderizarContenidoDuelo();
@@ -1982,23 +2049,29 @@ const HTML_APP = `<!DOCTYPE html>
       const idA = document.getElementById('duel-select-a').value;
       const idB = document.getElementById('duel-select-b').value;
 
-      const canalA = canalesData.find(c => c.id === idA);
-      const canalB = canalesData.find(c => c.id === idB);
+      const canalA = canalesData.find((c) => c.id === idA);
+      const canalB = canalesData.find((c) => c.id === idB);
 
       if (!canalA || !canalB) return;
 
-      const progA = canalA.isLive && canalA.title && canalA.title !== 'Transmisión en directo' && canalA.title !== 'Transmitiendo en directo'
-        ? canalA.title
-        : (canalA.programas && canalA.programas.length ? canalA.programas[0] : canalA.subtheme || canalA.name);
+      const progA =
+        canalA.isLive && canalA.title && canalA.title !== 'Transmisión en directo' && canalA.title !== 'Transmitiendo en directo'
+          ? canalA.title
+          : canalA.programas && canalA.programas.length
+          ? canalA.programas[0]
+          : canalA.subtheme || canalA.name;
 
-      const progB = canalB.isLive && canalB.title && canalB.title !== 'Transmisión en directo' && canalB.title !== 'Transmitiendo en directo'
-        ? canalB.title
-        : (canalB.programas && canalB.programas.length ? canalB.programas[0] : canalB.subtheme || canalB.name);
+      const progB =
+        canalB.isLive && canalB.title && canalB.title !== 'Transmisión en directo' && canalB.title !== 'Transmitiendo en directo'
+          ? canalB.title
+          : canalB.programas && canalB.programas.length
+          ? canalB.programas[0]
+          : canalB.subtheme || canalB.name;
 
       document.getElementById('duel-a-program').innerText = progA;
       document.getElementById('duel-a-name').innerText = canalA.name;
       document.getElementById('duel-a-avatar').src = canalA.avatar;
-      document.getElementById('duel-a-avatar').onerror = function() {
+      document.getElementById('duel-a-avatar').onerror = function () {
         this.onerror = null;
         this.src = getFallbackAvatar(canalA.name);
       };
@@ -2008,7 +2081,7 @@ const HTML_APP = `<!DOCTYPE html>
       document.getElementById('duel-b-program').innerText = progB;
       document.getElementById('duel-b-name').innerText = canalB.name;
       document.getElementById('duel-b-avatar').src = canalB.avatar;
-      document.getElementById('duel-b-avatar').onerror = function() {
+      document.getElementById('duel-b-avatar').onerror = function () {
         this.onerror = null;
         this.src = getFallbackAvatar(canalB.name);
       };
