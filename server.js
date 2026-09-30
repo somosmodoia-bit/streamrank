@@ -1147,7 +1147,7 @@ const HTML_APP = `<!DOCTYPE html>
               🎭 Entretenimiento
             </button>
             <button onclick="cambiarSolapa('Política')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
-              🏛️️ Política
+              🏛️ Política
             </button>
             <button onclick="cambiarSolapa('Deportes')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
               ⚽ Deportes
@@ -1389,7 +1389,7 @@ const HTML_APP = `<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- PLACA DE CAPTURA DUELO (CON RESPIRO SUPERIOR Y FUENTES CLARAS) -->
+      <!-- PLACA DE CAPTURA DUELO -->
       <div id="duel-capture-card" style="background-color: #050811; border: 1px solid #162238; width: 100%; max-width: 520px; box-sizing: border-box;" class="mx-auto flex flex-col justify-between p-6 relative overflow-hidden rounded-2xl my-2">
         
         <!-- Header Técnico con buen margen inferior -->
@@ -1414,12 +1414,10 @@ const HTML_APP = `<!DOCTYPE html>
                 <img id="duel-a-avatar" crossorigin="anonymous" src="" class="w-14 h-14 rounded-full border-2 border-matrix object-cover" alt="A">
               </div>
               
-              <!-- TÍTULO MÁS LEGIBLE (FONT-SEMIBOLD, MENOS GRUESO) -->
               <div style="min-height: 48px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px;">
                 <p id="duel-a-program" style="font-size: 12px; font-weight: 600; color: #FFFFFF; line-height: 1.35; margin: 0; padding: 0 2px; text-align: center; word-break: break-word;">--</p>
               </div>
 
-              <!-- NOMBRE DE CANAL -->
               <h4 id="duel-a-name" style="font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.05em; margin: 0; padding-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">--</h4>
               <p id="duel-a-status" class="text-[9px] font-mono font-bold text-matrix">OFFLINE</p>
             </div>
@@ -1442,12 +1440,10 @@ const HTML_APP = `<!DOCTYPE html>
                 <img id="duel-b-avatar" crossorigin="anonymous" src="" class="w-14 h-14 rounded-full border-2 border-cyan-400 object-cover" alt="B">
               </div>
               
-              <!-- TÍTULO MÁS LEGIBLE (FONT-SEMIBOLD, MENOS GRUESO) -->
               <div style="min-height: 48px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px;">
                 <p id="duel-b-program" style="font-size: 12px; font-weight: 600; color: #FFFFFF; line-height: 1.35; margin: 0; padding: 0 2px; text-align: center; word-break: break-word;">--</p>
               </div>
 
-              <!-- NOMBRE DE CANAL -->
               <h4 id="duel-b-name" style="font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.05em; margin: 0; padding-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">--</h4>
               <p id="duel-b-status" class="text-[9px] font-mono font-bold text-cyan-400">OFFLINE</p>
             </div>
@@ -1459,7 +1455,7 @@ const HTML_APP = `<!DOCTYPE html>
           </div>
         </div>
 
-        <!-- Footer -->
+        <!-- Footer Plano Limpio con marca de agua discreta -->
         <div class="space-y-3 z-10 pt-3">
           <div>
             <div class="flex justify-between text-xs font-mono font-bold mb-1 px-0.5">
@@ -1482,7 +1478,7 @@ const HTML_APP = `<!DOCTYPE html>
             </div>
 
             <div class="shrink-0">
-              <span class="px-2.5 py-1 rounded tech-badge bg-[#0b1120] text-slate-300 border border-[#162238] text-[11px] tracking-wider font-bold">
+              <span class="text-slate-500 font-mono text-[10px] tracking-wider uppercase font-semibold">
                 streamrank.modoia.online
               </span>
             </div>
@@ -2126,7 +2122,7 @@ const HTML_APP = `<!DOCTYPE html>
       roundRect(ctx, 2, 2, 1036, 1036, 32);
       ctx.stroke();
 
-      // Badge superior central (Posición Y=44)
+      // Badge superior central
       ctx.fillStyle = '#0b1120';
       roundRect(ctx, 270, 44, 500, 50, 8);
       ctx.fill();
@@ -2153,7 +2149,7 @@ const HTML_APP = `<!DOCTYPE html>
 
       const colWidth = 444;
       const colHeight = 510;
-      const colY = 170; // Bajamos de 150 a 170 para que respire del badge superior
+      const colY = 170;
       const colAX = 52;
       const colBX = 544;
 
@@ -2220,7 +2216,7 @@ const HTML_APP = `<!DOCTYPE html>
       drawAvatar(imgA, colAX + 222, colY + 84, '#00ff66');
       drawAvatar(imgB, colBX + 222, colY + 84, '#22d3ee');
 
-      // TÍTULOS DE PROGRAMA REFINADOS: 600 (SEMIBOLD) SIN EMPASTE
+      // TÍTULOS DE PROGRAMA REFINADOS: 600 (SEMIBOLD)
       ctx.fillStyle = '#FFFFFF';
       ctx.font = '600 21px system-ui, sans-serif';
       wrapText(ctx, progA, colAX + 222, colY + 190, 380, 30, 2);
@@ -2263,7 +2259,7 @@ const HTML_APP = `<!DOCTYPE html>
       ctx.fillText('ESPECTADORES', colBX + 222, colY + 462);
 
       // ======================================================================
-      // CONFETI VECTORIAL DINÁMICO
+      // CONFETI VECTORIAL LIMPIO Y SUAVE (SOLO GIF - SIN PIXELADO)
       // ======================================================================
       if (isGif) {
         const targetColX = (viewersA >= viewersB) ? colAX : colBX;
@@ -2271,35 +2267,36 @@ const HTML_APP = `<!DOCTYPE html>
         roundRect(ctx, targetColX, colY, colWidth, colHeight, 24);
         ctx.clip();
 
-        const numParticles = 40;
+        const colors = ['#FFD700', '#F59E0B', '#FDE047', '#EAB308'];
+        const numParticles = 36;
+
         for (let i = 0; i < numParticles; i++) {
-          const baseY = (i * 35 + frameIndex * 26) % (colHeight + 40) - 20;
-          const wobble = Math.sin((frameIndex + i) * 0.4) * 16;
-          const px = targetColX + 30 + ((i * 47) % (colWidth - 60)) + wobble;
+          const speed = 20 + (i % 5) * 4;
+          const baseY = (i * 38 + frameIndex * speed) % (colHeight + 40) - 20;
+          const wobble = Math.sin((frameIndex + i * 2) * 0.4) * 20;
+          const px = targetColX + 40 + ((i * 53) % (colWidth - 80)) + wobble;
           const py = colY + baseY;
 
-          const angle = (frameIndex * 0.25) + i;
+          const angle = (frameIndex * 0.2) + (i * 0.5);
           const flipScale = Math.cos(angle);
 
-          const pw = 12;
-          const ph = 6;
+          const pw = 14;
+          const ph = 8;
 
           ctx.save();
           ctx.translate(px, py);
-          ctx.rotate(angle * 0.3);
-          ctx.scale(1, flipScale);
+          ctx.rotate((i % 2 === 0 ? 1 : -1) * angle * 0.4);
+          ctx.scale(1, Math.max(0.15, Math.abs(flipScale)));
 
-          const goldGrad = ctx.createLinearGradient(-pw / 2, -ph / 2, pw / 2, ph / 2);
-          goldGrad.addColorStop(0, '#FFE57F');
-          goldGrad.addColorStop(0.5, '#FFD700');
-          goldGrad.addColorStop(1, '#B8860B');
-
-          ctx.fillStyle = goldGrad;
-          ctx.fillRect(-pw / 2, -ph / 2, pw, ph);
-
-          ctx.strokeStyle = '#FFF8E1';
-          ctx.lineWidth = 1;
-          ctx.strokeRect(-pw / 2, -ph / 2, pw, ph);
+          ctx.fillStyle = colors[i % colors.length];
+          // Dibujo de rombo/cinta con bordes limpios sin strokes
+          ctx.beginPath();
+          ctx.moveTo(0, -ph / 2);
+          ctx.lineTo(pw / 2, 0);
+          ctx.lineTo(0, ph / 2);
+          ctx.lineTo(-pw / 2, 0);
+          ctx.closePath();
+          ctx.fill();
 
           ctx.restore();
         }
@@ -2370,21 +2367,13 @@ const HTML_APP = `<!DOCTYPE html>
       ctx.textAlign = 'left';
       ctx.fillText('CAPTURA: ' + getFechaConDiaSemana(), colAX + 30, 870);
 
-      // Badge Dominio
-      const domainBoxWidth = 320;
-      const domainBoxX = colBX + colWidth - domainBoxWidth;
-      ctx.fillStyle = '#0b1120';
-      roundRect(ctx, domainBoxX, 844, domainBoxWidth, 52, 8);
-      ctx.fill();
-      ctx.strokeStyle = '#162238';
-      ctx.lineWidth = 2;
-      roundRect(ctx, domainBoxX, 844, domainBoxWidth, 52, 8);
-      ctx.stroke();
-
-      ctx.fillStyle = '#CBD5E1';
-      ctx.font = 'bold 18px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('STREAMRANK.MODOIA.ONLINE', domainBoxX + domainBoxWidth / 2, 870);
+      // ======================================================================
+      // MARCA DE AGUA DISCRETA EN GRIS (STREAMRANK.MODOIA.ONLINE)
+      // ======================================================================
+      ctx.fillStyle = '#64748B'; // Gris tenue, discreto y elegante
+      ctx.font = '600 17px monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText('streamrank.modoia.online', colBX + colWidth, 870);
 
       return canvas;
     }
