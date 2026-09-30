@@ -1147,7 +1147,7 @@ const HTML_APP = `<!DOCTYPE html>
               🎭 Entretenimiento
             </button>
             <button onclick="cambiarSolapa('Política')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
-              🏛️ Política
+              🏛️️ Política
             </button>
             <button onclick="cambiarSolapa('Deportes')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
               ⚽ Deportes
@@ -1364,121 +1364,121 @@ const HTML_APP = `<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- MODAL DUELO 1 VS 1 -->
-  <div id="modal-duel" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden p-4 overflow-y-auto">
-    <div class="bg-[#0b1120] border border-[#162238] rounded-2xl max-w-xl sm:max-w-2xl w-full p-4 sm:p-6 shadow-2xl relative my-auto">
+  <!-- MODAL DUELO 1 VS 1 (TOTALMENTE RESPONSIVE) -->
+  <div id="modal-duel" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md hidden p-2 sm:p-4 overflow-y-auto">
+    <div class="bg-[#0b1120] border border-[#162238] rounded-2xl max-w-xl sm:max-w-2xl w-full p-3 sm:p-5 shadow-2xl relative my-auto">
       
-      <div class="flex items-center justify-between pb-3 border-b border-[#162238]">
+      <div class="flex items-center justify-between pb-2.5 border-b border-[#162238]">
         <div class="flex items-center space-x-2">
-          <span class="text-matrix font-extrabold text-base sm:text-lg">⚡ DUELO 1 VS 1</span>
-          <span class="text-xs text-slate-400">Comparativa directa</span>
+          <span class="text-matrix font-extrabold text-sm sm:text-lg">⚡ DUELO 1 VS 1</span>
+          <span class="text-[11px] sm:text-xs text-slate-400">Comparativa directa</span>
         </div>
-        <button onclick="cerrarModalDuelo()" class="text-slate-400 hover:text-white transition-colors text-2xl font-bold">&times;</button>
+        <button onclick="cerrarModalDuelo()" class="text-slate-400 hover:text-white transition-colors text-2xl font-bold p-1 leading-none">&times;</button>
       </div>
 
-      <div class="grid grid-cols-2 gap-3 sm:gap-4 my-3">
+      <div class="grid grid-cols-2 gap-2 sm:gap-3 my-2.5">
         <div>
-          <label class="block text-[11px] sm:text-xs font-semibold text-slate-400 mb-1">CANAL A</label>
-          <select id="duel-select-a" onchange="renderizarContenidoDuelo()" class="w-full bg-[#050811] border border-slate-700 rounded-xl px-2.5 sm:px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-matrix">
+          <label class="block text-[10px] sm:text-xs font-semibold text-slate-400 mb-1">CANAL A</label>
+          <select id="duel-select-a" onchange="renderizarContenidoDuelo()" class="w-full bg-[#050811] border border-slate-700 rounded-lg px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-white focus:outline-none focus:border-matrix truncate">
           </select>
         </div>
         <div>
-          <label class="block text-[11px] sm:text-xs font-semibold text-slate-400 mb-1">CANAL B</label>
-          <select id="duel-select-b" onchange="renderizarContenidoDuelo()" class="w-full bg-[#050811] border border-slate-700 rounded-xl px-2.5 sm:px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-matrix">
+          <label class="block text-[10px] sm:text-xs font-semibold text-slate-400 mb-1">CANAL B</label>
+          <select id="duel-select-b" onchange="renderizarContenidoDuelo()" class="w-full bg-[#050811] border border-slate-700 rounded-lg px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-white focus:outline-none focus:border-matrix truncate">
           </select>
         </div>
       </div>
 
-      <!-- PLACA DE CAPTURA DUELO -->
-      <div id="duel-capture-card" style="background-color: #050811; border: 1px solid #162238; width: 100%; max-width: 520px; box-sizing: border-box;" class="mx-auto flex flex-col justify-between p-6 relative overflow-hidden rounded-2xl my-2">
+      <!-- PLACA DE PREVIEW (OPTIMIZADA PARA PANTALLAS CHICAS) -->
+      <div id="duel-capture-card" style="background-color: #050811; border: 1px solid #162238;" class="w-full max-w-[500px] mx-auto flex flex-col justify-between p-3.5 sm:p-5 relative overflow-hidden rounded-xl sm:rounded-2xl my-1.5">
         
-        <!-- Header Técnico con buen margen inferior -->
-        <div class="text-center z-10 mb-5">
-          <span class="tech-badge bg-[#0b1120] text-matrix px-3.5 py-1.5 border border-matrix/40 text-[10px] sm:text-[11px] tracking-widest inline-block">
+        <!-- Header Técnico -->
+        <div class="text-center z-10 mb-3 sm:mb-4">
+          <span class="tech-badge bg-[#0b1120] text-matrix px-3 py-1 border border-matrix/40 text-[9px] sm:text-[11px] tracking-wider inline-block">
             STREAMRANK ARG • DUELO EN DIRECTO
           </span>
         </div>
 
         <!-- Contenedor 1 vs 1 -->
-        <div class="grid grid-cols-2 gap-4 items-stretch z-10 relative my-auto">
+        <div class="grid grid-cols-2 gap-2 sm:gap-3.5 items-stretch z-10 relative my-auto">
           
           <!-- Canal A -->
-          <div id="card-col-a" style="background-color: #0b1120; border: 1px solid #1e293b; min-height: 240px;" class="relative text-center p-4 rounded-xl flex flex-col justify-between transition-all duration-200">
+          <div id="card-col-a" style="background-color: #0b1120; border: 1px solid #1e293b;" class="relative text-center p-2.5 sm:p-3.5 rounded-lg sm:rounded-xl flex flex-col justify-between transition-all duration-200 min-h-[210px] sm:min-h-[235px]">
             
-            <div id="trophy-badge-a" class="hidden absolute -top-3 left-1/2 -translate-x-1/2 z-20 px-3 py-0.5 rounded tech-badge bg-amber-400 text-black text-[10px] font-black flex items-center gap-1 border border-amber-300">
+            <div id="trophy-badge-a" class="hidden absolute -top-2.5 left-1/2 -translate-x-1/2 z-20 px-2 sm:px-2.5 py-0.5 rounded tech-badge bg-amber-400 text-black text-[9px] sm:text-[10px] font-black flex items-center gap-1 border border-amber-300 shadow-sm whitespace-nowrap">
               <span>👑</span> GANADOR
             </div>
 
             <div>
-              <div class="w-14 h-14 mx-auto mb-2.5">
-                <img id="duel-a-avatar" crossorigin="anonymous" src="" class="w-14 h-14 rounded-full border-2 border-matrix object-cover" alt="A">
+              <div class="w-11 h-11 sm:w-13 sm:h-13 mx-auto mb-1.5 sm:mb-2">
+                <img id="duel-a-avatar" crossorigin="anonymous" src="" class="w-11 h-11 sm:w-13 sm:h-13 rounded-full border-2 border-matrix object-cover" alt="A">
               </div>
               
-              <div style="min-height: 48px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px;">
-                <p id="duel-a-program" style="font-size: 12px; font-weight: 600; color: #FFFFFF; line-height: 1.35; margin: 0; padding: 0 2px; text-align: center; word-break: break-word;">--</p>
+              <div style="min-height: 42px; display: flex; align-items: center; justify-content: center; margin-bottom: 4px;">
+                <p id="duel-a-program" style="line-height: 1.3; margin: 0; padding: 0 2px; text-align: center; word-break: break-word;" class="text-[11px] sm:text-[12px] font-semibold text-white">--</p>
               </div>
 
-              <h4 id="duel-a-name" style="font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.05em; margin: 0; padding-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">--</h4>
-              <p id="duel-a-status" class="text-[9px] font-mono font-bold text-matrix">OFFLINE</p>
+              <h4 id="duel-a-name" class="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate mb-0.5">--</h4>
+              <p id="duel-a-status" class="text-[8px] sm:text-[9px] font-mono font-bold text-matrix">OFFLINE</p>
             </div>
 
-            <div class="pt-3 border-t border-slate-800/80">
-              <div id="duel-a-viewers" class="text-3xl font-black font-mono text-matrix leading-none">0</div>
-              <div class="text-[9px] text-slate-400 uppercase tracking-wider font-bold mt-1">Espectadores</div>
+            <div class="pt-2 sm:pt-2.5 border-t border-slate-800/80 mt-1">
+              <div id="duel-a-viewers" class="text-xl sm:text-2xl font-black font-mono text-matrix leading-none">0</div>
+              <div class="text-[8px] sm:text-[9px] text-slate-400 uppercase tracking-wider font-bold mt-0.5">Espectadores</div>
             </div>
           </div>
 
           <!-- Canal B -->
-          <div id="card-col-b" style="background-color: #0b1120; border: 1px solid #1e293b; min-height: 240px;" class="relative text-center p-4 rounded-xl flex flex-col justify-between transition-all duration-200">
+          <div id="card-col-b" style="background-color: #0b1120; border: 1px solid #1e293b;" class="relative text-center p-2.5 sm:p-3.5 rounded-lg sm:rounded-xl flex flex-col justify-between transition-all duration-200 min-h-[210px] sm:min-h-[235px]">
             
-            <div id="trophy-badge-b" class="hidden absolute -top-3 left-1/2 -translate-x-1/2 z-20 px-3 py-0.5 rounded tech-badge bg-amber-400 text-black text-[10px] font-black flex items-center gap-1 border border-amber-300">
+            <div id="trophy-badge-b" class="hidden absolute -top-2.5 left-1/2 -translate-x-1/2 z-20 px-2 sm:px-2.5 py-0.5 rounded tech-badge bg-amber-400 text-black text-[9px] sm:text-[10px] font-black flex items-center gap-1 border border-amber-300 shadow-sm whitespace-nowrap">
               <span>👑</span> GANADOR
             </div>
 
             <div>
-              <div class="w-14 h-14 mx-auto mb-2.5">
-                <img id="duel-b-avatar" crossorigin="anonymous" src="" class="w-14 h-14 rounded-full border-2 border-cyan-400 object-cover" alt="B">
+              <div class="w-11 h-11 sm:w-13 sm:h-13 mx-auto mb-1.5 sm:mb-2">
+                <img id="duel-b-avatar" crossorigin="anonymous" src="" class="w-11 h-11 sm:w-13 sm:h-13 rounded-full border-2 border-cyan-400 object-cover" alt="B">
               </div>
               
-              <div style="min-height: 48px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px;">
-                <p id="duel-b-program" style="font-size: 12px; font-weight: 600; color: #FFFFFF; line-height: 1.35; margin: 0; padding: 0 2px; text-align: center; word-break: break-word;">--</p>
+              <div style="min-height: 42px; display: flex; align-items: center; justify-content: center; margin-bottom: 4px;">
+                <p id="duel-b-program" style="line-height: 1.3; margin: 0; padding: 0 2px; text-align: center; word-break: break-word;" class="text-[11px] sm:text-[12px] font-semibold text-white">--</p>
               </div>
 
-              <h4 id="duel-b-name" style="font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.05em; margin: 0; padding-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">--</h4>
-              <p id="duel-b-status" class="text-[9px] font-mono font-bold text-cyan-400">OFFLINE</p>
+              <h4 id="duel-b-name" class="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate mb-0.5">--</h4>
+              <p id="duel-b-status" class="text-[8px] sm:text-[9px] font-mono font-bold text-cyan-400">OFFLINE</p>
             </div>
 
-            <div class="pt-3 border-t border-slate-800/80">
-              <div id="duel-b-viewers" class="text-3xl font-black font-mono text-cyan-400 leading-none">0</div>
-              <div class="text-[9px] text-slate-400 uppercase tracking-wider font-bold mt-1">Espectadores</div>
+            <div class="pt-2 sm:pt-2.5 border-t border-slate-800/80 mt-1">
+              <div id="duel-b-viewers" class="text-xl sm:text-2xl font-black font-mono text-cyan-400 leading-none">0</div>
+              <div class="text-[8px] sm:text-[9px] text-slate-400 uppercase tracking-wider font-bold mt-0.5">Espectadores</div>
             </div>
           </div>
         </div>
 
-        <!-- Footer Plano Limpio con marca de agua discreta -->
-        <div class="space-y-3 z-10 pt-3">
+        <!-- Footer Plano con Aire en Pantallas Chicas -->
+        <div class="space-y-2 sm:space-y-2.5 z-10 pt-2 sm:pt-3">
           <div>
-            <div class="flex justify-between text-xs font-mono font-bold mb-1 px-0.5">
-              <span id="duel-pct-a" class="text-matrix font-black text-[13px]">50%</span>
-              <span class="text-slate-400 text-[10px] tracking-widest uppercase">SHARE DE AUDIENCIA</span>
-              <span id="duel-pct-b" class="text-cyan-400 font-black text-[13px]">50%</span>
+            <div class="flex justify-between text-[11px] sm:text-xs font-mono font-bold mb-1 px-0.5">
+              <span id="duel-pct-a" class="text-matrix font-black text-xs sm:text-[13px]">50%</span>
+              <span class="text-slate-400 text-[9px] sm:text-[10px] tracking-wider uppercase">SHARE DE AUDIENCIA</span>
+              <span id="duel-pct-b" class="text-cyan-400 font-black text-xs sm:text-[13px]">50%</span>
             </div>
-            <div class="w-full h-3 bg-black rounded overflow-hidden flex border border-[#162238] p-0.5">
+            <div class="w-full h-2.5 sm:h-3 bg-black rounded overflow-hidden flex border border-[#162238] p-0.5">
               <div id="duel-bar-a" class="h-full bg-matrix rounded-l transition-all duration-500" style="width: 50%"></div>
               <div id="duel-bar-b" class="h-full bg-cyan-400 rounded-r transition-all duration-500" style="width: 50%"></div>
             </div>
           </div>
 
-          <div class="flex items-center justify-between gap-3 pt-2.5 border-t border-[#162238]">
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-1 sm:gap-2 pt-2 border-t border-[#162238]">
             <div class="flex items-center space-x-1.5 min-w-0">
               <span class="w-1.5 h-1.5 rounded-full bg-matrix animate-pulse shrink-0"></span>
-              <span id="duel-timestamp" class="text-slate-300 font-mono text-[11px] font-semibold tracking-wide whitespace-nowrap">
+              <span id="duel-timestamp" class="text-slate-300 font-mono text-[9px] sm:text-[11px] font-semibold tracking-wide truncate">
                 CAPTURA: Sincronizando...
               </span>
             </div>
 
             <div class="shrink-0">
-              <span class="text-slate-500 font-mono text-[10px] tracking-wider uppercase font-semibold">
+              <span class="text-slate-500 font-mono text-[9px] sm:text-[10px] tracking-wider uppercase font-semibold">
                 streamrank.modoia.online
               </span>
             </div>
@@ -1487,20 +1487,20 @@ const HTML_APP = `<!DOCTYPE html>
 
       </div>
 
-      <!-- BOTONES -->
-      <div class="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-3 border-t border-[#162238]">
-        <button onclick="cerrarModalDuelo()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-colors">
+      <!-- BOTONES DE EXPORTACIÓN -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2.5 border-t border-[#162238]">
+        <button onclick="cerrarModalDuelo()" class="w-full py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-colors border border-slate-800 sm:border-transparent order-3 sm:order-1">
           Cerrar
         </button>
         
-        <button id="btn-export-png" onclick="descargarDueloPNG()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-[#0b1120] text-matrix border border-matrix/50 hover:bg-matrix hover:text-black transition-all shadow-matrixSoft flex items-center justify-center space-x-1.5">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-          <span>Descargar PNG HD</span>
+        <button id="btn-export-png" onclick="descargarDueloPNG()" class="w-full py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-[#0b1120] text-matrix border border-matrix/50 hover:bg-matrix hover:text-black transition-all shadow-matrixSoft flex items-center justify-center space-x-1.5 order-1 sm:order-2">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+          <span>Descargar PNG</span>
         </button>
 
-        <button id="btn-export-gif" onclick="descargarDueloGIF()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-amber-400 text-black hover:bg-amber-300 transition-all font-black flex items-center justify-center space-x-1.5">
+        <button id="btn-export-gif" onclick="descargarDueloGIF()" class="w-full py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-amber-400 text-black hover:bg-amber-300 transition-all font-black flex items-center justify-center space-x-1.5 order-2 sm:order-3">
           <span>✨</span>
-          <span>Descargar GIF Animado</span>
+          <span>Descargar GIF</span>
         </button>
       </div>
 
@@ -1980,7 +1980,7 @@ const HTML_APP = `<!DOCTYPE html>
     const sanitizarTitulo = (str) => {
       if (!str) return 'Transmisión en vivo';
       const clean = str.replace(/\\s+/g, ' ').trim();
-      return clean.length > 44 ? clean.substring(0, 42).trim() + '…' : clean;
+      return clean.length > 40 ? clean.substring(0, 38).trim() + '…' : clean;
     };
 
     const renderizarContenidoDuelo = () => {
@@ -2043,7 +2043,6 @@ const HTML_APP = `<!DOCTYPE html>
       document.getElementById('duel-bar-a').style.width = pctA + '%';
       document.getElementById('duel-bar-b').style.width = pctB + '%';
 
-      // Resaltado Flat del Ganador
       const colA = document.getElementById('card-col-a');
       const colB = document.getElementById('card-col-b');
       const trophyA = document.getElementById('trophy-badge-a');
@@ -2066,7 +2065,7 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     // ========================================================================
-    // MOTOR CANVAS 2D NATIVO PROFESIONAL
+    // MOTOR CANVAS 2D NATIVO PROFESIONAL (ALTA DEFINICIÓN CONSTANTE)
     // ========================================================================
     function roundRect(ctx, x, y, width, height, radius) {
       ctx.beginPath();
@@ -2112,17 +2111,14 @@ const HTML_APP = `<!DOCTYPE html>
       canvas.height = 1040;
       const ctx = canvas.getContext('2d');
 
-      // Fondo base sólido #050811
       ctx.fillStyle = '#050811';
       ctx.fillRect(0, 0, 1040, 1040);
 
-      // Borde exterior fino
       ctx.strokeStyle = '#162238';
       ctx.lineWidth = 2;
       roundRect(ctx, 2, 2, 1036, 1036, 32);
       ctx.stroke();
 
-      // Badge superior central
       ctx.fillStyle = '#0b1120';
       roundRect(ctx, 270, 44, 500, 50, 8);
       ctx.fill();
@@ -2137,7 +2133,6 @@ const HTML_APP = `<!DOCTYPE html>
       ctx.textBaseline = 'middle';
       ctx.fillText('STREAMRANK ARG • DUELO EN DIRECTO', 520, 69);
 
-      // Datos
       const nameA = document.getElementById('duel-a-name').innerText;
       const nameB = document.getElementById('duel-b-name').innerText;
       const progA = document.getElementById('duel-a-program').innerText;
@@ -2153,7 +2148,6 @@ const HTML_APP = `<!DOCTYPE html>
       const colAX = 52;
       const colBX = 544;
 
-      // Tarjeta Canal A
       ctx.fillStyle = '#0b1120';
       roundRect(ctx, colAX, colY, colWidth, colHeight, 24);
       ctx.fill();
@@ -2162,7 +2156,6 @@ const HTML_APP = `<!DOCTYPE html>
       roundRect(ctx, colAX, colY, colWidth, colHeight, 24);
       ctx.stroke();
 
-      // Tarjeta Canal B
       ctx.fillStyle = '#0b1120';
       roundRect(ctx, colBX, colY, colWidth, colHeight, 24);
       ctx.fill();
@@ -2171,7 +2164,6 @@ const HTML_APP = `<!DOCTYPE html>
       roundRect(ctx, colBX, colY, colWidth, colHeight, 24);
       ctx.stroke();
 
-      // Badge Ganador
       if (viewersA > viewersB && viewersA > 0) {
         ctx.fillStyle = '#f59e0b';
         roundRect(ctx, colAX + 147, colY - 20, 150, 40, 8);
@@ -2188,7 +2180,6 @@ const HTML_APP = `<!DOCTYPE html>
         ctx.fillText('👑 GANADOR', colBX + 222, colY + 1);
       }
 
-      // Avatares
       const imgA = document.getElementById('duel-a-avatar');
       const imgB = document.getElementById('duel-b-avatar');
 
@@ -2216,19 +2207,16 @@ const HTML_APP = `<!DOCTYPE html>
       drawAvatar(imgA, colAX + 222, colY + 84, '#00ff66');
       drawAvatar(imgB, colBX + 222, colY + 84, '#22d3ee');
 
-      // TÍTULOS DE PROGRAMA REFINADOS: 600 (SEMIBOLD)
       ctx.fillStyle = '#FFFFFF';
       ctx.font = '600 21px system-ui, sans-serif';
       wrapText(ctx, progA, colAX + 222, colY + 190, 380, 30, 2);
       wrapText(ctx, progB, colBX + 222, colY + 190, 380, 30, 2);
 
-      // Nombres de canal
       ctx.fillStyle = '#94A3B8';
       ctx.font = 'bold 19px system-ui, sans-serif';
       ctx.fillText(nameA.toUpperCase(), colAX + 222, colY + 264);
       ctx.fillText(nameB.toUpperCase(), colBX + 222, colY + 264);
 
-      // Estado en vivo
       ctx.font = 'bold 16px monospace';
       ctx.fillStyle = isLiveA ? '#00ff66' : '#64748B';
       ctx.fillText(isLiveA ? '🔴 EN VIVO' : '⚫ OFFLINE', colAX + 222, colY + 300);
@@ -2236,7 +2224,6 @@ const HTML_APP = `<!DOCTYPE html>
       ctx.fillStyle = isLiveB ? '#22d3ee' : '#64748B';
       ctx.fillText(isLiveB ? '🔴 EN VIVO' : '⚫ OFFLINE', colBX + 222, colY + 300);
 
-      // Separador interno
       ctx.strokeStyle = '#1e293b';
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -2246,7 +2233,6 @@ const HTML_APP = `<!DOCTYPE html>
       ctx.lineTo(colBX + colWidth - 30, colY + 338);
       ctx.stroke();
 
-      // Espectadores
       ctx.font = '900 56px monospace';
       ctx.fillStyle = '#00ff66';
       ctx.fillText(formatNum(viewersA), colAX + 222, colY + 406);
@@ -2258,9 +2244,6 @@ const HTML_APP = `<!DOCTYPE html>
       ctx.fillText('ESPECTADORES', colAX + 222, colY + 462);
       ctx.fillText('ESPECTADORES', colBX + 222, colY + 462);
 
-      // ======================================================================
-      // CONFETI VECTORIAL LIMPIO Y SUAVE (SOLO GIF - SIN PIXELADO)
-      // ======================================================================
       if (isGif) {
         const targetColX = (viewersA >= viewersB) ? colAX : colBX;
         ctx.save();
@@ -2289,7 +2272,6 @@ const HTML_APP = `<!DOCTYPE html>
           ctx.scale(1, Math.max(0.15, Math.abs(flipScale)));
 
           ctx.fillStyle = colors[i % colors.length];
-          // Dibujo de rombo/cinta con bordes limpios sin strokes
           ctx.beginPath();
           ctx.moveTo(0, -ph / 2);
           ctx.lineTo(pw / 2, 0);
@@ -2303,9 +2285,6 @@ const HTML_APP = `<!DOCTYPE html>
         ctx.restore();
       }
 
-      // ======================================================================
-      // BARRA DE SHARE DE AUDIENCIA
-      // ======================================================================
       const totalShare = viewersA + viewersB;
       const pctA = totalShare > 0 ? Math.round((viewersA / totalShare) * 100) : 50;
       const pctB = 100 - pctA;
@@ -2348,7 +2327,6 @@ const HTML_APP = `<!DOCTYPE html>
       roundRect(ctx, barX, barY, barTotalW, barH, barRadius);
       ctx.stroke();
 
-      // Separador Footer
       ctx.strokeStyle = '#162238';
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -2356,7 +2334,6 @@ const HTML_APP = `<!DOCTYPE html>
       ctx.lineTo(colBX + colWidth, 824);
       ctx.stroke();
 
-      // Punto verde y Fecha
       ctx.fillStyle = '#00ff66';
       ctx.beginPath();
       ctx.arc(colAX + 10, 870, 6, 0, Math.PI * 2);
@@ -2367,10 +2344,7 @@ const HTML_APP = `<!DOCTYPE html>
       ctx.textAlign = 'left';
       ctx.fillText('CAPTURA: ' + getFechaConDiaSemana(), colAX + 30, 870);
 
-      // ======================================================================
-      // MARCA DE AGUA DISCRETA EN GRIS (STREAMRANK.MODOIA.ONLINE)
-      // ======================================================================
-      ctx.fillStyle = '#64748B'; // Gris tenue, discreto y elegante
+      ctx.fillStyle = '#64748B';
       ctx.font = '600 17px monospace';
       ctx.textAlign = 'right';
       ctx.fillText('streamrank.modoia.online', colBX + colWidth, 870);
