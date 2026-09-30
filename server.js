@@ -1200,16 +1200,16 @@ const HTML_APP = `<!DOCTYPE html>
       </div>
     </section>
 
-    <!-- BANNER SPONSOR INSTITUCIONAL -->
+    <!-- BANNER SPONSOR INSTITUCIONAL (COPY ORIENTADO A CONSUMO MASIVO) -->
     <section class="w-full">
       <div class="relative w-full rounded-2xl bg-gradient-to-r from-emerald-950/20 via-[#0b1120] to-blue-950/20 border border-matrix/30 p-5 sm:p-6 flex flex-col md:flex-row items-center justify-between gap-5 text-center md:text-left">
         <div class="space-y-1.5">
           <span class="inline-flex items-center text-[10px] font-mono tracking-widest text-matrix uppercase bg-matrix/10 px-2.5 py-0.5 rounded-full border border-matrix/30">ESPACIO EXCLUSIVO DE MARCA</span>
-          <h3 class="text-base sm:text-lg font-bold text-slate-100 tracking-tight">Posicioná tu marca en la plataforma de referencia del streaming nacional</h3>
-          <p class="text-xs text-slate-400 font-normal leading-relaxed">Visibilidad de alto impacto ante directores de medios, planners de pauta publicitaria y audiencias masivas en vivo.</p>
+          <h3 class="text-base sm:text-lg font-bold text-slate-100 tracking-tight">Posicioná tu marca en el epicentro del streaming nacional</h3>
+          <p class="text-xs text-slate-400 font-normal leading-relaxed">Presencia exclusiva y alcance directo ante cientos de miles de espectadores concurrentes en vivo.</p>
         </div>
-        <a href="mailto:info@modoia.online?subject=Pauta%20Institucional%20-%20StreamRank" class="w-full md:w-auto px-5 py-2.5 rounded-xl bg-[#0b1120] hover:bg-matrix hover:text-black border border-matrix/40 text-matrix text-xs font-bold transition-all shadow-matrixSoft shrink-0 text-center tracking-wider">
-          CONSULTAR PAUTA INSTITUCIONAL
+        <a href="mailto:info@modoia.online?subject=Publicidad%20y%20Sponsoreo%20-%20StreamRank" class="w-full md:w-auto px-5 py-2.5 rounded-xl bg-[#0b1120] hover:bg-matrix hover:text-black border border-matrix/40 text-matrix text-xs font-bold transition-all shadow-matrixSoft shrink-0 text-center tracking-wider">
+          ANUNCIAR EN STREAMRANK
         </a>
       </div>
     </section>
@@ -1719,7 +1719,7 @@ const HTML_APP = `<!DOCTYPE html>
         html += '<div class="my-auto py-1.5">';
         if (tieneBotShield) {
           html += '<div class="px-2.5 py-1.5 rounded-lg bg-amber-950/70 border border-amber-500/70 text-[10px] text-amber-200 leading-tight flex items-center space-x-1.5">';
-          html += '<span class="shrink-0 text-sm">🛡️️</span>';
+          html += '<span class="shrink-0 text-sm">🛡</span>';
           html += '<span class="truncate"><strong>ALERTA:</strong> Posible inyección externa de tráfico/bots detectada. Tráfico anómalo no atribuible al canal.</span>';
           html += '</div>';
         } else {
