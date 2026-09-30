@@ -550,7 +550,7 @@ const scrapeYouTube = async (handle) => {
       html.match(/\\"originalViewCount\\":\s*\\"(\d+)\\"/);
     const viewRunsMatch =
       html.match(/"viewCount":\s*\{\s*"runs":\s*\[\s*\{\s*"text":\s*"([^"]+)"/) ||
-      html.match(/\\"viewCount\\":\s*\{\s*\\"runs\\":\s*\[\s*\{\s*"text\\":\s*\\"([^"\\]+)\\"/);
+      html.match(/\\"viewCount\\":\s*\{\s*\\"runs\\":\s*\[\s*\{\s*\\"text\\":\s*\\"([^"\\]+)\\"/);
 
     let viewers = 0;
     if (concurrentMatch) viewers = parseInt(concurrentMatch[1], 10);
@@ -1071,7 +1071,7 @@ const HTML_APP = `<!DOCTYPE html>
     .tech-badge {
       border-radius: 4px !important;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
       font-weight: 800;
     }
@@ -1422,66 +1422,98 @@ const HTML_APP = `<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- PLACA DE CAPTURA DUELO (CUADRADA Y SIN CORTES) -->
-      <div id="duel-capture-card" class="bg-[#050811] border border-matrix/30 rounded-2xl w-full max-w-[500px] aspect-square mx-auto flex flex-col justify-between p-5 sm:p-7 shadow-glow relative my-2 overflow-hidden">
+      <!-- PLACA DE CAPTURA DUELO (BROADCAST 3D EDITION) -->
+      <div id="duel-capture-card" style="background: radial-gradient(circle at 50% 0%, #0d172e 0%, #050811 75%); border: 1px solid #1e293b; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.1);" class="rounded-2xl w-full max-w-[520px] aspect-square mx-auto flex flex-col justify-between p-6 relative overflow-hidden">
         
-        <!-- Header sin píldora (Rectangular sobrio) -->
+        <!-- Header Técnico Rectangular con Relieve -->
         <div class="text-center pt-1 z-10">
-          <span class="text-[10px] sm:text-[11px] tech-badge bg-matrix/10 text-matrix px-3 py-1.5 border border-matrix/40">
+          <span class="tech-badge bg-black/60 text-matrix px-4 py-1.5 border border-matrix/40 text-[10px] sm:text-[11px] tracking-widest shadow-[0_2px_10px_rgba(0,255,102,0.15)] inline-block">
             STREAMRANK ARG • DUELO EN DIRECTO
           </span>
         </div>
 
-        <!-- Tarjetas de Canales con altura flexible y espacio vertical para títulos -->
-        <div class="grid grid-cols-2 gap-3 sm:gap-4 items-stretch my-auto z-10">
+        <!-- Contenedor 1 vs 1 con Efecto Tarjeta 3D -->
+        <div class="grid grid-cols-2 gap-4 items-stretch my-auto z-10 relative">
+          
           <!-- Canal A -->
-          <div class="text-center p-3 sm:p-4 rounded-xl bg-[#0b1120]/95 border border-slate-700/80 flex flex-col justify-between min-h-[220px]">
-            <div class="space-y-1">
-              <img id="duel-a-avatar" crossorigin="anonymous" src="" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full mx-auto border-2 border-matrix object-cover shadow-matrixSoft mb-1.5" alt="A">
-              <div id="duel-a-program" class="font-extrabold text-white text-xs sm:text-sm leading-snug line-clamp-2 h-9 overflow-hidden">--</div>
-              <h4 id="duel-a-name" class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">--</h4>
-              <p id="duel-a-status" class="text-[9px] font-mono text-matrix">OFFLINE</p>
+          <div id="card-col-a" style="background: linear-gradient(180deg, #10192e 0%, #080d1a 100%); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06); border: 1px solid #1e293b;" class="relative text-center p-4 rounded-xl flex flex-col justify-between transition-all duration-300">
+            
+            <!-- Badge Ganador Flotante 3D -->
+            <div id="trophy-badge-a" style="box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);" class="hidden absolute -top-3 left-1/2 -translate-x-1/2 z-20 px-3 py-0.5 rounded tech-badge bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500 text-black text-[10px] font-black flex items-center gap-1 border border-yellow-100">
+              <span>👑</span> GANADOR
             </div>
-            <div class="pt-2">
+
+            <div>
+              <div class="relative w-14 h-14 mx-auto mb-2.5">
+                <img id="duel-a-avatar" crossorigin="anonymous" src="" class="w-14 h-14 rounded-full border-2 border-matrix object-cover shadow-[0_0_15px_rgba(0,255,102,0.3)]" alt="A">
+              </div>
+              <div id="duel-a-program" class="font-extrabold text-white text-xs sm:text-[13px] leading-tight line-clamp-2 h-9 flex items-center justify-center px-1">--</div>
+              <h4 id="duel-a-name" class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1 truncate">--</h4>
+              <p id="duel-a-status" class="text-[9px] font-mono font-bold text-matrix mt-0.5">OFFLINE</p>
+            </div>
+
+            <div class="pt-3 border-t border-slate-800/80 mt-2">
               <div id="duel-a-viewers" class="text-2xl sm:text-3xl font-black font-mono text-matrix matrix-glow">0</div>
-              <div class="text-[9px] text-slate-400 uppercase tracking-wider font-semibold">Espectadores</div>
+              <div class="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Espectadores</div>
             </div>
           </div>
 
           <!-- Canal B -->
-          <div class="text-center p-3 sm:p-4 rounded-xl bg-[#0b1120]/95 border border-slate-700/80 flex flex-col justify-between min-h-[220px]">
-            <div class="space-y-1">
-              <img id="duel-b-avatar" crossorigin="anonymous" src="" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full mx-auto border-2 border-cyan-400 object-cover shadow-cyan-500/50 mb-1.5" alt="B">
-              <div id="duel-b-program" class="font-extrabold text-white text-xs sm:text-sm leading-snug line-clamp-2 h-9 overflow-hidden">--</div>
-              <h4 id="duel-b-name" class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">--</h4>
-              <p id="duel-b-status" class="text-[9px] font-mono text-cyan-400">OFFLINE</p>
+          <div id="card-col-b" style="background: linear-gradient(180deg, #10192e 0%, #080d1a 100%); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06); border: 1px solid #1e293b;" class="relative text-center p-4 rounded-xl flex flex-col justify-between transition-all duration-300">
+            
+            <!-- Badge Ganador Flotante 3D -->
+            <div id="trophy-badge-b" style="box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);" class="hidden absolute -top-3 left-1/2 -translate-x-1/2 z-20 px-3 py-0.5 rounded tech-badge bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500 text-black text-[10px] font-black flex items-center gap-1 border border-yellow-100">
+              <span>👑</span> GANADOR
             </div>
-            <div class="pt-2">
-              <div id="duel-b-viewers" class="text-2xl sm:text-3xl font-black font-mono text-cyan-400">0</div>
-              <div class="text-[9px] text-slate-400 uppercase tracking-wider font-semibold">Espectadores</div>
+
+            <div>
+              <div class="relative w-14 h-14 mx-auto mb-2.5">
+                <img id="duel-b-avatar" crossorigin="anonymous" src="" class="w-14 h-14 rounded-full border-2 border-cyan-400 object-cover shadow-[0_0_15px_rgba(34,211,238,0.3)]" alt="B">
+              </div>
+              <div id="duel-b-program" class="font-extrabold text-white text-xs sm:text-[13px] leading-tight line-clamp-2 h-9 flex items-center justify-center px-1">--</div>
+              <h4 id="duel-b-name" class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1 truncate">--</h4>
+              <p id="duel-b-status" class="text-[9px] font-mono font-bold text-cyan-400 mt-0.5">OFFLINE</p>
+            </div>
+
+            <div class="pt-3 border-t border-slate-800/80 mt-2">
+              <div id="duel-b-viewers" class="text-2xl sm:text-3xl font-black font-mono text-cyan-400" style="text-shadow: 0 0 15px rgba(34,211,238,0.4);">0</div>
+              <div class="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Espectadores</div>
             </div>
           </div>
         </div>
 
-        <!-- Footer con Share, Día de la Semana y streamrank.modoia.online -->
-        <div class="space-y-2 pb-1 z-10">
+        <!-- Footer con Separación Clara entre Fecha y Dominio -->
+        <div class="space-y-3 pb-1 z-10">
+          <!-- Barra de Share 3D -->
           <div>
-            <div class="flex justify-between text-xs font-mono font-bold mb-1">
-              <span id="duel-pct-a" class="text-matrix">50%</span>
-              <span class="text-slate-400 text-[10px] sm:text-xs tracking-wider">SHARE DE AUDIENCIA</span>
-              <span id="duel-pct-b" class="text-cyan-400">50%</span>
+            <div class="flex justify-between text-xs font-mono font-bold mb-1.5 px-0.5">
+              <span id="duel-pct-a" class="text-matrix font-black text-[13px]">50%</span>
+              <span class="text-slate-400 text-[10px] tracking-widest uppercase">SHARE DE AUDIENCIA</span>
+              <span id="duel-pct-b" class="text-cyan-400 font-black text-[13px]">50%</span>
             </div>
-            <div class="w-full h-3 bg-slate-900 rounded overflow-hidden flex border border-[#162238] p-0.5">
+            <div class="w-full h-3.5 bg-black/80 rounded overflow-hidden flex border border-slate-700/60 p-0.5 shadow-inner">
               <div id="duel-bar-a" class="h-full bg-matrix rounded-l transition-all duration-500 shadow-matrix" style="width: 50%"></div>
-              <div id="duel-bar-b" class="h-full bg-cyan-400 rounded-r transition-all duration-500 shadow-cyan-400" style="width: 50%"></div>
+              <div id="duel-bar-b" class="h-full bg-cyan-400 rounded-r transition-all duration-500 shadow-[0_0_10px_rgba(34,211,238,0.5)]" style="width: 50%"></div>
             </div>
           </div>
 
-          <div class="flex items-center justify-between text-[11px] sm:text-xs font-mono pt-2 border-t border-[#162238]">
-            <span id="duel-timestamp" class="text-matrix font-bold tracking-wide truncate max-w-[70%]">--</span>
-            <span class="text-slate-400 font-bold tracking-wider uppercase text-[10px] sm:text-xs">STREAMRANK.MODOIA.ONLINE</span>
+          <!-- Metadatos: Fecha a la izquierda y Dominio como Badge a la derecha -->
+          <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-800/90">
+            <div class="flex items-center space-x-1.5 min-w-0">
+              <span class="w-1.5 h-1.5 rounded-full bg-matrix animate-pulse shrink-0"></span>
+              <span id="duel-timestamp" class="text-slate-300 font-mono text-[10px] sm:text-[11px] font-semibold truncate">
+                CAPTURA: Sincronizando...
+              </span>
+            </div>
+
+            <div class="shrink-0">
+              <span class="px-2.5 py-1 rounded tech-badge bg-black/70 text-slate-200 border border-slate-700/80 text-[10px] sm:text-[11px] tracking-wider font-black shadow-sm">
+                streamrank.modoia.online
+              </span>
+            </div>
           </div>
         </div>
+
       </div>
 
       <!-- BOTONES DE DESCARGA: PNG HD Y GIF ANIMADO -->
@@ -2034,12 +2066,14 @@ const HTML_APP = `<!DOCTYPE html>
       document.getElementById('duel-b-status').innerText = canalB.isLive ? '🔴 EN VIVO' : '⚫ OFFLINE';
       document.getElementById('duel-b-viewers').innerText = formatNum(canalB.totalViewers);
 
-      const totalShare = (canalA.totalViewers || 0) + (canalB.totalViewers || 0);
+      const viewersA = canalA.totalViewers || 0;
+      const viewersB = canalB.totalViewers || 0;
+      const totalShare = viewersA + viewersB;
       let pctA = 50;
       let pctB = 50;
 
       if (totalShare > 0) {
-        pctA = Math.round((canalA.totalViewers / totalShare) * 100);
+        pctA = Math.round((viewersA / totalShare) * 100);
         pctB = 100 - pctA;
       }
 
@@ -2048,6 +2082,29 @@ const HTML_APP = `<!DOCTYPE html>
 
       document.getElementById('duel-bar-a').style.width = pctA + '%';
       document.getElementById('duel-bar-b').style.width = pctB + '%';
+
+      // Resaltado 3D del Ganador
+      const colA = document.getElementById('card-col-a');
+      const colB = document.getElementById('card-col-b');
+      const trophyA = document.getElementById('trophy-badge-a');
+      const trophyB = document.getElementById('trophy-badge-b');
+
+      colA.style.border = '1px solid #1e293b';
+      colA.style.boxShadow = '0 10px 25px -5px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06)';
+      colB.style.border = '1px solid #1e293b';
+      colB.style.boxShadow = '0 10px 25px -5px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06)';
+      trophyA.classList.add('hidden');
+      trophyB.classList.add('hidden');
+
+      if (viewersA > viewersB && viewersA > 0) {
+        colA.style.border = '1.5px solid #FFD700';
+        colA.style.boxShadow = '0 0 30px rgba(255, 215, 0, 0.25), inset 0 1px 0 rgba(255, 215, 0, 0.3)';
+        trophyA.classList.remove('hidden');
+      } else if (viewersB > viewersA && viewersB > 0) {
+        colB.style.border = '1.5px solid #FFD700';
+        colB.style.boxShadow = '0 0 30px rgba(255, 215, 0, 0.25), inset 0 1px 0 rgba(255, 215, 0, 0.3)';
+        trophyB.classList.remove('hidden');
+      }
 
       document.getElementById('duel-timestamp').innerText = 'CAPTURA: ' + getFechaConDiaSemana();
     };
@@ -2063,7 +2120,6 @@ const HTML_APP = `<!DOCTYPE html>
       btn.innerText = 'GENERANDO...';
       btn.disabled = true;
 
-      // Refrescamos fecha con día de la semana antes del snapshot
       document.getElementById('duel-timestamp').innerText = 'CAPTURA: ' + getFechaConDiaSemana();
 
       try {
@@ -2089,91 +2145,123 @@ const HTML_APP = `<!DOCTYPE html>
 
     const descargarDueloGIF = async () => {
       const tarjeta = document.getElementById('duel-capture-card');
+      const colA = document.getElementById('card-col-a');
+      const colB = document.getElementById('card-col-b');
       const btn = document.getElementById('btn-export-gif');
       const originalText = btn.innerHTML;
 
-      btn.innerText = 'PROCESANDO GIF...';
+      const viewersA = parseInt(document.getElementById('duel-a-viewers').innerText.replace(/[^0-9]/g, '')) || 0;
+      const viewersB = parseInt(document.getElementById('duel-b-viewers').innerText.replace(/[^0-9]/g, '')) || 0;
+      
+      const ganadorCol = viewersA >= viewersB ? colA : colB;
+
+      btn.innerText = 'GENERANDO GIF 3D...';
       btn.disabled = true;
 
       document.getElementById('duel-timestamp').innerText = 'CAPTURA: ' + getFechaConDiaSemana();
 
-      // Canvas flotante para simular lluvia de confetti dorado
       let fxCanvas = document.getElementById('duel-fx-canvas');
       if (!fxCanvas) {
         fxCanvas = document.createElement('canvas');
         fxCanvas.id = 'duel-fx-canvas';
         fxCanvas.style.position = 'absolute';
-        fxCanvas.style.top = '0';
-        fxCanvas.style.left = '0';
-        fxCanvas.style.width = '100%';
-        fxCanvas.style.height = '100%';
         fxCanvas.style.pointerEvents = 'none';
-        fxCanvas.style.zIndex = '20';
+        fxCanvas.style.zIndex = '30';
         tarjeta.appendChild(fxCanvas);
       }
 
-      fxCanvas.width = tarjeta.offsetWidth;
-      fxCanvas.height = tarjeta.offsetHeight;
+      const rectGanador = ganadorCol.getBoundingClientRect();
+      const rectTarjeta = tarjeta.getBoundingClientRect();
+
+      const offsetX = rectGanador.left - rectTarjeta.left;
+      const offsetY = rectGanador.top - rectTarjeta.top;
+      const w = rectGanador.width;
+      const h = rectGanador.height;
+
+      fxCanvas.style.left = offsetX + 'px';
+      fxCanvas.style.top = offsetY + 'px';
+      fxCanvas.width = w;
+      fxCanvas.height = h;
+
       const ctx = fxCanvas.getContext('2d');
 
-      const particles = Array.from({ length: 40 }, () => ({
-        x: Math.random() * fxCanvas.width,
-        y: Math.random() * fxCanvas.height,
-        r: Math.random() * 3 + 2,
-        speedY: Math.random() * 2.5 + 1.5,
-        color: Math.random() > 0.3 ? '#FFD700' : '#FFF275',
-        tilt: Math.random() * 10 - 5
+      const numParticles = 35;
+      const particles = Array.from({ length: numParticles }, () => ({
+        x: Math.random() * w,
+        y: Math.random() * h - 20,
+        w: Math.random() * 8 + 6,
+        h: Math.random() * 4 + 3,
+        speedY: Math.random() * 3 + 2.5,
+        speedX: Math.random() * 2 - 1,
+        angle: Math.random() * Math.PI * 2,
+        angleSpeed: Math.random() * 0.2 + 0.1,
+        color1: Math.random() > 0.4 ? '#FFD700' : '#FFF275',
+        color2: '#B8860B'
       }));
 
       const frames = [];
-      const totalFrames = 10;
+      const totalFrames = 12;
 
       try {
         for (let i = 0; i < totalFrames; i++) {
-          ctx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+          ctx.clearRect(0, 0, w, h);
+
           particles.forEach((p) => {
-            ctx.beginPath();
-            ctx.fillStyle = p.color;
-            ctx.fillRect(p.x, p.y, p.r * 1.5, p.r);
-            p.y += p.speedY * 5;
-            p.x += p.tilt;
-            if (p.y > fxCanvas.height) {
+            p.angle += p.angleSpeed;
+            p.y += p.speedY;
+            p.x += p.speedX;
+
+            if (p.y > h) {
               p.y = -10;
-              p.x = Math.random() * fxCanvas.width;
+              p.x = Math.random() * w;
             }
+
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.angle);
+            const scaleY = Math.cos(p.angle);
+            ctx.scale(1, scaleY);
+
+            const grad = ctx.createLinearGradient(-p.w / 2, -p.h / 2, p.w / 2, p.h / 2);
+            grad.addColorStop(0, p.color1);
+            grad.addColorStop(1, p.color2);
+
+            ctx.fillStyle = grad;
+            ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+            ctx.restore();
           });
 
-          const c = await html2canvas(tarjeta, {
+          const frameCanvas = await html2canvas(tarjeta, {
             scale: 1.2,
             backgroundColor: '#050811',
             useCORS: true,
             logging: false
           });
-          frames.push(c.toDataURL('image/png'));
+          frames.push(frameCanvas.toDataURL('image/png'));
         }
 
         fxCanvas.remove();
 
         gifshot.createGIF({
           images: frames,
-          interval: 0.1,
+          interval: 0.08,
           gifWidth: tarjeta.offsetWidth * 1.2,
           gifHeight: tarjeta.offsetHeight * 1.2
         }, function (obj) {
           if (!obj.error) {
             const enlace = document.createElement('a');
             enlace.href = obj.image;
-            enlace.download = 'streamrank_duelo_animado_' + Date.now() + '.gif';
+            enlace.download = 'streamrank_victoria_' + Date.now() + '.gif';
             enlace.click();
           } else {
-            alert('Error generando el GIF animado.');
+            alert('Error generando el GIF');
           }
           btn.innerHTML = originalText;
           btn.disabled = false;
         });
 
       } catch (err) {
-        console.error('Error generando cuadros del GIF:', err);
+        console.error('Error al generar el GIF:', err);
         if (fxCanvas) fxCanvas.remove();
         btn.innerHTML = originalText;
         btn.disabled = false;
