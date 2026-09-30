@@ -1,3 +1,4 @@
+```javascript
 const express = require('express');
 
 const app = express();
@@ -1173,6 +1174,7 @@ const HTML_APP = `<!DOCTYPE html>
           <div class="flex items-center space-x-1.5 sm:space-x-2">
             <span class="text-base sm:text-xl font-black tracking-wider text-white truncate">STREAMRANK</span>
             <span class="text-[9px] sm:text-xs px-1 sm:px-2 py-0.5 rounded font-black tracking-widest bg-matrix/20 text-matrix border border-matrix/40 flex-shrink-0">ARG</span>
+            <span class="px-1.5 py-0.5 text-[9px] font-bold tracking-widest uppercase rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 flex-shrink-0">BETA</span>
           </div>
           <p class="text-[9px] sm:text-[11px] text-slate-400 truncate hidden xs:block">Telemetría de Streaming en Vivo</p>
         </div>
@@ -1285,7 +1287,7 @@ const HTML_APP = `<!DOCTYPE html>
       </div>
     </section>
 
-    <!-- GRILLA RESPONSIVE MOBILE-FIRST (BORDE NÍTIDO EN MOBILE, SIN DESBORDES) -->
+    <!-- GRILLA RESPONSIVE MOBILE-FIRST -->
     <section>
       <div id="channels-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
       </div>
@@ -1349,55 +1351,70 @@ const HTML_APP = `<!DOCTYPE html>
 
   </main>
 
-  <!-- MODAL B2B / DATA ROOM: ACCESO A TELEMETRÍA Y REPORTES CRUDOS (CSV) -->
+  <!-- MODAL B2B / DATA ROOM: ACCESO A TELEMETRÍA Y REPORTES CRUDOS (CSV / XLSX) -->
   <div id="modal-token" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md hidden p-4">
-    <div class="bg-[#0b1120] border border-matrix/40 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative space-y-4">
+    <div class="bg-[#0b1120] border border-slate-700/80 rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl relative space-y-4">
       
-      <div class="flex items-center justify-between pb-3 border-b border-[#162238]">
-        <div class="flex items-center space-x-2">
-          <span class="text-matrix font-black text-base sm:text-lg">🔐 Acceso a Telemetría de Audiencias y Reportes Crudos (CSV)</span>
+      <!-- Encabezado alineado con Badge BETA -->
+      <div class="flex items-start justify-between gap-3 pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="text-lg shrink-0">🔐</span>
+          <div class="flex items-center flex-wrap gap-1.5">
+            <h3 class="text-sm sm:text-base font-semibold text-slate-100 tracking-tight">
+              Acceso a Telemetría y Reportes <span class="text-emerald-400 font-normal">(CSV / XLSX)</span>
+            </h3>
+            <span class="px-1.5 py-0.5 text-[9px] font-bold tracking-widest uppercase rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+              BETA
+            </span>
+          </div>
         </div>
-        <button onclick="cerrarModalToken()" class="text-slate-400 hover:text-white transition-colors text-2xl font-bold">&times;</button>
+        <button onclick="cerrarModalToken()" class="text-slate-400 hover:text-white transition-colors p-1 -mr-1 shrink-0 text-xl font-bold leading-none">
+          &times;
+        </button>
       </div>
 
-      <div class="space-y-3 text-xs text-slate-300">
+      <!-- Cuerpo del modal -->
+      <div class="space-y-3 text-xs text-slate-300 leading-relaxed">
         <p>
-          <strong class="text-white">Auditoría Continua:</strong> StreamRank es la única plataforma que audita y registra telemetría continua minuto a minuto con una ventana de retención estructurada de hasta 2 años en Turso DB.
+          <strong class="font-medium text-slate-100">Auditoría Continua:</strong> StreamRank audita y registra telemetría de audiencia minuto a minuto con una ventana de retención estructurada de hasta 2 años en Turso DB.
         </p>
 
-        <div class="p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-[11px] leading-relaxed">
-          <strong>Transparencia de Inicio Oficial:</strong> La captura oficial y consolidada de métricas comenzó en <strong>Septiembre de 2026</strong>. La base de datos acumula el historial de forma progresiva a partir de este hito fundacional.
+        <!-- Tarjeta de aviso sobria -->
+        <div class="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 text-amber-200/90 text-[11px] leading-relaxed">
+          <span class="font-semibold text-amber-300">Transparencia de Inicio Oficial:</span> La captura oficial y consolidada de métricas comenzó en <strong class="text-amber-200">Septiembre de 2026</strong>. La base de datos acumula el historial de forma progresiva a partir de este hito fundacional.
         </div>
 
         <p class="text-slate-400">
-          El acceso a datos crudos y exportaciones de picos de audiencia está reservado a <strong>agencias de medios, directores y marcas auditadas</strong>. La credencial de acceso se tramita por única vez y queda guardada en este navegador.
+          El acceso a datos crudos y exportaciones ejecutivas está reservado a <span class="text-slate-200 font-medium">agencias de medios, directores y marcas auditadas</span>. La credencial de acceso se tramita por única vez y queda guardada en este navegador.
         </p>
       </div>
 
+      <!-- Formulario de Token -->
       <div class="space-y-2 pt-1">
-        <label class="block text-[11px] font-mono text-slate-400 uppercase tracking-wider">CÓDIGO DE ACCESO (TOKEN B2B)</label>
+        <label class="block text-[10px] font-mono text-slate-400 uppercase tracking-wider">CÓDIGO DE ACCESO (TOKEN B2B)</label>
         <div class="flex gap-2">
           <input 
             type="password" 
             id="token-input" 
             placeholder="Ingresá tu código institucional..." 
-            class="flex-1 px-3 py-2 bg-[#050811] border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-matrix focus:shadow-matrixSoft"
+            class="flex-1 px-3.5 py-2.5 bg-[#050811] border border-slate-700/80 rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-matrix focus:shadow-matrixSoft font-mono"
           >
           <button 
             onclick="validarYAbrirDescarga()" 
-            class="px-4 py-2 bg-matrix text-black font-black text-xs uppercase tracking-wider rounded-xl hover:bg-emerald-400 transition-all shadow-matrix"
+            class="px-4 py-2.5 bg-matrix text-black font-black text-xs uppercase tracking-wider rounded-xl hover:bg-emerald-400 transition-all shadow-matrix shrink-0"
           >
             Acceder
           </button>
         </div>
-        <p id="token-error" class="text-xs text-red-400 hidden">Código no válido. Solicitá tu clave oficial vía mail.</p>
+        <p id="token-error" class="text-[11px] text-red-400 hidden">Código no válido. Solicitá tu clave oficial vía mail.</p>
       </div>
 
-      <div class="pt-3 border-t border-[#162238] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+      <!-- Footer modal -->
+      <div class="pt-3 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
         <span class="text-slate-400 text-[11px]">¿No tenés token corporativo?</span>
         <a 
           href="mailto:info@modoia.online?subject=Solicitud%20de%20Acceso%20Telemetria%20StreamRank" 
-          class="text-matrix underline hover:text-white font-bold transition-colors"
+          class="text-emerald-400 hover:underline font-medium text-[11px] transition-colors"
         >
           Solicitar código a info@modoia.online
         </a>
@@ -1805,7 +1822,7 @@ const HTML_APP = `<!DOCTYPE html>
         html += '<div class="my-auto py-1.5">';
         if (tieneBotShield) {
           html += '<div class="px-2.5 py-1.5 rounded-lg bg-amber-950/70 border border-amber-500/70 text-[10px] text-amber-200 leading-tight flex items-center space-x-1.5">';
-          html += '<span class="shrink-0 text-sm">🛡️</span>';
+          html += '<span class="shrink-0 text-sm">🛡️️</span>';
           html += '<span class="truncate"><strong>ALERTA:</strong> Posible inyección externa de tráfico/bots detectada. Tráfico anómalo no atribuible al canal.</span>';
           html += '</div>';
         } else {
@@ -2158,3 +2175,4 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
   console.log(`[StreamRank ARG] Servidor activo en puerto ${PORT}`);
 });
+```
