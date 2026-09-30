@@ -1,4 +1,3 @@
-```javascript
 const express = require('express');
 
 const app = express();
@@ -107,7 +106,7 @@ function extractTursoRows(pipelineJson) {
 }
 
 // ============================================================================
-// DICCIONARIO OFICIAL DE CANALES (AVATARS ESTABLES, RECATEGORIZACIÓN OFICIAL)
+// DICCIONARIO OFICIAL DE CANALES (SIN POSDATA STREAM)
 // ============================================================================
 const CHANNELS = [
   // Entretenimiento / Medios
@@ -402,19 +401,6 @@ const CHANNELS = [
     programas: ['Paren la Mano', 'Charla de Madrugada', 'Fútbol y Anécdotas'],
     baselineMax: 45000,
     isEmerging: false
-  },
-
-  // Emergentes reales
-  {
-    id: 'posdatastream',
-    name: 'Posdata Stream',
-    category: 'Emergentes',
-    subtheme: 'Actualidad & Debate Joven',
-    avatar: 'https://unavatar.io/youtube/posdatastream',
-    platforms: { yt: 'posdatastream' },
-    programas: ['El Resumen', 'En Off'],
-    baselineMax: 8000,
-    isEmerging: true
   }
 ];
 
@@ -1024,91 +1010,12 @@ const HTML_APP = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>StreamRank ARG | Monitor Oficial de Audiencia y Streaming en Vivo</title>
 
-  <!-- METADATOS GEO / GENERATIVE ENGINE OPTIMIZATION & SEO -->
+  <!-- METADATOS GEO / SEO -->
   <meta name="description" content="StreamRank ARG: Monitor oficial en tiempo real de telemetría, audiencia simultánea y métricas de streaming en Argentina (YouTube Live, Twitch, Kick).">
   <meta name="keywords" content="StreamRank, streaming argentina, luzu tv en vivo, olga en vivo, rating streaming argentina, métricas de streamers, telemetría streaming, blender, vorterix, tn en vivo">
   <meta name="author" content="Modo IA">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://streamrank.ar">
-
-  <!-- Open Graph -->
-  <meta property="og:site_name" content="StreamRank ARG">
-  <meta property="og:title" content="StreamRank ARG | Monitor de Audiencia de Streaming en Vivo">
-  <meta property="og:description" content="Monitor oficial y ranking en tiempo real de audiencia de canales de streaming en Argentina. Telemetría directa de YouTube, Twitch y Kick sin sesgo.">
-  <meta property="og:type" content="website">
-  <meta property="og:locale" content="es_AR">
-  <meta property="og:url" content="https://streamrank.ar">
-  <meta property="og:image" content="https://unavatar.io/youtube/LuzuTV">
-
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="StreamRank ARG | Métricas de Streaming en Vivo">
-  <meta name="twitter:description" content="Audiencia en directo, comparativas 1v1 y telemetría de streaming en Argentina.">
-  <meta name="twitter:image" content="https://unavatar.io/youtube/LuzuTV">
-
-  <!-- JSON-LD Structured Data (GEO / Motores de IA: Perplexity, ChatGPT, Gemini) -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "WebSite",
-        "@id": "https://streamrank.ar/#website",
-        "url": "https://streamrank.ar",
-        "name": "StreamRank ARG",
-        "description": "Monitor oficial y plataforma de telemetría en tiempo real de streaming en Argentina.",
-        "inLanguage": "es-AR",
-        "publisher": {
-          "@type": "Organization",
-          "name": "Modo IA",
-          "url": "https://modoia.online"
-        }
-      },
-      {
-        "@type": "BroadcastService",
-        "@id": "https://streamrank.ar/#broadcastservice",
-        "name": "StreamRank Telemetry Argentina",
-        "serviceType": "Live Streaming Metrics & Telemetry",
-        "provider": {
-          "@type": "Organization",
-          "name": "StreamRank ARG"
-        },
-        "areaServed": {
-          "@type": "Country",
-          "name": "Argentina"
-        }
-      },
-      {
-        "@type": "DataFeed",
-        "@id": "https://streamrank.ar/#datafeed",
-        "name": "Audiencia de Streaming en Vivo Argentina",
-        "description": "Feed público en tiempo real de espectadores concurrentes de canales de YouTube, Twitch y Kick en Argentina. Captura oficial continua iniciada en Septiembre 2026.",
-        "dataFeedElement": [
-          {
-            "@type": "DataFeedItem",
-            "name": "LUZU TV",
-            "category": "Entretenimiento"
-          },
-          {
-            "@type": "DataFeedItem",
-            "name": "OLGA",
-            "category": "Entretenimiento"
-          },
-          {
-            "@type": "DataFeedItem",
-            "name": "La Nación+",
-            "category": "Política"
-          },
-          {
-            "@type": "DataFeedItem",
-            "name": "Flavio Azzaro / AZZ",
-            "category": "Deportes"
-          }
-        ]
-      }
-    ]
-  }
-  </script>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -1165,16 +1072,16 @@ const HTML_APP = `<!DOCTYPE html>
   <header class="sticky top-0 z-40 bg-[#050811]/95 backdrop-blur-md border-b border-[#162238]">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2">
       
-      <div class="flex items-center space-x-2 sm:space-x-3 min-w-0">
+      <div class="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
         <div class="relative flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-black border border-matrix/50 shadow-matrixSoft flex-shrink-0">
           <span class="absolute w-3.5 h-3.5 rounded-full bg-matrix animate-ping opacity-75"></span>
           <span class="w-2.5 h-2.5 rounded-full bg-matrix"></span>
         </div>
         <div class="min-w-0">
           <div class="flex items-center space-x-1.5 sm:space-x-2">
-            <span class="text-base sm:text-xl font-black tracking-wider text-white truncate">STREAMRANK</span>
-            <span class="text-[9px] sm:text-xs px-1 sm:px-2 py-0.5 rounded font-black tracking-widest bg-matrix/20 text-matrix border border-matrix/40 flex-shrink-0">ARG</span>
-            <span class="px-1.5 py-0.5 text-[9px] font-bold tracking-widest uppercase rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 flex-shrink-0">BETA</span>
+            <span class="text-base sm:text-xl font-black tracking-wider text-white">STREAMRANK</span>
+            <span class="text-[9px] sm:text-xs px-1.5 py-0.5 rounded font-black tracking-widest bg-matrix/20 text-matrix border border-matrix/40 shrink-0">ARG</span>
+            <span class="inline-flex items-center px-1.5 py-0.5 text-[9px] font-black tracking-widest uppercase rounded bg-cyan-400/10 text-cyan-300 border border-cyan-400/40 shrink-0 shadow-[0_0_10px_rgba(34,211,238,0.25)]">BETA</span>
           </div>
           <p class="text-[9px] sm:text-[11px] text-slate-400 truncate hidden xs:block">Telemetría de Streaming en Vivo</p>
         </div>
@@ -1215,7 +1122,7 @@ const HTML_APP = `<!DOCTYPE html>
       </p>
     </section>
 
-    <!-- BARRA CON BUSCADOR Y ACCIÓN DE DESCARGA CSV INSTITUCIONAL (DATA ROOM) -->
+    <!-- BARRA CON BUSCADOR Y ACCIÓN DE DESCARGA CSV -->
     <section class="w-full flex flex-col sm:flex-row items-center gap-2.5 sm:gap-3">
       <div class="relative flex-1 w-full">
         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -1241,7 +1148,7 @@ const HTML_APP = `<!DOCTYPE html>
       </button>
     </section>
 
-    <!-- NAVEGACIÓN Y FILTROS RESPONSIVE CON SCROLL HORIZONTAL SUAVE -->
+    <!-- NAVEGACIÓN Y FILTROS -->
     <section class="space-y-3">
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b border-[#162238] pb-3">
         
@@ -1287,7 +1194,7 @@ const HTML_APP = `<!DOCTYPE html>
       </div>
     </section>
 
-    <!-- GRILLA RESPONSIVE MOBILE-FIRST -->
+    <!-- GRILLA RESPONSIVE -->
     <section>
       <div id="channels-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
       </div>
@@ -1307,7 +1214,7 @@ const HTML_APP = `<!DOCTYPE html>
       </div>
     </section>
 
-    <!-- SECCIÓN INTERACTIVA DE FAQS (PREGUNTAS FRECUENTES EN MODO OSCURO) -->
+    <!-- SECCIÓN INTERACTIVA DE FAQS -->
     <section class="bg-[#0b1120] rounded-2xl border border-slate-700/60 sm:border-[#162238] p-4 sm:p-6 space-y-4 text-xs text-slate-300 leading-relaxed shadow-lg">
       <div class="flex items-center space-x-2 text-white font-bold text-sm">
         <svg class="w-5 h-5 text-matrix flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1317,33 +1224,30 @@ const HTML_APP = `<!DOCTYPE html>
       </div>
 
       <div class="space-y-3">
-        <!-- FAQ 1: Escudo Anti-Bots -->
         <div class="p-4 rounded-xl bg-[#050811] border border-slate-700/60 sm:border-[#162238] space-y-1.5">
           <h4 class="font-bold text-white text-sm flex items-center text-matrix">
             <span class="mr-2">🛡️</span> ¿Cómo detectamos los ataques de bots externos?
           </h4>
           <p class="text-slate-400 text-xs">
-            StreamRank ARG analiza la aceleración en tiempo real de la audiencia. Si se detecta un salto atípico repentino de más del <strong>160% de incremento o más de +18.000 espectadores en menos de 3 minutos</strong> fuera de un pase de programa verificado, se activa automáticamente una alerta preventiva (<strong>Bot Shield</strong>) para proteger la reputación del canal, dejando en claro que se trata de una inyección de tráfico externa y ajena al creador.
+            StreamRank ARG analiza la aceleración en tiempo real de la audiencia. Si se detecta un salto atípico repentino de más del <strong>160% de incremento o más de +18.000 espectadores en menos de 3 minutos</strong> fuera de un pase de programa verificado, se activa automáticamente una alerta preventiva (<strong>Bot Shield</strong>) para proteger la reputación del canal.
           </p>
         </div>
 
-        <!-- FAQ 2: Retención 2 años en Turso DB -->
         <div class="p-4 rounded-xl bg-[#050811] border border-slate-700/60 sm:border-[#162238] space-y-1.5">
           <h4 class="font-bold text-white text-sm flex items-center text-matrix">
             <span class="mr-2">⏳</span> ¿Cuál es la política de retención y almacenamiento de métricas?
           </h4>
           <p class="text-slate-400 text-xs">
-            StreamRank conserva el historial analítico completo durante <strong>2 años</strong> mediante Turso DB antes de reiniciar y depurar los registros antiguos, garantizando la velocidad del sistema y permitiendo auditorías fidedignas para agencias y marcas. La captura oficial de datos comenzó en <strong>Septiembre de 2026</strong>.
+            StreamRank conserva el historial analítico completo durante <strong>2 años</strong> mediante Turso DB. La captura oficial de datos comenzó en <strong>Septiembre de 2026</strong>.
           </p>
         </div>
 
-        <!-- FAQ 3: Telemetría sin intermediarios -->
         <div class="p-4 rounded-xl bg-[#050811] border border-slate-700/60 sm:border-[#162238] space-y-1.5">
           <h4 class="font-bold text-white text-sm flex items-center text-matrix">
             <span class="mr-2">⚡</span> ¿Cómo se calcula la audiencia en vivo multiplataforma?
           </h4>
           <p class="text-slate-400 text-xs">
-            Cada 25 segundos, el backend consulta directamente la URL canónica de YouTube Live, los endpoints de GraphQL de Twitch y la API oficial de Kick de forma simultánea. Se contabilizan exclusivamente usuarios concurrentes viendo el stream activo en ese instante (CCV).
+            Cada 25 segundos, el backend consulta directamente YouTube Live, Twitch GQL y Kick API de forma simultánea, contabilizando usuarios concurrentes (CCV).
           </p>
         </div>
       </div>
@@ -1351,7 +1255,7 @@ const HTML_APP = `<!DOCTYPE html>
 
   </main>
 
-  <!-- MODAL B2B / DATA ROOM: ACCESO A TELEMETRÍA Y REPORTES CRUDOS (CSV / XLSX) -->
+  <!-- MODAL B2B: ACCESO A TELEMETRÍA (CSV / XLSX) -->
   <div id="modal-token" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md hidden p-4">
     <div class="bg-[#0b1120] border border-slate-700/80 rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl relative space-y-4">
       
@@ -1363,7 +1267,7 @@ const HTML_APP = `<!DOCTYPE html>
             <h3 class="text-sm sm:text-base font-semibold text-slate-100 tracking-tight">
               Acceso a Telemetría y Reportes <span class="text-emerald-400 font-normal">(CSV / XLSX)</span>
             </h3>
-            <span class="px-1.5 py-0.5 text-[9px] font-bold tracking-widest uppercase rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+            <span class="inline-flex items-center px-1.5 py-0.5 text-[9px] font-black tracking-widest uppercase rounded bg-cyan-400/10 text-cyan-300 border border-cyan-400/40 shrink-0">
               BETA
             </span>
           </div>
@@ -1379,7 +1283,6 @@ const HTML_APP = `<!DOCTYPE html>
           <strong class="font-medium text-slate-100">Auditoría Continua:</strong> StreamRank audita y registra telemetría de audiencia minuto a minuto con una ventana de retención estructurada de hasta 2 años en Turso DB.
         </p>
 
-        <!-- Tarjeta de aviso sobria -->
         <div class="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 text-amber-200/90 text-[11px] leading-relaxed">
           <span class="font-semibold text-amber-300">Transparencia de Inicio Oficial:</span> La captura oficial y consolidada de métricas comenzó en <strong class="text-amber-200">Septiembre de 2026</strong>. La base de datos acumula el historial de forma progresiva a partir de este hito fundacional.
         </div>
@@ -1423,7 +1326,7 @@ const HTML_APP = `<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- MODAL DE FILTRO Y DESCARGA CSV (HABILITADO PARA USUARIOS AUTENTICADOS) -->
+  <!-- MODAL DE FILTRO Y DESCARGA CSV -->
   <div id="modal-reportes" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden p-4">
     <div class="bg-[#0b1120] border border-[#162238] rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl relative overflow-hidden space-y-4">
       
@@ -1512,15 +1415,12 @@ const HTML_APP = `<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- PLACA PARA CAPTURA HTML2CANVAS (1:1 CUADRADO EXACTO, SIN THUMBNAILS) -->
       <div id="duel-capture-card" class="bg-[#050811] border border-matrix/30 rounded-2xl w-full max-w-[500px] aspect-square mx-auto flex flex-col justify-between p-5 sm:p-7 shadow-glow relative my-2">
-        
         <div class="text-center pt-1">
           <span class="text-[10px] sm:text-[11px] font-black tracking-widest uppercase bg-matrix/10 text-matrix px-3.5 py-1.5 rounded-full border border-matrix/30">STREAMRANK ARG • DUELO EN DIRECTO</span>
         </div>
 
         <div class="grid grid-cols-2 gap-3 sm:gap-4 items-stretch my-auto">
-          
           <!-- Canal A -->
           <div class="text-center p-3.5 rounded-xl bg-[#0b1120]/90 border border-slate-700/70 flex flex-col justify-between h-[190px] sm:h-[210px]">
             <div>
@@ -1548,10 +1448,8 @@ const HTML_APP = `<!DOCTYPE html>
               <div class="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Espectadores</div>
             </div>
           </div>
-
         </div>
 
-        <!-- Barras de Share y Pie -->
         <div class="space-y-2.5 pb-1">
           <div>
             <div class="flex justify-between text-xs font-mono font-bold mb-1">
@@ -1570,7 +1468,6 @@ const HTML_APP = `<!DOCTYPE html>
             <span class="text-slate-400 font-bold text-[10px] sm:text-xs tracking-wider">STREAMRANK.AR</span>
           </div>
         </div>
-
       </div>
 
       <div class="flex items-center justify-end space-x-3 pt-3 border-t border-[#162238]">
@@ -1756,7 +1653,7 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     // ========================================================================
-    // GRILLA RESPONSIVE CON FILA INFERIOR EN 2 NIVELES (KICK SIEMPRE VISIBLE)
+    // GRILLA RESPONSIVE
     // ========================================================================
     const renderizarGrilla = () => {
       const container = document.getElementById('channels-grid');
@@ -1795,7 +1692,7 @@ const HTML_APP = `<!DOCTYPE html>
 
         html += '<div class="w-full rounded-2xl bg-[#0b1120] ' + borderClass + ' shadow-lg shadow-black/60 transition-all duration-300 p-4 flex flex-col justify-between min-h-[225px] h-auto group relative">';
 
-        // Fila 1: Avatar + Nombre con min-w-0 flex-1 para no truncar prematuramente
+        // Fila 1: Avatar + Nombre
         html += '<div class="flex items-center justify-between gap-2 mb-2">';
         html += '<div class="flex items-center space-x-2.5 min-w-0 flex-1">';
         html += '<img crossorigin="anonymous" onerror="this.onerror=null; this.src=getFallbackAvatar(\\'' + c.name.replace(/'/g, "\\\\'") + '\\')" src="' + c.avatar + '" class="w-11 h-11 rounded-full ' + (esTopVisible ? 'border-2 border-amber-400 shadow-goldGlow' : (isLive ? 'border-2 border-matrix shadow-matrixSoft' : 'border border-slate-700 opacity-80')) + ' object-cover shrink-0">';
@@ -1818,11 +1715,11 @@ const HTML_APP = `<!DOCTYPE html>
         }
         html += '</div></div>';
 
-        // Fila 2: Programa emitido o Alerta Bot Shield
+        // Fila 2: Programa o Bot Shield
         html += '<div class="my-auto py-1.5">';
         if (tieneBotShield) {
           html += '<div class="px-2.5 py-1.5 rounded-lg bg-amber-950/70 border border-amber-500/70 text-[10px] text-amber-200 leading-tight flex items-center space-x-1.5">';
-          html += '<span class="shrink-0 text-sm">🛡️️</span>';
+          html += '<span class="shrink-0 text-sm">🛡️</span>';
           html += '<span class="truncate"><strong>ALERTA:</strong> Posible inyección externa de tráfico/bots detectada. Tráfico anómalo no atribuible al canal.</span>';
           html += '</div>';
         } else {
@@ -1831,10 +1728,8 @@ const HTML_APP = `<!DOCTYPE html>
         }
         html += '</div>';
 
-        // Fila 3: Estructura en 2 niveles (Línea A: Espectadores y VS; Línea B: Badges holgados sin recortar Kick)
+        // Fila 3: Espectadores y Badges
         html += '<div class="pt-2 border-t border-slate-800/80 space-y-2">';
-
-        // Línea A: Espectadores y botón VS
         html += '<div class="flex items-center justify-between gap-2">';
         html += '<div class="flex items-baseline space-x-1.5 min-w-0">';
         html += '<span class="text-[9px] uppercase font-mono text-slate-400">Espectadores:</span>';
@@ -1846,7 +1741,6 @@ const HTML_APP = `<!DOCTYPE html>
         html += '</button>';
         html += '</div>';
 
-        // Línea B: Badges de plataformas con flex-wrap y gap holgado
         html += '<div class="flex items-center gap-1.5 flex-wrap">';
         html += renderizarPlataformaBadge('yt', c.platforms.youtube);
         html += renderizarPlataformaBadge('tw', c.platforms.twitch);
@@ -1854,11 +1748,10 @@ const HTML_APP = `<!DOCTYPE html>
         html += '</div>';
 
         html += '</div>';
-
         html += '</div>';
       });
 
-      // TARJETA DE POSTULACIÓN DE CANAL (CTA CARD EN CATEGORÍA EMERGENTES O GENERAL)
+      // TARJETA DE POSTULACIÓN
       if (solapaActiva === 'Emergentes' || solapaActiva === 'Todos') {
         html += '<div class="w-full rounded-2xl bg-gradient-to-br from-[#0c1527] to-[#050811] border-2 border-dashed border-matrix/40 p-4 flex flex-col justify-between min-h-[225px] h-auto text-center shadow-matrixSoft">';
         html += '<div class="space-y-1.5 my-auto">';
@@ -1876,7 +1769,7 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     // ========================================================================
-    // B2B DATA ROOM & AUTENTICACIÓN LOCALSTORAGE PARA DESCARGA CSV
+    // DATA ROOM & TOKEN
     // ========================================================================
     const solicitarDescargaCSV = () => {
       const savedToken = localStorage.getItem('streamrank_b2b_token');
@@ -2013,7 +1906,7 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     // ========================================================================
-    // MODAL DE DUELO 1 VS 1: 1:1 CUADRADO, SIN THUMBNAILS, TOTALMENTE SIMÉTRICO
+    // MODAL DUELO
     // ========================================================================
     const poblarSelectoresDuelo = () => {
       const selA = document.getElementById('duel-select-a');
@@ -2175,4 +2068,3 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
   console.log(`[StreamRank ARG] Servidor activo en puerto ${PORT}`);
 });
-```
