@@ -4,11 +4,10 @@ const https = require('https');
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Token institucional para descarga de telemetría B2B / Agencias
 const ACCESS_TOKEN_SECRET = (process.env.STREAMRANK_ACCESS_TOKEN || 'STREAMRANK2026').trim();
 
 // ============================================================================
-// CONEXIÓN DIRECTA VIA HTTP PIPELINE (CERO LIBRERÍAS EXTERNAS, CERO MIGRACIONES)
+// CONEXIÓN DIRECTA VIA HTTP PIPELINE (TURSO)
 // ============================================================================
 const rawTursoUrl = (process.env.TURSO_DATABASE_URL || '').trim();
 const tursoHttpUrl = rawTursoUrl
@@ -57,7 +56,6 @@ async function executeTursoQuery(sql, args = []) {
   }
 }
 
-// Inicializar tabla mediante SQL puro
 async function initTurso() {
   await executeTursoQuery(`
     CREATE TABLE IF NOT EXISTS metrics_history (
@@ -74,7 +72,6 @@ async function initTurso() {
   console.log('[Turso DB] Inicialización completada.');
 }
 
-// Inserción de métrica sin gestores de esquemas
 async function saveMetricToTurso(channelId, channelName, viewers, programName, isLive, botAlert = 0) {
   await executeTursoQuery(
     'INSERT INTO metrics_history (channel_id, channel_name, viewers, program_name, is_live, bot_alert) VALUES (?, ?, ?, ?, ?, ?)',
@@ -82,7 +79,6 @@ async function saveMetricToTurso(channelId, channelName, viewers, programName, i
   );
 }
 
-// Depuración automática de registros mayores a 2 años
 async function cleanupOldMetrics() {
   await executeTursoQuery("DELETE FROM metrics_history WHERE timestamp < datetime('now', '-2 years')");
 }
@@ -90,7 +86,6 @@ async function cleanupOldMetrics() {
 initTurso();
 setInterval(cleanupOldMetrics, 24 * 60 * 60 * 1000);
 
-// Helper para desempaquetar filas de respuestas de Turso Pipeline
 function extractTursoRows(pipelineJson) {
   if (!pipelineJson || !pipelineJson.results || !pipelineJson.results[0]) return [];
   const res = pipelineJson.results[0];
@@ -107,10 +102,9 @@ function extractTursoRows(pipelineJson) {
 }
 
 // ============================================================================
-// DICCIONARIO OFICIAL DE CANALES (SIN POSDATA STREAM)
+// DICCIONARIO OFICIAL DE CANALES
 // ============================================================================
 const CHANNELS = [
-  // Entretenimiento / Medios
   {
     id: 'luzutv',
     name: 'LUZU TV',
@@ -221,8 +215,6 @@ const CHANNELS = [
     baselineMax: 60000,
     isEmerging: false
   },
-
-  // Política / Noticias
   {
     id: 'todonoticias',
     name: 'TN (Todo Noticias)',
@@ -311,8 +303,6 @@ const CHANNELS = [
     baselineMax: 45000,
     isEmerging: false
   },
-
-  // Deportes
   {
     id: 'flavioazzaro',
     name: 'Flavio Azzaro / AZZ',
@@ -346,8 +336,6 @@ const CHANNELS = [
     baselineMax: 70000,
     isEmerging: false
   },
-
-  // Streamers
   {
     id: 'coscu',
     name: 'Coscu',
@@ -475,7 +463,7 @@ const fetchConTimeout = async (url, opciones = {}, ms = 6000) => {
 };
 
 // ============================================================================
-// SCRAPERS (YOUTUBE CANÓNICO, TWITCH GQL, KICK API)
+// SCRAPERS
 // ============================================================================
 const scrapeYouTube = async (handle) => {
   if (!handle) return { isLive: false, viewers: 0, title: 'Transmisión finalizada', thumbnail: null };
@@ -690,7 +678,7 @@ const scrapeKick = async (slug) => {
 };
 
 // ============================================================================
-// ESCUDO ANTI-BOTS (ANÁLISIS DE ACELERACIÓN EN < 3 MINUTOS)
+// ESCUDO ANTI-BOTS
 // ============================================================================
 const evaluarAnomaliaTrafico = (canal, totalViewers) => {
   const ahora = Date.now();
@@ -736,7 +724,7 @@ const evaluarAnomaliaTrafico = (canal, totalViewers) => {
 };
 
 // ============================================================================
-// CICLO DE SCRAPEO CONCURRENTE EN LOTES
+// CICLO DE SCRAPEO CONCURRENTE
 // ============================================================================
 const procesarCanalIndividual = async (canal) => {
   try {
@@ -880,7 +868,7 @@ actualizarTelemetria();
 setInterval(actualizarTelemetria, 25000);
 
 // ============================================================================
-// ENDPOINTS DE API & EXPORTACIÓN B2B
+// ENDPOINTS
 // ============================================================================
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
@@ -907,7 +895,6 @@ app.get('/api/validate-token', (req, res) => {
   return res.status(403).json({ valid: false, error: 'Token de acceso no válido.' });
 });
 
-// Endpoint oficial de exportación CSV (Data Room B2B con validación de token)
 app.get('/api/export-csv', async (req, res) => {
   const token = (req.query.token || '').trim();
   if (token !== ACCESS_TOKEN_SECRET) {
@@ -1002,7 +989,7 @@ app.get('/api/export-csv', async (req, res) => {
 });
 
 // ============================================================================
-// FRONTEND SERVIDO EN GET /
+// FRONTEND
 // ============================================================================
 const HTML_APP = `<!DOCTYPE html>
 <html lang="es-AR" class="dark">
@@ -1011,7 +998,6 @@ const HTML_APP = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>StreamRank ARG | Monitor Oficial de Audiencia y Streaming en Vivo</title>
 
-  <!-- METADATOS GEO / SEO -->
   <meta name="description" content="StreamRank ARG: Monitor oficial en tiempo real de telemetría, audiencia simultánea y métricas de streaming en Argentina (YouTube Live, Twitch, Kick).">
   <meta name="keywords" content="StreamRank, streaming argentina, luzu tv en vivo, olga en vivo, rating streaming argentina, métricas de streamers, telemetría streaming, blender, vorterix, tn en vivo">
   <meta name="author" content="Modo IA">
@@ -1037,10 +1023,9 @@ const HTML_APP = `<!DOCTYPE html>
             ki: '#53FC18'
           },
           boxShadow: {
-            matrix: '0 0 20px rgba(0, 255, 102, 0.45)',
-            matrixSoft: '0 0 10px rgba(0, 255, 102, 0.25)',
-            goldGlow: '0 0 20px rgba(255, 215, 0, 0.35)',
-            glow: '0 0 35px rgba(0, 255, 102, 0.3)'
+            matrix: '0 0 15px rgba(0, 255, 102, 0.35)',
+            matrixSoft: '0 0 8px rgba(0, 255, 102, 0.2)',
+            goldGlow: '0 0 15px rgba(255, 215, 0, 0.3)'
           }
         }
       }
@@ -1054,10 +1039,7 @@ const HTML_APP = `<!DOCTYPE html>
       overflow-x: hidden;
     }
     .matrix-glow {
-      text-shadow: 0 0 10px rgba(0, 255, 102, 0.7), 0 0 22px rgba(0, 255, 102, 0.35);
-    }
-    .gold-glow {
-      text-shadow: 0 0 10px rgba(255, 215, 0, 0.8), 0 0 20px rgba(255, 215, 0, 0.4);
+      text-shadow: 0 0 8px rgba(0, 255, 102, 0.6);
     }
     .no-scrollbar::-webkit-scrollbar {
       display: none;
@@ -1067,7 +1049,6 @@ const HTML_APP = `<!DOCTYPE html>
       scrollbar-width: none;
     }
 
-    /* BADGES TÉCNICOS CUADRADOS (SIN FORMA DE PÍLDORA) */
     .tech-badge {
       border-radius: 4px !important;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -1079,10 +1060,9 @@ const HTML_APP = `<!DOCTYPE html>
 </head>
 <body class="min-h-screen flex flex-col bg-[#050811] text-slate-100 antialiased selection:bg-[#00ff66] selection:text-black">
 
-  <!-- HEADER COMPACTO RESPONSIVE -->
+  <!-- HEADER -->
   <header class="sticky top-0 z-40 bg-[#050811]/95 backdrop-blur-md border-b border-[#162238]">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2">
-      
       <div class="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
         <div class="relative flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-black border border-matrix/50 shadow-matrixSoft flex-shrink-0">
           <span class="absolute w-3.5 h-3.5 rounded-full bg-matrix animate-ping opacity-75"></span>
@@ -1092,7 +1072,7 @@ const HTML_APP = `<!DOCTYPE html>
           <div class="flex items-center space-x-1.5 sm:space-x-2">
             <span class="text-base sm:text-xl font-black tracking-wider text-white">STREAMRANK</span>
             <span class="text-[9px] sm:text-xs px-1.5 py-0.5 tech-badge bg-matrix/20 text-matrix border border-matrix/40 shrink-0">ARG</span>
-            <span class="inline-flex items-center px-1.5 py-0.5 text-[9px] tech-badge bg-cyan-400/10 text-cyan-300 border border-cyan-400/40 shrink-0 shadow-[0_0_10px_rgba(34,211,238,0.25)]">BETA</span>
+            <span class="inline-flex items-center px-1.5 py-0.5 text-[9px] tech-badge bg-cyan-400/10 text-cyan-300 border border-cyan-400/40 shrink-0 shadow-[0_0_8px_rgba(34,211,238,0.2)]">BETA</span>
           </div>
           <p class="text-[9px] sm:text-[11px] text-slate-400 truncate hidden xs:block">Telemetría de Streaming en Vivo</p>
         </div>
@@ -1112,14 +1092,11 @@ const HTML_APP = `<!DOCTYPE html>
           <div class="hidden lg:block text-[11px] font-mono text-slate-400" id="sync-clock">Sinc: --:--:--</div>
         </div>
       </div>
-
     </div>
   </header>
 
   <!-- CONTENIDO PRINCIPAL -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-5">
-    
-    <!-- TITULO PRINCIPAL & BAJADA CLARA -->
     <section class="text-center sm:text-left space-y-1.5 pt-2">
       <div class="inline-flex items-center space-x-2 px-3 py-1 tech-badge bg-matrix/10 border border-matrix/40 text-matrix text-[11px]">
         <span class="w-2 h-2 rounded-full bg-matrix animate-ping"></span>
@@ -1159,10 +1136,9 @@ const HTML_APP = `<!DOCTYPE html>
       </button>
     </section>
 
-    <!-- NAVEGACIÓN Y FILTROS -->
+    <!-- FILTROS -->
     <section class="space-y-3">
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b border-[#162238] pb-3">
-        
         <div class="overflow-x-auto whitespace-nowrap no-scrollbar py-1 -mx-4 px-4 sm:mx-0 sm:px-0">
           <div class="inline-flex gap-2" id="tab-buttons">
             <button onclick="cambiarSolapa('Todos')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-matrix text-black shadow-matrix">
@@ -1201,17 +1177,16 @@ const HTML_APP = `<!DOCTYPE html>
             </select>
           </div>
         </div>
-
       </div>
     </section>
 
-    <!-- GRILLA RESPONSIVE -->
+    <!-- GRILLA -->
     <section>
       <div id="channels-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
       </div>
     </section>
 
-    <!-- BANNER SPONSOR INSTITUCIONAL -->
+    <!-- SPONSOR -->
     <section class="w-full">
       <div class="relative w-full rounded-2xl bg-gradient-to-r from-emerald-950/20 via-[#0b1120] to-blue-950/20 border border-matrix/30 p-5 sm:p-6 flex flex-col md:flex-row items-center justify-between gap-5 text-center md:text-left">
         <div class="space-y-1.5">
@@ -1225,7 +1200,7 @@ const HTML_APP = `<!DOCTYPE html>
       </div>
     </section>
 
-    <!-- SECCIÓN INTERACTIVA DE FAQS -->
+    <!-- FAQS -->
     <section class="bg-[#0b1120] rounded-2xl border border-slate-700/60 sm:border-[#162238] p-4 sm:p-6 space-y-4 text-xs text-slate-300 leading-relaxed shadow-lg">
       <div class="flex items-center space-x-2 text-white font-bold text-sm">
         <svg class="w-5 h-5 text-matrix flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1263,13 +1238,11 @@ const HTML_APP = `<!DOCTYPE html>
         </div>
       </div>
     </section>
-
   </main>
 
-  <!-- MODAL B2B: ACCESO A TELEMETRÍA (CSV / XLSX) -->
+  <!-- MODAL B2B -->
   <div id="modal-token" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md hidden p-4">
     <div class="bg-[#0b1120] border border-slate-700/80 rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl relative space-y-4">
-      
       <div class="flex items-start justify-between gap-3 pb-3 border-b border-slate-800">
         <div class="flex items-center gap-2 min-w-0">
           <span class="text-lg shrink-0">🔐</span>
@@ -1291,13 +1264,11 @@ const HTML_APP = `<!DOCTYPE html>
         <p>
           <strong class="font-medium text-slate-100">Auditoría Continua:</strong> StreamRank audita y registra telemetría de audiencia minuto a minuto con una ventana de retención estructurada de hasta 2 años en Turso DB.
         </p>
-
         <div class="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 text-amber-200/90 text-[11px] leading-relaxed">
-          <span class="font-semibold text-amber-300">Transparencia de Inicio Oficial:</span> La captura oficial y consolidada de métricas comenzó en <strong class="text-amber-200">Septiembre de 2026</strong>. La base de datos acumula el historial de forma progresiva a partir de este hito fundacional.
+          <span class="font-semibold text-amber-300">Transparencia de Inicio Oficial:</span> La captura oficial y consolidada de métricas comenzó en <strong class="text-amber-200">Septiembre de 2026</strong>.
         </div>
-
         <p class="text-slate-400">
-          El acceso a datos crudos y exportaciones ejecutivas está reservado a <span class="text-slate-200 font-medium">agencias de medios, directores y marcas auditadas</span>. La credencial de acceso se tramita por única vez y queda guardada en este navegador.
+          El acceso a datos crudos y exportaciones ejecutivas está reservado a <span class="text-slate-200 font-medium">agencias de medios, directores y marcas auditadas</span>.
         </p>
       </div>
 
@@ -1329,14 +1300,12 @@ const HTML_APP = `<!DOCTYPE html>
           Solicitar código a info@modoia.online
         </a>
       </div>
-
     </div>
   </div>
 
-  <!-- MODAL DE FILTRO Y DESCARGA CSV -->
+  <!-- MODAL CSV -->
   <div id="modal-reportes" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden p-4">
     <div class="bg-[#0b1120] border border-[#162238] rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl relative overflow-hidden space-y-4">
-      
       <div class="flex items-center justify-between pb-3 border-b border-[#162238]">
         <div class="flex items-center space-x-2">
           <span class="text-matrix font-black text-base sm:text-lg">📊 EXPORTAR TELEMETRÍA Y PICOS (CSV)</span>
@@ -1393,7 +1362,6 @@ const HTML_APP = `<!DOCTYPE html>
           <span>Descargar CSV Oficial</span>
         </button>
       </div>
-
     </div>
   </div>
 
@@ -1422,96 +1390,96 @@ const HTML_APP = `<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- PLACA DE CAPTURA DUELO (BROADCAST 3D EDITION - TEXTOS OPTIMIZADOS) -->
-      <div id="duel-capture-card" style="background: radial-gradient(circle at 50% 0%, #0d172e 0%, #050811 75%); border: 1px solid #1e293b; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.1);" class="rounded-2xl w-full max-w-[520px] aspect-square mx-auto flex flex-col justify-between p-6 relative overflow-hidden">
+      <!-- PLACA DE CAPTURA DUELO (MISMO FORMATO VISUAL FLAT) -->
+      <div id="duel-capture-card" style="background-color: #050811; border: 1px solid #162238; width: 100%; max-width: 520px; box-sizing: border-box;" class="mx-auto flex flex-col justify-between p-6 relative overflow-hidden rounded-2xl my-2">
         
-        <!-- Header Técnico Rectangular con Relieve -->
-        <div class="text-center pt-1 z-10">
-          <span class="tech-badge bg-black/60 text-matrix px-4 py-1.5 border border-matrix/40 text-[10px] sm:text-[11px] tracking-widest shadow-[0_2px_10px_rgba(0,255,102,0.15)] inline-block">
+        <!-- Header Técnico Rectangular Plano -->
+        <div class="text-center z-10 mb-3">
+          <span class="tech-badge bg-[#0b1120] text-matrix px-3.5 py-1.5 border border-matrix/40 text-[10px] sm:text-[11px] tracking-widest inline-block">
             STREAMRANK ARG • DUELO EN DIRECTO
           </span>
         </div>
 
-        <!-- Contenedor 1 vs 1 con Efecto Tarjeta 3D -->
-        <div class="grid grid-cols-2 gap-4 items-stretch my-auto z-10 relative">
+        <!-- Contenedor 1 vs 1 Plano -->
+        <div class="grid grid-cols-2 gap-4 items-stretch z-10 relative my-auto">
           
           <!-- Canal A -->
-          <div id="card-col-a" style="background: linear-gradient(180deg, #10192e 0%, #080d1a 100%); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06); border: 1px solid #1e293b;" class="relative text-center p-4 rounded-xl flex flex-col justify-between transition-all duration-300">
+          <div id="card-col-a" style="background-color: #0b1120; border: 1px solid #1e293b; min-height: 240px;" class="relative text-center p-4 rounded-xl flex flex-col justify-between transition-all duration-200">
             
-            <!-- Badge Ganador Flotante 3D -->
-            <div id="trophy-badge-a" style="box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);" class="hidden absolute -top-3 left-1/2 -translate-x-1/2 z-20 px-3 py-0.5 rounded tech-badge bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500 text-black text-[10px] font-black flex items-center gap-1 border border-yellow-100">
+            <div id="trophy-badge-a" class="hidden absolute -top-3 left-1/2 -translate-x-1/2 z-20 px-3 py-0.5 rounded tech-badge bg-amber-400 text-black text-[10px] font-black flex items-center gap-1 border border-amber-300">
               <span>👑</span> GANADOR
             </div>
 
             <div>
-              <div class="relative w-14 h-14 mx-auto mb-2">
-                <img id="duel-a-avatar" crossorigin="anonymous" src="" class="w-14 h-14 rounded-full border-2 border-matrix object-cover shadow-[0_0_15px_rgba(0,255,102,0.3)]" alt="A">
+              <div class="w-14 h-14 mx-auto mb-2.5">
+                <img id="duel-a-avatar" crossorigin="anonymous" src="" class="w-14 h-14 rounded-full border-2 border-matrix object-cover" alt="A">
               </div>
-              <div style="min-height: 44px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px;">
-                <p id="duel-a-program" style="line-height: 1.3; font-size: 12px; font-weight: 800; color: #FFFFFF; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0; padding: 0 4px;">--</p>
+              
+              <div style="min-height: 48px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px;">
+                <p id="duel-a-program" style="font-size: 12px; font-weight: 800; color: #FFFFFF; line-height: 1.35; margin: 0; padding: 0 2px; text-align: center; word-break: break-word;">--</p>
               </div>
-              <h4 id="duel-a-name" style="font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.05em; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">--</h4>
-              <p id="duel-a-status" class="text-[9px] font-mono font-bold text-matrix mt-1">OFFLINE</p>
+
+              <h4 id="duel-a-name" style="font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.05em; margin: 0; padding-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">--</h4>
+              <p id="duel-a-status" class="text-[9px] font-mono font-bold text-matrix">OFFLINE</p>
             </div>
 
-            <div class="pt-3 border-t border-slate-800/80 mt-2">
-              <div id="duel-a-viewers" class="text-2xl sm:text-3xl font-black font-mono text-matrix matrix-glow">0</div>
-              <div class="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Espectadores</div>
+            <div class="pt-3 border-t border-slate-800/80">
+              <div id="duel-a-viewers" class="text-3xl font-black font-mono text-matrix leading-none">0</div>
+              <div class="text-[9px] text-slate-400 uppercase tracking-wider font-bold mt-1">Espectadores</div>
             </div>
           </div>
 
           <!-- Canal B -->
-          <div id="card-col-b" style="background: linear-gradient(180deg, #10192e 0%, #080d1a 100%); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06); border: 1px solid #1e293b;" class="relative text-center p-4 rounded-xl flex flex-col justify-between transition-all duration-300">
+          <div id="card-col-b" style="background-color: #0b1120; border: 1px solid #1e293b; min-height: 240px;" class="relative text-center p-4 rounded-xl flex flex-col justify-between transition-all duration-200">
             
-            <!-- Badge Ganador Flotante 3D -->
-            <div id="trophy-badge-b" style="box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);" class="hidden absolute -top-3 left-1/2 -translate-x-1/2 z-20 px-3 py-0.5 rounded tech-badge bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500 text-black text-[10px] font-black flex items-center gap-1 border border-yellow-100">
+            <div id="trophy-badge-b" class="hidden absolute -top-3 left-1/2 -translate-x-1/2 z-20 px-3 py-0.5 rounded tech-badge bg-amber-400 text-black text-[10px] font-black flex items-center gap-1 border border-amber-300">
               <span>👑</span> GANADOR
             </div>
 
             <div>
-              <div class="relative w-14 h-14 mx-auto mb-2">
-                <img id="duel-b-avatar" crossorigin="anonymous" src="" class="w-14 h-14 rounded-full border-2 border-cyan-400 object-cover shadow-[0_0_15px_rgba(34,211,238,0.3)]" alt="B">
+              <div class="w-14 h-14 mx-auto mb-2.5">
+                <img id="duel-b-avatar" crossorigin="anonymous" src="" class="w-14 h-14 rounded-full border-2 border-cyan-400 object-cover" alt="B">
               </div>
-              <div style="min-height: 44px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px;">
-                <p id="duel-b-program" style="line-height: 1.3; font-size: 12px; font-weight: 800; color: #FFFFFF; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0; padding: 0 4px;">--</p>
+              
+              <div style="min-height: 48px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px;">
+                <p id="duel-b-program" style="font-size: 12px; font-weight: 800; color: #FFFFFF; line-height: 1.35; margin: 0; padding: 0 2px; text-align: center; word-break: break-word;">--</p>
               </div>
-              <h4 id="duel-b-name" style="font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.05em; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">--</h4>
-              <p id="duel-b-status" class="text-[9px] font-mono font-bold text-cyan-400 mt-1">OFFLINE</p>
+
+              <h4 id="duel-b-name" style="font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.05em; margin: 0; padding-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">--</h4>
+              <p id="duel-b-status" class="text-[9px] font-mono font-bold text-cyan-400">OFFLINE</p>
             </div>
 
-            <div class="pt-3 border-t border-slate-800/80 mt-2">
-              <div id="duel-b-viewers" class="text-2xl sm:text-3xl font-black font-mono text-cyan-400" style="text-shadow: 0 0 15px rgba(34,211,238,0.4);">0</div>
-              <div class="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Espectadores</div>
+            <div class="pt-3 border-t border-slate-800/80">
+              <div id="duel-b-viewers" class="text-3xl font-black font-mono text-cyan-400 leading-none">0</div>
+              <div class="text-[9px] text-slate-400 uppercase tracking-wider font-bold mt-1">Espectadores</div>
             </div>
           </div>
         </div>
 
-        <!-- Footer con Separación Clara entre Fecha y Dominio -->
-        <div class="space-y-3 pb-1 z-10">
-          <!-- Barra de Share 3D -->
+        <!-- Footer Plano Limpio -->
+        <div class="space-y-3 z-10 pt-3">
           <div>
-            <div class="flex justify-between text-xs font-mono font-bold mb-1.5 px-0.5">
+            <div class="flex justify-between text-xs font-mono font-bold mb-1 px-0.5">
               <span id="duel-pct-a" class="text-matrix font-black text-[13px]">50%</span>
               <span class="text-slate-400 text-[10px] tracking-widest uppercase">SHARE DE AUDIENCIA</span>
               <span id="duel-pct-b" class="text-cyan-400 font-black text-[13px]">50%</span>
             </div>
-            <div class="w-full h-3.5 bg-black/80 rounded overflow-hidden flex border border-slate-700/60 p-0.5 shadow-inner">
-              <div id="duel-bar-a" class="h-full bg-matrix rounded-l transition-all duration-500 shadow-matrix" style="width: 50%"></div>
-              <div id="duel-bar-b" class="h-full bg-cyan-400 rounded-r transition-all duration-500 shadow-[0_0_10px_rgba(34,211,238,0.5)]" style="width: 50%"></div>
+            <div class="w-full h-3 bg-black rounded overflow-hidden flex border border-[#162238] p-0.5">
+              <div id="duel-bar-a" class="h-full bg-matrix rounded-l transition-all duration-500" style="width: 50%"></div>
+              <div id="duel-bar-b" class="h-full bg-cyan-400 rounded-r transition-all duration-500" style="width: 50%"></div>
             </div>
           </div>
 
-          <!-- Metadatos: Fecha a la izquierda y Dominio como Badge a la derecha -->
-          <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-800/90">
+          <div class="flex items-center justify-between gap-3 pt-2.5 border-t border-[#162238]">
             <div class="flex items-center space-x-1.5 min-w-0">
               <span class="w-1.5 h-1.5 rounded-full bg-matrix animate-pulse shrink-0"></span>
-              <span id="duel-timestamp" class="text-slate-300 font-mono text-[10px] sm:text-[11px] font-semibold truncate">
+              <span id="duel-timestamp" class="text-slate-300 font-mono text-[11px] font-semibold tracking-wide whitespace-nowrap">
                 CAPTURA: Sincronizando...
               </span>
             </div>
 
             <div class="shrink-0">
-              <span class="px-2.5 py-1 rounded tech-badge bg-black/70 text-slate-200 border border-slate-700/80 text-[10px] sm:text-[11px] tracking-wider font-black shadow-sm">
+              <span class="px-2.5 py-1 rounded tech-badge bg-[#0b1120] text-slate-300 border border-[#162238] text-[11px] tracking-wider font-bold">
                 streamrank.modoia.online
               </span>
             </div>
@@ -1520,7 +1488,7 @@ const HTML_APP = `<!DOCTYPE html>
 
       </div>
 
-      <!-- BOTONES DE DESCARGA: PNG HD Y GIF ANIMADO -->
+      <!-- BOTONES -->
       <div class="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-3 border-t border-[#162238]">
         <button onclick="cerrarModalDuelo()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-colors">
           Cerrar
@@ -1531,7 +1499,7 @@ const HTML_APP = `<!DOCTYPE html>
           <span>Descargar PNG HD</span>
         </button>
 
-        <button id="btn-export-gif" onclick="descargarDueloGIF()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 to-yellow-500 text-black hover:brightness-110 transition-all shadow-goldGlow flex items-center justify-center space-x-1.5">
+        <button id="btn-export-gif" onclick="descargarDueloGIF()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-amber-400 text-black hover:bg-amber-300 transition-all font-black flex items-center justify-center space-x-1.5">
           <span>✨</span>
           <span>Descargar GIF Animado</span>
         </button>
@@ -1540,7 +1508,7 @@ const HTML_APP = `<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- SVG TEMPLATES PARA PLATAFORMAS -->
+  <!-- SVG -->
   <div class="hidden">
     <svg id="svg-yt" viewBox="0 0 24 24" fill="currentColor">
       <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
@@ -1553,7 +1521,7 @@ const HTML_APP = `<!DOCTYPE html>
     </svg>
   </div>
 
-  <!-- FOOTER SUTIL -->
+  <!-- FOOTER -->
   <footer class="border-t border-[#162238] bg-[#050811] py-6 sm:py-8 text-center text-xs text-slate-500 font-mono space-y-2">
     <div>StreamRank ARG • Monitor en Tiempo Real de Streaming de Argentina</div>
     <div>
@@ -1561,7 +1529,6 @@ const HTML_APP = `<!DOCTYPE html>
     </div>
   </footer>
 
-  <!-- SCRIPT LOGICA CLIENTE -->
   <script>
     let canalesData = [];
     let solapaActiva = 'Todos';
@@ -1582,7 +1549,7 @@ const HTML_APP = `<!DOCTYPE html>
       const now = new Date();
       const options = { 
         timeZone: 'America/Argentina/Buenos_Aires',
-        weekday: 'long', 
+        weekday: 'short', 
         day: '2-digit', 
         month: '2-digit', 
         year: 'numeric', 
@@ -1606,13 +1573,7 @@ const HTML_APP = `<!DOCTYPE html>
         .toUpperCase() || 'SR';
 
       const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">' +
-        '<defs>' +
-        '<linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">' +
-        '<stop offset="0%" stop-color="#0b1120"/>' +
-        '<stop offset="100%" stop-color="#162238"/>' +
-        '</linearGradient>' +
-        '</defs>' +
-        '<rect width="64" height="64" rx="32" fill="url(#g)" stroke="#00ff66" stroke-width="2"/>' +
+        '<rect width="64" height="64" rx="32" fill="#0b1120" stroke="#00ff66" stroke-width="2"/>' +
         '<text x="50%" y="54%" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="20" fill="#00ff66" dominant-baseline="middle" text-anchor="middle">' + initials + '</text>' +
         '</svg>';
 
@@ -1724,9 +1685,6 @@ const HTML_APP = `<!DOCTYPE html>
       '</div>';
     };
 
-    // ========================================================================
-    // GRILLA RESPONSIVE
-    // ========================================================================
     const renderizarGrilla = () => {
       const container = document.getElementById('channels-grid');
       let filtrados = solapaActiva === 'Todos'
@@ -1755,19 +1713,18 @@ const HTML_APP = `<!DOCTYPE html>
         const tieneBotShield = c.bot_shield === true;
         const esTopVisible = (index === 0 && isLive);
 
-        let borderClass = 'border border-slate-700/80 sm:border-[#162238] hover:border-matrix/40 hover:shadow-matrixSoft';
+        let borderClass = 'border border-[#162238] hover:border-matrix/40';
         if (tieneBotShield) {
-          borderClass = 'border-2 border-amber-500/80 shadow-amber-950/40 bg-gradient-to-b from-[#1c120c] to-[#0b1120]';
+          borderClass = 'border-2 border-amber-500/80 bg-[#140e0a]';
         } else if (esTopVisible) {
-          borderClass = 'border-2 border-amber-400/90 shadow-goldGlow bg-gradient-to-b from-[#0b1329] to-[#0b1120]';
+          borderClass = 'border-2 border-amber-400/90 bg-[#0c1324]';
         }
 
-        html += '<div class="w-full rounded-2xl bg-[#0b1120] ' + borderClass + ' shadow-lg shadow-black/60 transition-all duration-300 p-4 flex flex-col justify-between min-h-[225px] h-auto group relative">';
+        html += '<div class="w-full rounded-2xl bg-[#0b1120] ' + borderClass + ' transition-all duration-200 p-4 flex flex-col justify-between min-h-[225px] h-auto group relative">';
 
-        // Fila 1: Avatar + Nombre
         html += '<div class="flex items-center justify-between gap-2 mb-2">';
         html += '<div class="flex items-center space-x-2.5 min-w-0 flex-1">';
-        html += '<img crossorigin="anonymous" onerror="this.onerror=null; this.src=getFallbackAvatar(\\'' + c.name.replace(/'/g, "\\\\'") + '\\')" src="' + c.avatar + '" class="w-11 h-11 rounded-full ' + (esTopVisible ? 'border-2 border-amber-400 shadow-goldGlow' : (isLive ? 'border-2 border-matrix shadow-matrixSoft' : 'border border-slate-700 opacity-80')) + ' object-cover shrink-0">';
+        html += '<img crossorigin="anonymous" onerror="this.onerror=null; this.src=getFallbackAvatar(\\'' + c.name.replace(/'/g, "\\\\'") + '\\')" src="' + c.avatar + '" class="w-11 h-11 rounded-full ' + (esTopVisible ? 'border-2 border-amber-400' : (isLive ? 'border-2 border-matrix' : 'border border-slate-700 opacity-80')) + ' object-cover shrink-0">';
         html += '<div class="min-w-0 flex-1">';
         html += '<h3 class="text-sm font-bold text-white truncate leading-tight">' + c.name + '</h3>';
         html += '<span class="text-[10px] text-slate-400 font-semibold block truncate">' + c.category + '</span>';
@@ -1775,7 +1732,7 @@ const HTML_APP = `<!DOCTYPE html>
 
         html += '<div class="flex items-center space-x-1.5 shrink-0">';
         if (esTopVisible) {
-          html += '<span class="px-2 py-0.5 rounded-md bg-amber-400/20 text-amber-300 font-mono font-black text-[10px] border border-amber-400/60 shadow-goldGlow whitespace-nowrap">#1 👑</span>';
+          html += '<span class="px-2 py-0.5 rounded-md bg-amber-400/20 text-amber-300 font-mono font-black text-[10px] border border-amber-400/60 whitespace-nowrap">#1 👑</span>';
         } else {
           html += '<span class="px-2 py-0.5 rounded-md bg-black/80 text-[11px] font-mono font-black text-matrix border border-matrix/30">#' + puestoGlobal + '</span>';
         }
@@ -1787,7 +1744,6 @@ const HTML_APP = `<!DOCTYPE html>
         }
         html += '</div></div>';
 
-        // Fila 2: Programa o Bot Shield
         html += '<div class="my-auto py-1.5">';
         if (tieneBotShield) {
           html += '<div class="px-2.5 py-1.5 rounded-lg bg-amber-950/70 border border-amber-500/70 text-[10px] text-amber-200 leading-tight flex items-center space-x-1.5">';
@@ -1800,7 +1756,6 @@ const HTML_APP = `<!DOCTYPE html>
         }
         html += '</div>';
 
-        // Fila 3: Espectadores y Badges
         html += '<div class="pt-2 border-t border-slate-800/80 space-y-2">';
         html += '<div class="flex items-center justify-between gap-2">';
         html += '<div class="flex items-baseline space-x-1.5 min-w-0">';
@@ -1808,7 +1763,7 @@ const HTML_APP = `<!DOCTYPE html>
         html += '<span class="text-base sm:text-lg font-black font-mono leading-none ' + (tieneBotShield ? 'text-amber-400' : (isLive ? 'text-matrix matrix-glow' : 'text-slate-500')) + '">' + formatNum(c.totalViewers) + '</span>';
         html += '</div>';
 
-        html += '<button onclick="abrirDueloCon(\\'' + c.id + '\\')" class="px-3 py-1 rounded-lg bg-black/80 hover:bg-matrix hover:text-black transition-all text-matrix font-black text-xs border border-matrix/50 shadow-matrixSoft shrink-0" title="Duelo Versus">';
+        html += '<button onclick="abrirDueloCon(\\'' + c.id + '\\')" class="px-3 py-1 rounded-lg bg-black/80 hover:bg-matrix hover:text-black transition-all text-matrix font-black text-xs border border-matrix/50 shrink-0" title="Duelo Versus">';
         html += 'VS';
         html += '</button>';
         html += '</div>';
@@ -1823,15 +1778,14 @@ const HTML_APP = `<!DOCTYPE html>
         html += '</div>';
       });
 
-      // TARJETA DE POSTULACIÓN
       if (solapaActiva === 'Emergentes' || solapaActiva === 'Todos') {
-        html += '<div class="w-full rounded-2xl bg-gradient-to-br from-[#0c1527] to-[#050811] border-2 border-dashed border-matrix/40 p-4 flex flex-col justify-between min-h-[225px] h-auto text-center shadow-matrixSoft">';
+        html += '<div class="w-full rounded-2xl bg-[#0b1120] border-2 border-dashed border-matrix/40 p-4 flex flex-col justify-between min-h-[225px] h-auto text-center">';
         html += '<div class="space-y-1.5 my-auto">';
         html += '<span class="text-2xl">📡</span>';
         html += '<h4 class="text-sm font-black text-white leading-snug">¿Tenés un canal y querés aparecer en StreamRank?</h4>';
         html += '<p class="text-[11px] text-slate-400 leading-tight">Sumate a las métricas oficiales de la escena nacional.</p>';
         html += '</div>';
-        html += '<a href="mailto:info@modoia.online?subject=Postulacion%20de%20Canal%20-%20StreamRank" class="w-full py-2.5 rounded-xl bg-matrix text-black font-black text-xs uppercase tracking-wider hover:bg-emerald-400 transition-all shadow-matrix text-center block">';
+        html += '<a href="mailto:info@modoia.online?subject=Postulacion%20de%20Canal%20-%20StreamRank" class="w-full py-2.5 rounded-xl bg-matrix text-black font-black text-xs uppercase tracking-wider hover:bg-emerald-400 transition-all text-center block">';
         html += 'Postular Mi Canal';
         html += '</a>';
         html += '</div>';
@@ -1840,9 +1794,6 @@ const HTML_APP = `<!DOCTYPE html>
       container.innerHTML = html;
     };
 
-    // ========================================================================
-    // DATA ROOM & TOKEN
-    // ========================================================================
     const solicitarDescargaCSV = () => {
       const savedToken = localStorage.getItem('streamrank_b2b_token');
       if (savedToken) {
@@ -1978,7 +1929,7 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     // ========================================================================
-    // MODAL DUELO
+    // DUELO
     // ========================================================================
     const poblarSelectoresDuelo = () => {
       const selA = document.getElementById('duel-select-a');
@@ -2027,9 +1978,10 @@ const HTML_APP = `<!DOCTYPE html>
       document.getElementById('modal-duel').classList.add('hidden');
     };
 
-    const limpiarTitulo = (str) => {
-      if (!str) return '--';
-      return str.length > 52 ? str.substring(0, 50).trim() + '...' : str;
+    const sanitizarTitulo = (str) => {
+      if (!str) return 'Transmisión en vivo';
+      const clean = str.replace(/\\s+/g, ' ').trim();
+      return clean.length > 44 ? clean.substring(0, 42).trim() + '…' : clean;
     };
 
     const renderizarContenidoDuelo = () => {
@@ -2055,7 +2007,7 @@ const HTML_APP = `<!DOCTYPE html>
           ? canalB.programas[0]
           : canalB.subtheme || canalB.name;
 
-      document.getElementById('duel-a-program').innerText = limpiarTitulo(progA);
+      document.getElementById('duel-a-program').innerText = sanitizarTitulo(progA);
       document.getElementById('duel-a-name').innerText = canalA.name;
       document.getElementById('duel-a-avatar').src = canalA.avatar;
       document.getElementById('duel-a-avatar').onerror = function () {
@@ -2065,7 +2017,7 @@ const HTML_APP = `<!DOCTYPE html>
       document.getElementById('duel-a-status').innerText = canalA.isLive ? '🔴 EN VIVO' : '⚫ OFFLINE';
       document.getElementById('duel-a-viewers').innerText = formatNum(canalA.totalViewers);
 
-      document.getElementById('duel-b-program').innerText = limpiarTitulo(progB);
+      document.getElementById('duel-b-program').innerText = sanitizarTitulo(progB);
       document.getElementById('duel-b-name').innerText = canalB.name;
       document.getElementById('duel-b-avatar').src = canalB.avatar;
       document.getElementById('duel-b-avatar').onerror = function () {
@@ -2092,26 +2044,22 @@ const HTML_APP = `<!DOCTYPE html>
       document.getElementById('duel-bar-a').style.width = pctA + '%';
       document.getElementById('duel-bar-b').style.width = pctB + '%';
 
-      // Resaltado 3D del Ganador
+      // Resaltado Flat del Ganador
       const colA = document.getElementById('card-col-a');
       const colB = document.getElementById('card-col-b');
       const trophyA = document.getElementById('trophy-badge-a');
       const trophyB = document.getElementById('trophy-badge-b');
 
       colA.style.border = '1px solid #1e293b';
-      colA.style.boxShadow = '0 10px 25px -5px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06)';
       colB.style.border = '1px solid #1e293b';
-      colB.style.boxShadow = '0 10px 25px -5px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06)';
       trophyA.classList.add('hidden');
       trophyB.classList.add('hidden');
 
       if (viewersA > viewersB && viewersA > 0) {
         colA.style.border = '1.5px solid #FFD700';
-        colA.style.boxShadow = '0 0 30px rgba(255, 215, 0, 0.25), inset 0 1px 0 rgba(255, 215, 0, 0.3)';
         trophyA.classList.remove('hidden');
       } else if (viewersB > viewersA && viewersB > 0) {
         colB.style.border = '1.5px solid #FFD700';
-        colB.style.boxShadow = '0 0 30px rgba(255, 215, 0, 0.25), inset 0 1px 0 rgba(255, 215, 0, 0.3)';
         trophyB.classList.remove('hidden');
       }
 
@@ -2119,7 +2067,7 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     // ========================================================================
-    // EXPORTACIONES: PNG HD & GIF ANIMADO CON EFECTO DORADO
+    // EXPORTACIONES CORREGIDAS: RENDER EXACTO 1:1 SIN BORDES 3D
     // ========================================================================
     const descargarDueloPNG = async () => {
       const tarjeta = document.getElementById('duel-capture-card');
@@ -2164,7 +2112,7 @@ const HTML_APP = `<!DOCTYPE html>
       
       const ganadorCol = viewersA >= viewersB ? colA : colB;
 
-      btn.innerText = 'GENERANDO GIF 3D...';
+      btn.innerText = 'GENERANDO GIF...';
       btn.disabled = true;
 
       document.getElementById('duel-timestamp').innerText = 'CAPTURA: ' + getFechaConDiaSemana();
@@ -2194,29 +2142,25 @@ const HTML_APP = `<!DOCTYPE html>
 
       const ctx = fxCanvas.getContext('2d');
 
-      const numParticles = 35;
+      const numParticles = 30;
       const particles = Array.from({ length: numParticles }, () => ({
         x: Math.random() * w,
         y: Math.random() * h - 20,
-        w: Math.random() * 8 + 6,
-        h: Math.random() * 4 + 3,
-        speedY: Math.random() * 3 + 2.5,
-        speedX: Math.random() * 2 - 1,
-        angle: Math.random() * Math.PI * 2,
-        angleSpeed: Math.random() * 0.2 + 0.1,
-        color1: Math.random() > 0.4 ? '#FFD700' : '#FFF275',
-        color2: '#B8860B'
+        w: Math.random() * 6 + 4,
+        h: Math.random() * 3 + 2,
+        speedY: Math.random() * 3 + 2,
+        speedX: Math.random() * 1.5 - 0.75,
+        color: Math.random() > 0.3 ? '#FFD700' : '#FFF275'
       }));
 
       const frames = [];
-      const totalFrames = 12;
+      const totalFrames = 10;
 
       try {
         for (let i = 0; i < totalFrames; i++) {
           ctx.clearRect(0, 0, w, h);
 
           particles.forEach((p) => {
-            p.angle += p.angleSpeed;
             p.y += p.speedY;
             p.x += p.speedX;
 
@@ -2225,23 +2169,12 @@ const HTML_APP = `<!DOCTYPE html>
               p.x = Math.random() * w;
             }
 
-            ctx.save();
-            ctx.translate(p.x, p.y);
-            ctx.rotate(p.angle);
-            const scaleY = Math.cos(p.angle);
-            ctx.scale(1, scaleY);
-
-            const grad = ctx.createLinearGradient(-p.w / 2, -p.h / 2, p.w / 2, p.h / 2);
-            grad.addColorStop(0, p.color1);
-            grad.addColorStop(1, p.color2);
-
-            ctx.fillStyle = grad;
-            ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
-            ctx.restore();
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x, p.y, p.w, p.h);
           });
 
           const frameCanvas = await html2canvas(tarjeta, {
-            scale: 1.2,
+            scale: 1.5,
             backgroundColor: '#050811',
             useCORS: true,
             logging: false
@@ -2253,9 +2186,9 @@ const HTML_APP = `<!DOCTYPE html>
 
         gifshot.createGIF({
           images: frames,
-          interval: 0.08,
-          gifWidth: tarjeta.offsetWidth * 1.2,
-          gifHeight: tarjeta.offsetHeight * 1.2
+          interval: 0.09,
+          gifWidth: tarjeta.offsetWidth * 1.5,
+          gifHeight: tarjeta.offsetHeight * 1.5
         }, function (obj) {
           if (!obj.error) {
             const enlace = document.createElement('a');
@@ -2291,9 +2224,9 @@ app.get('/', (req, res) => {
 });
 
 // ============================================================================
-// AUTO-PING INTERNO (MANTIENE LA INSTANCIA DESPIERTA 24/7 EN RENDER)
+// AUTO-PING INTERNO
 // ============================================================================
-const PING_INTERVAL = 10 * 60 * 1000; // Cada 10 minutos
+const PING_INTERVAL = 10 * 60 * 1000;
 const APP_URL = 'https://streamrank.onrender.com/';
 
 setInterval(() => {
@@ -2305,7 +2238,7 @@ setInterval(() => {
 }, PING_INTERVAL);
 
 // ============================================================================
-// ARRANQUE DEL SERVIDOR
+// ARRANQUE
 // ============================================================================
 app.listen(PORT, () => {
   console.log(`[StreamRank ARG] Servidor activo en puerto ${PORT}`);
