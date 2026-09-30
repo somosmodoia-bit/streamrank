@@ -2066,7 +2066,7 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     // ========================================================================
-    // MOTOR DE DIBUJO CANVAS 2D NATIVO (CERO ERRORES DE CSS / CERO BORDES 3D)
+    // MOTOR CANVAS 2D NATIVO PROFESIONAL (BARRA PERFECTA & CONFETI REALISTA)
     // ========================================================================
     function roundRect(ctx, x, y, width, height, radius) {
       ctx.beginPath();
@@ -2106,7 +2106,7 @@ const HTML_APP = `<!DOCTYPE html>
       }
     }
 
-    async function generarCanvasPlaca(confettiOffset = 0, isGif = false) {
+    async function generarCanvasPlaca(frameIndex = 0, isGif = false) {
       const canvas = document.createElement('canvas');
       canvas.width = 1040;
       canvas.height = 1040;
@@ -2116,7 +2116,7 @@ const HTML_APP = `<!DOCTYPE html>
       ctx.fillStyle = '#050811';
       ctx.fillRect(0, 0, 1040, 1040);
 
-      // Borde exterior fino de 1px
+      // Borde exterior fino
       ctx.strokeStyle = '#162238';
       ctx.lineWidth = 2;
       roundRect(ctx, 2, 2, 1036, 1036, 32);
@@ -2137,7 +2137,7 @@ const HTML_APP = `<!DOCTYPE html>
       ctx.textBaseline = 'middle';
       ctx.fillText('STREAMRANK ARG • DUELO EN DIRECTO', 520, 75);
 
-      // Datos de canales
+      // Datos
       const nameA = document.getElementById('duel-a-name').innerText;
       const nameB = document.getElementById('duel-b-name').innerText;
       const progA = document.getElementById('duel-a-program').innerText;
@@ -2158,7 +2158,7 @@ const HTML_APP = `<!DOCTYPE html>
       roundRect(ctx, colAX, colY, colWidth, colHeight, 24);
       ctx.fill();
       ctx.strokeStyle = (viewersA > viewersB && viewersA > 0) ? '#FFD700' : '#1e293b';
-      ctx.lineWidth = (viewersA > viewersB && viewersA > 0) ? 4 : 2;
+      ctx.lineWidth = (viewersA > viewersB && viewersA > 0) ? 3 : 2;
       roundRect(ctx, colAX, colY, colWidth, colHeight, 24);
       ctx.stroke();
 
@@ -2167,11 +2167,11 @@ const HTML_APP = `<!DOCTYPE html>
       roundRect(ctx, colBX, colY, colWidth, colHeight, 24);
       ctx.fill();
       ctx.strokeStyle = (viewersB > viewersA && viewersB > 0) ? '#FFD700' : '#1e293b';
-      ctx.lineWidth = (viewersB > viewersA && viewersB > 0) ? 4 : 2;
+      ctx.lineWidth = (viewersB > viewersA && viewersB > 0) ? 3 : 2;
       roundRect(ctx, colBX, colY, colWidth, colHeight, 24);
       ctx.stroke();
 
-      // Badge de Ganador
+      // Badge Ganador
       if (viewersA > viewersB && viewersA > 0) {
         ctx.fillStyle = '#f59e0b';
         roundRect(ctx, colAX + 147, colY - 20, 150, 40, 8);
@@ -2188,7 +2188,7 @@ const HTML_APP = `<!DOCTYPE html>
         ctx.fillText('👑 GANADOR', colBX + 222, colY + 1);
       }
 
-      // Avatares circulares
+      // Avatares
       const imgA = document.getElementById('duel-a-avatar');
       const imgB = document.getElementById('duel-b-avatar');
 
@@ -2228,7 +2228,7 @@ const HTML_APP = `<!DOCTYPE html>
       ctx.fillText(nameA.toUpperCase(), colAX + 222, colY + 270);
       ctx.fillText(nameB.toUpperCase(), colBX + 222, colY + 270);
 
-      // Estado en vivo / offline
+      // Estado en vivo
       ctx.font = 'bold 17px monospace';
       ctx.fillStyle = isLiveA ? '#00ff66' : '#64748B';
       ctx.fillText(isLiveA ? '🔴 EN VIVO' : '⚫ OFFLINE', colAX + 222, colY + 305);
@@ -2236,7 +2236,7 @@ const HTML_APP = `<!DOCTYPE html>
       ctx.fillStyle = isLiveB ? '#22d3ee' : '#64748B';
       ctx.fillText(isLiveB ? '🔴 EN VIVO' : '⚫ OFFLINE', colBX + 222, colY + 305);
 
-      // Separador interno
+      // Separador
       ctx.strokeStyle = '#1e293b';
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -2258,22 +2258,56 @@ const HTML_APP = `<!DOCTYPE html>
       ctx.fillText('ESPECTADORES', colAX + 222, colY + 470);
       ctx.fillText('ESPECTADORES', colBX + 222, colY + 470);
 
-      // Confetti cayendo sobre el ganador (solo en GIF)
+      // ======================================================================
+      // CONFETI DORADO VECTORIAL CON GIRO Y GRADIENTE METÁLICO (SOLO GIF)
+      // ======================================================================
       if (isGif) {
         const targetColX = (viewersA >= viewersB) ? colAX : colBX;
         ctx.save();
         roundRect(ctx, targetColX, colY, colWidth, colHeight, 24);
         ctx.clip();
-        for (let i = 0; i < 35; i++) {
-          const px = targetColX + ((i * 37 + confettiOffset * 15) % colWidth);
-          const py = colY + ((i * 47 + confettiOffset * 35) % colHeight);
-          ctx.fillStyle = i % 2 === 0 ? '#FFD700' : '#FFF275';
-          ctx.fillRect(px, py, 10, 5);
+
+        const numParticles = 40;
+        for (let i = 0; i < numParticles; i++) {
+          // Posición continua calculada con función senoidal
+          const baseY = (i * 35 + frameIndex * 26) % (colHeight + 40) - 20;
+          const wobble = Math.sin((frameIndex + i) * 0.4) * 16;
+          const px = targetColX + 30 + ((i * 47) % (colWidth - 60)) + wobble;
+          const py = colY + baseY;
+
+          const angle = (frameIndex * 0.25) + i;
+          const flipScale = Math.cos(angle); // Simulación de giro en perspectiva 3D
+
+          const pw = 12;
+          const ph = 6;
+
+          ctx.save();
+          ctx.translate(px, py);
+          ctx.rotate(angle * 0.3);
+          ctx.scale(1, flipScale);
+
+          // Degradado dorado metálico de alta calidad
+          const goldGrad = ctx.createLinearGradient(-pw / 2, -ph / 2, pw / 2, ph / 2);
+          goldGrad.addColorStop(0, '#FFE57F');
+          goldGrad.addColorStop(0.5, '#FFD700');
+          goldGrad.addColorStop(1, '#B8860B');
+
+          ctx.fillStyle = goldGrad;
+          ctx.fillRect(-pw / 2, -ph / 2, pw, ph);
+
+          // Brillo sutil en el borde de la cinta
+          ctx.strokeStyle = '#FFF8E1';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(-pw / 2, -ph / 2, pw, ph);
+
+          ctx.restore();
         }
         ctx.restore();
       }
 
-      // Barra de Share
+      // ======================================================================
+      // BARRA DE SHARE SIN CORTES (TRAZADO UNIFICADO PERFECTO)
+      // ======================================================================
       const totalShare = viewersA + viewersB;
       const pctA = totalShare > 0 ? Math.round((viewersA / totalShare) * 100) : 50;
       const pctB = 100 - pctA;
@@ -2281,67 +2315,79 @@ const HTML_APP = `<!DOCTYPE html>
       ctx.font = '900 24px monospace';
       ctx.fillStyle = '#00ff66';
       ctx.textAlign = 'left';
-      ctx.fillText(pctA + '%', colAX, 730);
+      ctx.fillText(pctA + '%', colAX, 725);
 
       ctx.fillStyle = '#94A3B8';
       ctx.font = 'bold 18px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('SHARE DE AUDIENCIA', 520, 730);
+      ctx.fillText('SHARE DE AUDIENCIA', 520, 725);
 
       ctx.fillStyle = '#22d3ee';
       ctx.textAlign = 'right';
-      ctx.fillText(pctB + '%', colBX + colWidth, 730);
+      ctx.fillText(pctB + '%', colBX + colWidth, 725);
 
-      // Barra fondo
-      ctx.fillStyle = '#000000';
-      roundRect(ctx, colAX, 748, 936, 20, 10);
-      ctx.fill();
+      const barX = colAX;
+      const barY = 744;
+      const barTotalW = 936;
+      const barH = 22;
+      const barRadius = 11;
+      const splitX = barX + Math.max(12, Math.min(barTotalW - 12, (barTotalW * pctA) / 100));
 
-      // Segmento A
-      const barWidthA = Math.max(16, (936 * pctA) / 100);
+      // Clip sobre toda la barra redondeada (evita bordes rotos)
+      ctx.save();
+      roundRect(ctx, barX, barY, barTotalW, barH, barRadius);
+      ctx.clip();
+
+      // Lado Canal A (Verde)
       ctx.fillStyle = '#00ff66';
-      roundRect(ctx, colAX, 748, barWidthA, 20, 10);
-      ctx.fill();
+      ctx.fillRect(barX, barY, splitX - barX, barH);
 
-      // Segmento B
+      // Lado Canal B (Cian)
       ctx.fillStyle = '#22d3ee';
-      roundRect(ctx, colAX + barWidthA, 748, 936 - barWidthA, 20, 10);
-      ctx.fill();
+      ctx.fillRect(splitX, barY, barX + barTotalW - splitX, barH);
 
-      // Footer
+      ctx.restore();
+
+      // Borde sutil contenedor de la barra
+      ctx.strokeStyle = '#162238';
+      ctx.lineWidth = 2;
+      roundRect(ctx, barX, barY, barTotalW, barH, barRadius);
+      ctx.stroke();
+
+      // Separador Footer
       ctx.strokeStyle = '#162238';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(colAX, 820);
-      ctx.lineTo(colBX + colWidth, 820);
+      ctx.moveTo(colAX, 818);
+      ctx.lineTo(colBX + colWidth, 818);
       ctx.stroke();
 
       // Punto verde y Fecha
       ctx.fillStyle = '#00ff66';
       ctx.beginPath();
-      ctx.arc(colAX + 10, 868, 6, 0, Math.PI * 2);
+      ctx.arc(colAX + 10, 866, 6, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.fillStyle = '#FFFFFF';
       ctx.font = '600 20px monospace';
       ctx.textAlign = 'left';
-      ctx.fillText('CAPTURA: ' + getFechaConDiaSemana(), colAX + 30, 868);
+      ctx.fillText('CAPTURA: ' + getFechaConDiaSemana(), colAX + 30, 866);
 
       // Badge Dominio a la derecha
       const domainBoxWidth = 320;
       const domainBoxX = colBX + colWidth - domainBoxWidth;
       ctx.fillStyle = '#0b1120';
-      roundRect(ctx, domainBoxX, 842, domainBoxWidth, 50, 8);
+      roundRect(ctx, domainBoxX, 840, domainBoxWidth, 52, 8);
       ctx.fill();
       ctx.strokeStyle = '#162238';
       ctx.lineWidth = 2;
-      roundRect(ctx, domainBoxX, 842, domainBoxWidth, 50, 8);
+      roundRect(ctx, domainBoxX, 840, domainBoxWidth, 52, 8);
       ctx.stroke();
 
       ctx.fillStyle = '#CBD5E1';
       ctx.font = 'bold 18px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('STREAMRANK.MODOIA.ONLINE', domainBoxX + domainBoxWidth / 2, 868);
+      ctx.fillText('STREAMRANK.MODOIA.ONLINE', domainBoxX + domainBoxWidth / 2, 866);
 
       return canvas;
     }
@@ -2375,7 +2421,7 @@ const HTML_APP = `<!DOCTYPE html>
 
       try {
         const frames = [];
-        const totalFrames = 10;
+        const totalFrames = 12;
 
         for (let i = 0; i < totalFrames; i++) {
           const c = await generarCanvasPlaca(i, true);
@@ -2384,7 +2430,7 @@ const HTML_APP = `<!DOCTYPE html>
 
         gifshot.createGIF({
           images: frames,
-          interval: 0.1,
+          interval: 0.08,
           gifWidth: 600,
           gifHeight: 600
         }, function (obj) {
