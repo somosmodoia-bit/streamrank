@@ -1011,9 +1011,6 @@ const HTML_APP = `<!DOCTYPE html>
       darkMode: 'class',
       theme: {
         extend: {
-          screens: {
-            'xs': '420px'
-          },
           colors: {
             bgDeep: '#050811',
             cardBg: '#0b1120',
@@ -1062,26 +1059,26 @@ const HTML_APP = `<!DOCTYPE html>
 </head>
 <body class="min-h-screen flex flex-col bg-[#050811] text-slate-100 antialiased selection:bg-[#00ff66] selection:text-black">
 
-  <!-- HEADER COMPACTO RESPONSIVE -->
+  <!-- HEADER COMPACTO RESPONSIVE (BETA SIEMPRE VISIBLE) -->
   <header class="sticky top-0 z-40 bg-[#050811]/95 backdrop-blur-md border-b border-[#162238]">
-    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-20 flex items-center justify-between gap-2">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-20 flex items-center justify-between gap-1.5 sm:gap-2">
       
-      <!-- Marca + Badges -->
-      <div class="flex items-center space-x-2 sm:space-x-3 min-w-0">
+      <!-- Marca + Badges (Siempre juntos y proporcionados) -->
+      <div class="flex items-center space-x-1.5 sm:space-x-3 min-w-0">
         <div class="relative flex items-center justify-center w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-black border border-matrix/50 shadow-matrixSoft flex-shrink-0">
           <span class="absolute w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 rounded-full bg-matrix animate-ping opacity-75"></span>
           <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-matrix"></span>
         </div>
         <div class="min-w-0 flex items-center space-x-1 sm:space-x-1.5">
-          <span class="text-sm sm:text-xl font-black tracking-wider text-white">STREAMRANK</span>
-          <span class="text-[9px] sm:text-xs px-1.5 py-0.5 tech-badge bg-matrix/20 text-matrix border border-matrix/40 shrink-0">ARG</span>
-          <!-- En mobile estrecho se oculta sutilmente para darle todo el aire al contador -->
-          <span class="hidden xs:inline-flex items-center px-1.5 py-0.5 text-[9px] tech-badge bg-cyan-400/10 text-cyan-300 border border-cyan-400/40 shrink-0">BETA</span>
+          <span class="text-[13px] sm:text-xl font-black tracking-wider text-white">STREAMRANK</span>
+          <span class="text-[8px] sm:text-xs px-1 py-0.5 tech-badge bg-matrix/20 text-matrix border border-matrix/40 shrink-0">ARG</span>
+          <!-- BETA siempre visible: compacto en mobile y normal en desktop -->
+          <span class="inline-flex items-center text-[8px] sm:text-[9px] px-1 py-0.5 tech-badge bg-cyan-400/10 text-cyan-300 border border-cyan-400/40 shrink-0">BETA</span>
         </div>
       </div>
 
-      <!-- Píldora de Telemetría (compacta y holgada en mobile) -->
-      <div class="flex items-center space-x-2 flex-shrink-0">
+      <!-- Píldora de Telemetría (compacta y con espacio libre en mobile) -->
+      <div class="flex items-center space-x-1.5 sm:space-x-2 flex-shrink-0">
         <div class="flex items-center bg-[#0b1120] border border-[#162238] rounded-lg sm:rounded-xl px-2 sm:px-4 py-1 sm:py-2 space-x-1.5 sm:space-x-4">
           <div class="flex items-center space-x-1 sm:space-x-1.5">
             <span class="inline-block w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-matrix shadow-matrix"></span>
@@ -1394,7 +1391,7 @@ const HTML_APP = `<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- PLACA DE PREVIEW (OPTIMIZADA PARA PANTALLAS CHICAS) -->
+      <!-- PLACA DE PREVIEW -->
       <div id="duel-capture-card" style="background-color: #050811; border: 1px solid #162238;" class="w-full max-w-[500px] mx-auto flex flex-col justify-between p-3.5 sm:p-5 relative overflow-hidden rounded-xl sm:rounded-2xl my-1.5">
         
         <!-- Header Técnico -->
@@ -1460,7 +1457,7 @@ const HTML_APP = `<!DOCTYPE html>
           </div>
         </div>
 
-        <!-- Footer Plano con Aire en Pantallas Chicas -->
+        <!-- Footer -->
         <div class="space-y-2 sm:space-y-2.5 z-10 pt-2 sm:pt-3">
           <div>
             <div class="flex justify-between text-[11px] sm:text-xs font-mono font-bold mb-1 px-0.5">
@@ -2070,7 +2067,7 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     // ========================================================================
-    // MOTOR CANVAS 2D NATIVO PROFESIONAL (ALTA DEFINICIÓN CONSTANTE)
+    // MOTOR CANVAS 2D NATIVO PROFESIONAL
     // ========================================================================
     function roundRect(ctx, x, y, width, height, radius) {
       ctx.beginPath();
@@ -2332,7 +2329,6 @@ const HTML_APP = `<!DOCTYPE html>
       roundRect(ctx, barX, barY, barTotalW, barH, barRadius);
       ctx.stroke();
 
-      // Separador Footer
       ctx.strokeStyle = '#162238';
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -2340,7 +2336,6 @@ const HTML_APP = `<!DOCTYPE html>
       ctx.lineTo(colBX + colWidth, 824);
       ctx.stroke();
 
-      // Punto verde y Fecha
       ctx.fillStyle = '#00ff66';
       ctx.beginPath();
       ctx.arc(colAX + 10, 870, 6, 0, Math.PI * 2);
@@ -2351,7 +2346,6 @@ const HTML_APP = `<!DOCTYPE html>
       ctx.textAlign = 'left';
       ctx.fillText('CAPTURA: ' + getFechaConDiaSemana(), colAX + 30, 870);
 
-      // Marca de agua discreta en gris
       ctx.fillStyle = '#64748B';
       ctx.font = '600 17px monospace';
       ctx.textAlign = 'right';
