@@ -1005,7 +1005,6 @@ const HTML_APP = `<!DOCTYPE html>
   <link rel="canonical" href="https://streamrank.modoia.online">
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gifshot/0.3.2/gifshot.min.js"></script>
   <script>
     tailwind.config = {
@@ -1390,7 +1389,7 @@ const HTML_APP = `<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- PLACA DE CAPTURA DUELO (MISMO FORMATO VISUAL FLAT) -->
+      <!-- PLACA DE CAPTURA DUELO (FLAT ORIGINAL LIMPIO) -->
       <div id="duel-capture-card" style="background-color: #050811; border: 1px solid #162238; width: 100%; max-width: 520px; box-sizing: border-box;" class="mx-auto flex flex-col justify-between p-6 relative overflow-hidden rounded-2xl my-2">
         
         <!-- Header Técnico Rectangular Plano -->
@@ -2067,33 +2066,301 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     // ========================================================================
-    // EXPORTACIONES CORREGIDAS: RENDER EXACTO 1:1 SIN BORDES 3D
+    // MOTOR DE DIBUJO CANVAS 2D NATIVO (CERO ERRORES DE CSS / CERO BORDES 3D)
     // ========================================================================
+    function roundRect(ctx, x, y, width, height, radius) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+    }
+
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
+      const words = text.split(' ');
+      let line = '';
+      let lines = [];
+
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && n > 0) {
+          lines.push(line.trim());
+          line = words[n] + ' ';
+          if (lines.length === maxLines - 1) break;
+        } else {
+          line = testLine;
+        }
+      }
+      lines.push(line.trim());
+
+      const startY = y - ((lines.length - 1) * lineHeight) / 2;
+      for (let k = 0; k < lines.length; k++) {
+        ctx.fillText(lines[k], x, startY + (k * lineHeight));
+      }
+    }
+
+    async function generarCanvasPlaca(confettiOffset = 0, isGif = false) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1040;
+      canvas.height = 1040;
+      const ctx = canvas.getContext('2d');
+
+      // Fondo base sólido #050811
+      ctx.fillStyle = '#050811';
+      ctx.fillRect(0, 0, 1040, 1040);
+
+      // Borde exterior fino de 1px
+      ctx.strokeStyle = '#162238';
+      ctx.lineWidth = 2;
+      roundRect(ctx, 2, 2, 1036, 1036, 32);
+      ctx.stroke();
+
+      // Badge superior central
+      ctx.fillStyle = '#0b1120';
+      roundRect(ctx, 270, 48, 500, 52, 8);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0, 255, 102, 0.4)';
+      ctx.lineWidth = 2;
+      roundRect(ctx, 270, 48, 500, 52, 8);
+      ctx.stroke();
+
+      ctx.fillStyle = '#00ff66';
+      ctx.font = 'bold 22px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('STREAMRANK ARG • DUELO EN DIRECTO', 520, 75);
+
+      // Datos de canales
+      const nameA = document.getElementById('duel-a-name').innerText;
+      const nameB = document.getElementById('duel-b-name').innerText;
+      const progA = document.getElementById('duel-a-program').innerText;
+      const progB = document.getElementById('duel-b-program').innerText;
+      const viewersA = parseInt(document.getElementById('duel-a-viewers').innerText.replace(/[^0-9]/g, '')) || 0;
+      const viewersB = parseInt(document.getElementById('duel-b-viewers').innerText.replace(/[^0-9]/g, '')) || 0;
+      const isLiveA = document.getElementById('duel-a-status').innerText.includes('VIVO');
+      const isLiveB = document.getElementById('duel-b-status').innerText.includes('VIVO');
+
+      const colWidth = 444;
+      const colHeight = 520;
+      const colY = 150;
+      const colAX = 52;
+      const colBX = 544;
+
+      // Tarjeta Canal A
+      ctx.fillStyle = '#0b1120';
+      roundRect(ctx, colAX, colY, colWidth, colHeight, 24);
+      ctx.fill();
+      ctx.strokeStyle = (viewersA > viewersB && viewersA > 0) ? '#FFD700' : '#1e293b';
+      ctx.lineWidth = (viewersA > viewersB && viewersA > 0) ? 4 : 2;
+      roundRect(ctx, colAX, colY, colWidth, colHeight, 24);
+      ctx.stroke();
+
+      // Tarjeta Canal B
+      ctx.fillStyle = '#0b1120';
+      roundRect(ctx, colBX, colY, colWidth, colHeight, 24);
+      ctx.fill();
+      ctx.strokeStyle = (viewersB > viewersA && viewersB > 0) ? '#FFD700' : '#1e293b';
+      ctx.lineWidth = (viewersB > viewersA && viewersB > 0) ? 4 : 2;
+      roundRect(ctx, colBX, colY, colWidth, colHeight, 24);
+      ctx.stroke();
+
+      // Badge de Ganador
+      if (viewersA > viewersB && viewersA > 0) {
+        ctx.fillStyle = '#f59e0b';
+        roundRect(ctx, colAX + 147, colY - 20, 150, 40, 8);
+        ctx.fill();
+        ctx.fillStyle = '#000000';
+        ctx.font = '900 18px system-ui, sans-serif';
+        ctx.fillText('👑 GANADOR', colAX + 222, colY + 1);
+      } else if (viewersB > viewersA && viewersB > 0) {
+        ctx.fillStyle = '#f59e0b';
+        roundRect(ctx, colBX + 147, colY - 20, 150, 40, 8);
+        ctx.fill();
+        ctx.fillStyle = '#000000';
+        ctx.font = '900 18px system-ui, sans-serif';
+        ctx.fillText('👑 GANADOR', colBX + 222, colY + 1);
+      }
+
+      // Avatares circulares
+      const imgA = document.getElementById('duel-a-avatar');
+      const imgB = document.getElementById('duel-b-avatar');
+
+      function drawAvatar(img, cx, cy, strokeColor) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, 54, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+        try {
+          ctx.drawImage(img, cx - 54, cy - 54, 108, 108);
+        } catch (e) {
+          ctx.fillStyle = '#162238';
+          ctx.fill();
+        }
+        ctx.restore();
+
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 54, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      drawAvatar(imgA, colAX + 222, colY + 84, '#00ff66');
+      drawAvatar(imgB, colBX + 222, colY + 84, '#22d3ee');
+
+      // Títulos de programa
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 23px system-ui, sans-serif';
+      wrapText(ctx, progA, colAX + 222, colY + 195, 390, 32, 2);
+      wrapText(ctx, progB, colBX + 222, colY + 195, 390, 32, 2);
+
+      // Nombres de canal
+      ctx.fillStyle = '#94A3B8';
+      ctx.font = 'bold 20px system-ui, sans-serif';
+      ctx.fillText(nameA.toUpperCase(), colAX + 222, colY + 270);
+      ctx.fillText(nameB.toUpperCase(), colBX + 222, colY + 270);
+
+      // Estado en vivo / offline
+      ctx.font = 'bold 17px monospace';
+      ctx.fillStyle = isLiveA ? '#00ff66' : '#64748B';
+      ctx.fillText(isLiveA ? '🔴 EN VIVO' : '⚫ OFFLINE', colAX + 222, colY + 305);
+
+      ctx.fillStyle = isLiveB ? '#22d3ee' : '#64748B';
+      ctx.fillText(isLiveB ? '🔴 EN VIVO' : '⚫ OFFLINE', colBX + 222, colY + 305);
+
+      // Separador interno
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(colAX + 30, colY + 345);
+      ctx.lineTo(colAX + colWidth - 30, colY + 345);
+      ctx.moveTo(colBX + 30, colY + 345);
+      ctx.lineTo(colBX + colWidth - 30, colY + 345);
+      ctx.stroke();
+
+      // Espectadores
+      ctx.font = '900 58px monospace';
+      ctx.fillStyle = '#00ff66';
+      ctx.fillText(formatNum(viewersA), colAX + 222, colY + 415);
+      ctx.fillStyle = '#22d3ee';
+      ctx.fillText(formatNum(viewersB), colBX + 222, colY + 415);
+
+      ctx.font = 'bold 18px system-ui, sans-serif';
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText('ESPECTADORES', colAX + 222, colY + 470);
+      ctx.fillText('ESPECTADORES', colBX + 222, colY + 470);
+
+      // Confetti cayendo sobre el ganador (solo en GIF)
+      if (isGif) {
+        const targetColX = (viewersA >= viewersB) ? colAX : colBX;
+        ctx.save();
+        roundRect(ctx, targetColX, colY, colWidth, colHeight, 24);
+        ctx.clip();
+        for (let i = 0; i < 35; i++) {
+          const px = targetColX + ((i * 37 + confettiOffset * 15) % colWidth);
+          const py = colY + ((i * 47 + confettiOffset * 35) % colHeight);
+          ctx.fillStyle = i % 2 === 0 ? '#FFD700' : '#FFF275';
+          ctx.fillRect(px, py, 10, 5);
+        }
+        ctx.restore();
+      }
+
+      // Barra de Share
+      const totalShare = viewersA + viewersB;
+      const pctA = totalShare > 0 ? Math.round((viewersA / totalShare) * 100) : 50;
+      const pctB = 100 - pctA;
+
+      ctx.font = '900 24px monospace';
+      ctx.fillStyle = '#00ff66';
+      ctx.textAlign = 'left';
+      ctx.fillText(pctA + '%', colAX, 730);
+
+      ctx.fillStyle = '#94A3B8';
+      ctx.font = 'bold 18px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('SHARE DE AUDIENCIA', 520, 730);
+
+      ctx.fillStyle = '#22d3ee';
+      ctx.textAlign = 'right';
+      ctx.fillText(pctB + '%', colBX + colWidth, 730);
+
+      // Barra fondo
+      ctx.fillStyle = '#000000';
+      roundRect(ctx, colAX, 748, 936, 20, 10);
+      ctx.fill();
+
+      // Segmento A
+      const barWidthA = Math.max(16, (936 * pctA) / 100);
+      ctx.fillStyle = '#00ff66';
+      roundRect(ctx, colAX, 748, barWidthA, 20, 10);
+      ctx.fill();
+
+      // Segmento B
+      ctx.fillStyle = '#22d3ee';
+      roundRect(ctx, colAX + barWidthA, 748, 936 - barWidthA, 20, 10);
+      ctx.fill();
+
+      // Footer
+      ctx.strokeStyle = '#162238';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(colAX, 820);
+      ctx.lineTo(colBX + colWidth, 820);
+      ctx.stroke();
+
+      // Punto verde y Fecha
+      ctx.fillStyle = '#00ff66';
+      ctx.beginPath();
+      ctx.arc(colAX + 10, 868, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '600 20px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText('CAPTURA: ' + getFechaConDiaSemana(), colAX + 30, 868);
+
+      // Badge Dominio a la derecha
+      const domainBoxWidth = 320;
+      const domainBoxX = colBX + colWidth - domainBoxWidth;
+      ctx.fillStyle = '#0b1120';
+      roundRect(ctx, domainBoxX, 842, domainBoxWidth, 50, 8);
+      ctx.fill();
+      ctx.strokeStyle = '#162238';
+      ctx.lineWidth = 2;
+      roundRect(ctx, domainBoxX, 842, domainBoxWidth, 50, 8);
+      ctx.stroke();
+
+      ctx.fillStyle = '#CBD5E1';
+      ctx.font = 'bold 18px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('STREAMRANK.MODOIA.ONLINE', domainBoxX + domainBoxWidth / 2, 868);
+
+      return canvas;
+    }
+
     const descargarDueloPNG = async () => {
-      const tarjeta = document.getElementById('duel-capture-card');
       const btn = document.getElementById('btn-export-png');
       const originalText = btn.innerHTML;
-
       btn.innerText = 'GENERANDO...';
       btn.disabled = true;
 
-      document.getElementById('duel-timestamp').innerText = 'CAPTURA: ' + getFechaConDiaSemana();
-
       try {
-        const canvas = await html2canvas(tarjeta, {
-          backgroundColor: '#050811',
-          scale: 2,
-          useCORS: true,
-          allowTaint: false,
-          logging: false
-        });
+        const canvas = await generarCanvasPlaca(0, false);
         const enlace = document.createElement('a');
         enlace.href = canvas.toDataURL('image/png');
         enlace.download = 'streamrank_duelo_' + Date.now() + '.png';
         enlace.click();
       } catch (err) {
         console.error('Error al exportar PNG:', err);
-        alert('No se pudo generar la placa HD.');
+        alert('No se pudo generar la placa.');
       } finally {
         btn.innerHTML = originalText;
         btn.disabled = false;
@@ -2101,94 +2368,25 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     const descargarDueloGIF = async () => {
-      const tarjeta = document.getElementById('duel-capture-card');
-      const colA = document.getElementById('card-col-a');
-      const colB = document.getElementById('card-col-b');
       const btn = document.getElementById('btn-export-gif');
       const originalText = btn.innerHTML;
-
-      const viewersA = parseInt(document.getElementById('duel-a-viewers').innerText.replace(/[^0-9]/g, '')) || 0;
-      const viewersB = parseInt(document.getElementById('duel-b-viewers').innerText.replace(/[^0-9]/g, '')) || 0;
-      
-      const ganadorCol = viewersA >= viewersB ? colA : colB;
-
       btn.innerText = 'GENERANDO GIF...';
       btn.disabled = true;
 
-      document.getElementById('duel-timestamp').innerText = 'CAPTURA: ' + getFechaConDiaSemana();
-
-      let fxCanvas = document.getElementById('duel-fx-canvas');
-      if (!fxCanvas) {
-        fxCanvas = document.createElement('canvas');
-        fxCanvas.id = 'duel-fx-canvas';
-        fxCanvas.style.position = 'absolute';
-        fxCanvas.style.pointerEvents = 'none';
-        fxCanvas.style.zIndex = '30';
-        tarjeta.appendChild(fxCanvas);
-      }
-
-      const rectGanador = ganadorCol.getBoundingClientRect();
-      const rectTarjeta = tarjeta.getBoundingClientRect();
-
-      const offsetX = rectGanador.left - rectTarjeta.left;
-      const offsetY = rectGanador.top - rectTarjeta.top;
-      const w = rectGanador.width;
-      const h = rectGanador.height;
-
-      fxCanvas.style.left = offsetX + 'px';
-      fxCanvas.style.top = offsetY + 'px';
-      fxCanvas.width = w;
-      fxCanvas.height = h;
-
-      const ctx = fxCanvas.getContext('2d');
-
-      const numParticles = 30;
-      const particles = Array.from({ length: numParticles }, () => ({
-        x: Math.random() * w,
-        y: Math.random() * h - 20,
-        w: Math.random() * 6 + 4,
-        h: Math.random() * 3 + 2,
-        speedY: Math.random() * 3 + 2,
-        speedX: Math.random() * 1.5 - 0.75,
-        color: Math.random() > 0.3 ? '#FFD700' : '#FFF275'
-      }));
-
-      const frames = [];
-      const totalFrames = 10;
-
       try {
+        const frames = [];
+        const totalFrames = 10;
+
         for (let i = 0; i < totalFrames; i++) {
-          ctx.clearRect(0, 0, w, h);
-
-          particles.forEach((p) => {
-            p.y += p.speedY;
-            p.x += p.speedX;
-
-            if (p.y > h) {
-              p.y = -10;
-              p.x = Math.random() * w;
-            }
-
-            ctx.fillStyle = p.color;
-            ctx.fillRect(p.x, p.y, p.w, p.h);
-          });
-
-          const frameCanvas = await html2canvas(tarjeta, {
-            scale: 1.5,
-            backgroundColor: '#050811',
-            useCORS: true,
-            logging: false
-          });
-          frames.push(frameCanvas.toDataURL('image/png'));
+          const c = await generarCanvasPlaca(i, true);
+          frames.push(c.toDataURL('image/png'));
         }
-
-        fxCanvas.remove();
 
         gifshot.createGIF({
           images: frames,
-          interval: 0.09,
-          gifWidth: tarjeta.offsetWidth * 1.5,
-          gifHeight: tarjeta.offsetHeight * 1.5
+          interval: 0.1,
+          gifWidth: 600,
+          gifHeight: 600
         }, function (obj) {
           if (!obj.error) {
             const enlace = document.createElement('a');
@@ -2204,7 +2402,6 @@ const HTML_APP = `<!DOCTYPE html>
 
       } catch (err) {
         console.error('Error al generar el GIF:', err);
-        if (fxCanvas) fxCanvas.remove();
         btn.innerHTML = originalText;
         btn.disabled = false;
       }
