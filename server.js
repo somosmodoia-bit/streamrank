@@ -1422,7 +1422,7 @@ const HTML_APP = `<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- PLACA DE CAPTURA DUELO (BROADCAST 3D EDITION) -->
+      <!-- PLACA DE CAPTURA DUELO (BROADCAST 3D EDITION - TEXTOS OPTIMIZADOS) -->
       <div id="duel-capture-card" style="background: radial-gradient(circle at 50% 0%, #0d172e 0%, #050811 75%); border: 1px solid #1e293b; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.1);" class="rounded-2xl w-full max-w-[520px] aspect-square mx-auto flex flex-col justify-between p-6 relative overflow-hidden">
         
         <!-- Header Técnico Rectangular con Relieve -->
@@ -1444,12 +1444,14 @@ const HTML_APP = `<!DOCTYPE html>
             </div>
 
             <div>
-              <div class="relative w-14 h-14 mx-auto mb-2.5">
+              <div class="relative w-14 h-14 mx-auto mb-2">
                 <img id="duel-a-avatar" crossorigin="anonymous" src="" class="w-14 h-14 rounded-full border-2 border-matrix object-cover shadow-[0_0_15px_rgba(0,255,102,0.3)]" alt="A">
               </div>
-              <div id="duel-a-program" class="font-extrabold text-white text-xs sm:text-[13px] leading-tight line-clamp-2 h-9 flex items-center justify-center px-1">--</div>
-              <h4 id="duel-a-name" class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1 truncate">--</h4>
-              <p id="duel-a-status" class="text-[9px] font-mono font-bold text-matrix mt-0.5">OFFLINE</p>
+              <div style="min-height: 44px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px;">
+                <p id="duel-a-program" style="line-height: 1.3; font-size: 12px; font-weight: 800; color: #FFFFFF; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0; padding: 0 4px;">--</p>
+              </div>
+              <h4 id="duel-a-name" style="font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.05em; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">--</h4>
+              <p id="duel-a-status" class="text-[9px] font-mono font-bold text-matrix mt-1">OFFLINE</p>
             </div>
 
             <div class="pt-3 border-t border-slate-800/80 mt-2">
@@ -1467,12 +1469,14 @@ const HTML_APP = `<!DOCTYPE html>
             </div>
 
             <div>
-              <div class="relative w-14 h-14 mx-auto mb-2.5">
+              <div class="relative w-14 h-14 mx-auto mb-2">
                 <img id="duel-b-avatar" crossorigin="anonymous" src="" class="w-14 h-14 rounded-full border-2 border-cyan-400 object-cover shadow-[0_0_15px_rgba(34,211,238,0.3)]" alt="B">
               </div>
-              <div id="duel-b-program" class="font-extrabold text-white text-xs sm:text-[13px] leading-tight line-clamp-2 h-9 flex items-center justify-center px-1">--</div>
-              <h4 id="duel-b-name" class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1 truncate">--</h4>
-              <p id="duel-b-status" class="text-[9px] font-mono font-bold text-cyan-400 mt-0.5">OFFLINE</p>
+              <div style="min-height: 44px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px;">
+                <p id="duel-b-program" style="line-height: 1.3; font-size: 12px; font-weight: 800; color: #FFFFFF; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0; padding: 0 4px;">--</p>
+              </div>
+              <h4 id="duel-b-name" style="font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.05em; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">--</h4>
+              <p id="duel-b-status" class="text-[9px] font-mono font-bold text-cyan-400 mt-1">OFFLINE</p>
             </div>
 
             <div class="pt-3 border-t border-slate-800/80 mt-2">
@@ -2023,6 +2027,11 @@ const HTML_APP = `<!DOCTYPE html>
       document.getElementById('modal-duel').classList.add('hidden');
     };
 
+    const limpiarTitulo = (str) => {
+      if (!str) return '--';
+      return str.length > 52 ? str.substring(0, 50).trim() + '...' : str;
+    };
+
     const renderizarContenidoDuelo = () => {
       const idA = document.getElementById('duel-select-a').value;
       const idB = document.getElementById('duel-select-b').value;
@@ -2046,7 +2055,7 @@ const HTML_APP = `<!DOCTYPE html>
           ? canalB.programas[0]
           : canalB.subtheme || canalB.name;
 
-      document.getElementById('duel-a-program').innerText = progA;
+      document.getElementById('duel-a-program').innerText = limpiarTitulo(progA);
       document.getElementById('duel-a-name').innerText = canalA.name;
       document.getElementById('duel-a-avatar').src = canalA.avatar;
       document.getElementById('duel-a-avatar').onerror = function () {
@@ -2056,7 +2065,7 @@ const HTML_APP = `<!DOCTYPE html>
       document.getElementById('duel-a-status').innerText = canalA.isLive ? '🔴 EN VIVO' : '⚫ OFFLINE';
       document.getElementById('duel-a-viewers').innerText = formatNum(canalA.totalViewers);
 
-      document.getElementById('duel-b-program').innerText = progB;
+      document.getElementById('duel-b-program').innerText = limpiarTitulo(progB);
       document.getElementById('duel-b-name').innerText = canalB.name;
       document.getElementById('duel-b-avatar').src = canalB.avatar;
       document.getElementById('duel-b-avatar').onerror = function () {
