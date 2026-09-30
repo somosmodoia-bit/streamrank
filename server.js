@@ -1011,6 +1011,9 @@ const HTML_APP = `<!DOCTYPE html>
       darkMode: 'class',
       theme: {
         extend: {
+          screens: {
+            'xs': '420px'
+          },
           colors: {
             bgDeep: '#050811',
             cardBg: '#0b1120',
@@ -1059,43 +1062,45 @@ const HTML_APP = `<!DOCTYPE html>
 </head>
 <body class="min-h-screen flex flex-col bg-[#050811] text-slate-100 antialiased selection:bg-[#00ff66] selection:text-black">
 
-  <!-- HEADER -->
+  <!-- HEADER COMPACTO RESPONSIVE -->
   <header class="sticky top-0 z-40 bg-[#050811]/95 backdrop-blur-md border-b border-[#162238]">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2">
-      <div class="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
-        <div class="relative flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-black border border-matrix/50 shadow-matrixSoft flex-shrink-0">
-          <span class="absolute w-3.5 h-3.5 rounded-full bg-matrix animate-ping opacity-75"></span>
-          <span class="w-2.5 h-2.5 rounded-full bg-matrix"></span>
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-20 flex items-center justify-between gap-2">
+      
+      <!-- Marca + Badges -->
+      <div class="flex items-center space-x-2 sm:space-x-3 min-w-0">
+        <div class="relative flex items-center justify-center w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-black border border-matrix/50 shadow-matrixSoft flex-shrink-0">
+          <span class="absolute w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 rounded-full bg-matrix animate-ping opacity-75"></span>
+          <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-matrix"></span>
         </div>
-        <div class="min-w-0">
-          <div class="flex items-center space-x-1.5 sm:space-x-2">
-            <span class="text-base sm:text-xl font-black tracking-wider text-white">STREAMRANK</span>
-            <span class="text-[9px] sm:text-xs px-1.5 py-0.5 tech-badge bg-matrix/20 text-matrix border border-matrix/40 shrink-0">ARG</span>
-            <span class="inline-flex items-center px-1.5 py-0.5 text-[9px] tech-badge bg-cyan-400/10 text-cyan-300 border border-cyan-400/40 shrink-0 shadow-[0_0_8px_rgba(34,211,238,0.2)]">BETA</span>
-          </div>
-          <p class="text-[9px] sm:text-[11px] text-slate-400 truncate hidden xs:block">Telemetría de Streaming en Vivo</p>
+        <div class="min-w-0 flex items-center space-x-1 sm:space-x-1.5">
+          <span class="text-sm sm:text-xl font-black tracking-wider text-white">STREAMRANK</span>
+          <span class="text-[9px] sm:text-xs px-1.5 py-0.5 tech-badge bg-matrix/20 text-matrix border border-matrix/40 shrink-0">ARG</span>
+          <!-- En mobile estrecho se oculta sutilmente para darle todo el aire al contador -->
+          <span class="hidden xs:inline-flex items-center px-1.5 py-0.5 text-[9px] tech-badge bg-cyan-400/10 text-cyan-300 border border-cyan-400/40 shrink-0">BETA</span>
         </div>
       </div>
 
+      <!-- Píldora de Telemetría (compacta y holgada en mobile) -->
       <div class="flex items-center space-x-2 flex-shrink-0">
-        <div class="flex items-center bg-[#0b1120] border border-[#162238] rounded-xl px-2.5 sm:px-4 py-1.5 sm:py-2 space-x-2 sm:space-x-4">
-          <div class="flex items-center space-x-1.5">
+        <div class="flex items-center bg-[#0b1120] border border-[#162238] rounded-lg sm:rounded-xl px-2 sm:px-4 py-1 sm:py-2 space-x-1.5 sm:space-x-4">
+          <div class="flex items-center space-x-1 sm:space-x-1.5">
             <span class="inline-block w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-matrix shadow-matrix"></span>
-            <span class="text-[11px] sm:text-xs font-semibold text-slate-300"><span id="stat-live-count" class="text-matrix font-bold">0</span> <span class="hidden sm:inline">En Vivo</span></span>
+            <span class="text-[10px] sm:text-xs font-semibold text-slate-300"><span id="stat-live-count" class="text-matrix font-bold">0</span> <span class="hidden sm:inline">En Vivo</span></span>
           </div>
           <div class="w-px h-3 sm:h-4 bg-slate-700"></div>
-          <div class="text-[11px] sm:text-xs text-slate-400">
+          <div class="text-[10px] sm:text-xs text-slate-400">
             <span class="hidden md:inline">Audiencia: </span><span id="stat-total-viewers" class="text-white font-mono font-bold">0</span>
           </div>
           <div class="hidden lg:block w-px h-4 bg-slate-700"></div>
           <div class="hidden lg:block text-[11px] font-mono text-slate-400" id="sync-clock">Sinc: --:--:--</div>
         </div>
       </div>
+
     </div>
   </header>
 
   <!-- CONTENIDO PRINCIPAL -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-5">
+  <main class="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-5">
     <section class="text-center sm:text-left space-y-1.5 pt-2">
       <div class="inline-flex items-center space-x-2 px-3 py-1 tech-badge bg-matrix/10 border border-matrix/40 text-matrix text-[11px]">
         <span class="w-2 h-2 rounded-full bg-matrix animate-ping"></span>
@@ -1147,7 +1152,7 @@ const HTML_APP = `<!DOCTYPE html>
               🎭 Entretenimiento
             </button>
             <button onclick="cambiarSolapa('Política')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
-              🏛️️ Política
+              🏛️ Política
             </button>
             <button onclick="cambiarSolapa('Deportes')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
               ⚽ Deportes
@@ -1520,9 +1525,9 @@ const HTML_APP = `<!DOCTYPE html>
     </svg>
   </div>
 
-  <!-- FOOTER -->
-  <footer class="border-t border-[#162238] bg-[#050811] py-6 sm:py-8 text-center text-xs text-slate-500 font-mono space-y-2">
-    <div>StreamRank ARG • Monitor en Tiempo Real de Streaming de Argentina</div>
+  <!-- FOOTER SUTIL CON ESPACIO SEGURO PARA PANTALLAS TÁCTILES -->
+  <footer class="border-t border-[#162238] bg-[#050811] px-4 py-6 sm:py-8 mb-6 sm:mb-0 text-center text-[11px] sm:text-xs text-slate-500 font-mono space-y-2">
+    <div class="max-w-md mx-auto truncate">StreamRank ARG • Monitor en Tiempo Real de Streaming</div>
     <div>
       <a href="https://modoia.online" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-matrix underline transition-colors">Desarrollado por Modo IA</a>
     </div>
@@ -2327,6 +2332,7 @@ const HTML_APP = `<!DOCTYPE html>
       roundRect(ctx, barX, barY, barTotalW, barH, barRadius);
       ctx.stroke();
 
+      // Separador Footer
       ctx.strokeStyle = '#162238';
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -2334,6 +2340,7 @@ const HTML_APP = `<!DOCTYPE html>
       ctx.lineTo(colBX + colWidth, 824);
       ctx.stroke();
 
+      // Punto verde y Fecha
       ctx.fillStyle = '#00ff66';
       ctx.beginPath();
       ctx.arc(colAX + 10, 870, 6, 0, Math.PI * 2);
@@ -2344,6 +2351,7 @@ const HTML_APP = `<!DOCTYPE html>
       ctx.textAlign = 'left';
       ctx.fillText('CAPTURA: ' + getFechaConDiaSemana(), colAX + 30, 870);
 
+      // Marca de agua discreta en gris
       ctx.fillStyle = '#64748B';
       ctx.font = '600 17px monospace';
       ctx.textAlign = 'right';
