@@ -1,4 +1,5 @@
 const express = require('express');
+const https = require('https');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -549,7 +550,7 @@ const scrapeYouTube = async (handle) => {
       html.match(/\\"originalViewCount\\":\s*\\"(\d+)\\"/);
     const viewRunsMatch =
       html.match(/"viewCount":\s*\{\s*"runs":\s*\[\s*\{\s*"text":\s*"([^"]+)"/) ||
-      html.match(/\\"viewCount\\":\s*\{\s*\\"runs\\":\s*\[\s*\{\s*\\"text\\":\s*\\"([^"\\]+)\\"/);
+      html.match(/\\"viewCount\\":\s*\{\s*\\"runs\\":\s*\[\s*\{\s*"text\\":\s*\\"([^"\\]+)\\"/);
 
     let viewers = 0;
     if (concurrentMatch) viewers = parseInt(concurrentMatch[1], 10);
@@ -1015,10 +1016,11 @@ const HTML_APP = `<!DOCTYPE html>
   <meta name="keywords" content="StreamRank, streaming argentina, luzu tv en vivo, olga en vivo, rating streaming argentina, métricas de streamers, telemetría streaming, blender, vorterix, tn en vivo">
   <meta name="author" content="Modo IA">
   <meta name="robots" content="index, follow">
-  <link rel="canonical" href="https://streamrank.ar">
+  <link rel="canonical" href="https://streamrank.modoia.online">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gifshot/0.3.2/gifshot.min.js"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -1064,6 +1066,15 @@ const HTML_APP = `<!DOCTYPE html>
       -ms-overflow-style: none;
       scrollbar-width: none;
     }
+
+    /* BADGES TÉCNICOS CUADRADOS (SIN FORMA DE PÍLDORA) */
+    .tech-badge {
+      border-radius: 4px !important;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 800;
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col bg-[#050811] text-slate-100 antialiased selection:bg-[#00ff66] selection:text-black">
@@ -1080,8 +1091,8 @@ const HTML_APP = `<!DOCTYPE html>
         <div class="min-w-0">
           <div class="flex items-center space-x-1.5 sm:space-x-2">
             <span class="text-base sm:text-xl font-black tracking-wider text-white">STREAMRANK</span>
-            <span class="text-[9px] sm:text-xs px-1.5 py-0.5 rounded font-black tracking-widest bg-matrix/20 text-matrix border border-matrix/40 shrink-0">ARG</span>
-            <span class="inline-flex items-center px-1.5 py-0.5 text-[9px] font-black tracking-widest uppercase rounded bg-cyan-400/10 text-cyan-300 border border-cyan-400/40 shrink-0 shadow-[0_0_10px_rgba(34,211,238,0.25)]">BETA</span>
+            <span class="text-[9px] sm:text-xs px-1.5 py-0.5 tech-badge bg-matrix/20 text-matrix border border-matrix/40 shrink-0">ARG</span>
+            <span class="inline-flex items-center px-1.5 py-0.5 text-[9px] tech-badge bg-cyan-400/10 text-cyan-300 border border-cyan-400/40 shrink-0 shadow-[0_0_10px_rgba(34,211,238,0.25)]">BETA</span>
           </div>
           <p class="text-[9px] sm:text-[11px] text-slate-400 truncate hidden xs:block">Telemetría de Streaming en Vivo</p>
         </div>
@@ -1110,7 +1121,7 @@ const HTML_APP = `<!DOCTYPE html>
     
     <!-- TITULO PRINCIPAL & BAJADA CLARA -->
     <section class="text-center sm:text-left space-y-1.5 pt-2">
-      <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-matrix/10 border border-matrix/40 text-matrix text-[11px] font-mono font-bold tracking-wider">
+      <div class="inline-flex items-center space-x-2 px-3 py-1 tech-badge bg-matrix/10 border border-matrix/40 text-matrix text-[11px]">
         <span class="w-2 h-2 rounded-full bg-matrix animate-ping"></span>
         <span>DATOS OFICIALES EN TIEMPO REAL</span>
       </div>
@@ -1200,11 +1211,11 @@ const HTML_APP = `<!DOCTYPE html>
       </div>
     </section>
 
-    <!-- BANNER SPONSOR INSTITUCIONAL (COPY ORIENTADO A CONSUMO MASIVO) -->
+    <!-- BANNER SPONSOR INSTITUCIONAL -->
     <section class="w-full">
       <div class="relative w-full rounded-2xl bg-gradient-to-r from-emerald-950/20 via-[#0b1120] to-blue-950/20 border border-matrix/30 p-5 sm:p-6 flex flex-col md:flex-row items-center justify-between gap-5 text-center md:text-left">
         <div class="space-y-1.5">
-          <span class="inline-flex items-center text-[10px] font-mono tracking-widest text-matrix uppercase bg-matrix/10 px-2.5 py-0.5 rounded-full border border-matrix/30">ESPACIO EXCLUSIVO DE MARCA</span>
+          <span class="inline-flex items-center text-[10px] tech-badge text-matrix bg-matrix/10 px-2.5 py-0.5 border border-matrix/30">ESPACIO EXCLUSIVO DE MARCA</span>
           <h3 class="text-base sm:text-lg font-bold text-slate-100 tracking-tight">Posicioná tu marca en el epicentro del streaming nacional</h3>
           <p class="text-xs text-slate-400 font-normal leading-relaxed">Presencia exclusiva y alcance directo ante cientos de miles de espectadores concurrentes en vivo.</p>
         </div>
@@ -1259,7 +1270,6 @@ const HTML_APP = `<!DOCTYPE html>
   <div id="modal-token" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md hidden p-4">
     <div class="bg-[#0b1120] border border-slate-700/80 rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl relative space-y-4">
       
-      <!-- Encabezado alineado con Badge BETA -->
       <div class="flex items-start justify-between gap-3 pb-3 border-b border-slate-800">
         <div class="flex items-center gap-2 min-w-0">
           <span class="text-lg shrink-0">🔐</span>
@@ -1267,7 +1277,7 @@ const HTML_APP = `<!DOCTYPE html>
             <h3 class="text-sm sm:text-base font-semibold text-slate-100 tracking-tight">
               Acceso a Telemetría y Reportes <span class="text-emerald-400 font-normal">(CSV / XLSX)</span>
             </h3>
-            <span class="inline-flex items-center px-1.5 py-0.5 text-[9px] font-black tracking-widest uppercase rounded bg-cyan-400/10 text-cyan-300 border border-cyan-400/40 shrink-0">
+            <span class="inline-flex items-center px-1.5 py-0.5 text-[9px] tech-badge bg-cyan-400/10 text-cyan-300 border border-cyan-400/40 shrink-0">
               BETA
             </span>
           </div>
@@ -1277,7 +1287,6 @@ const HTML_APP = `<!DOCTYPE html>
         </button>
       </div>
 
-      <!-- Cuerpo del modal -->
       <div class="space-y-3 text-xs text-slate-300 leading-relaxed">
         <p>
           <strong class="font-medium text-slate-100">Auditoría Continua:</strong> StreamRank audita y registra telemetría de audiencia minuto a minuto con una ventana de retención estructurada de hasta 2 años en Turso DB.
@@ -1292,7 +1301,6 @@ const HTML_APP = `<!DOCTYPE html>
         </p>
       </div>
 
-      <!-- Formulario de Token -->
       <div class="space-y-2 pt-1">
         <label class="block text-[10px] font-mono text-slate-400 uppercase tracking-wider">CÓDIGO DE ACCESO (TOKEN B2B)</label>
         <div class="flex gap-2">
@@ -1312,7 +1320,6 @@ const HTML_APP = `<!DOCTYPE html>
         <p id="token-error" class="text-[11px] text-red-400 hidden">Código no válido. Solicitá tu clave oficial vía mail.</p>
       </div>
 
-      <!-- Footer modal -->
       <div class="pt-3 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
         <span class="text-slate-400 text-[11px]">¿No tenés token corporativo?</span>
         <a 
@@ -1415,70 +1422,82 @@ const HTML_APP = `<!DOCTYPE html>
         </div>
       </div>
 
-      <div id="duel-capture-card" class="bg-[#050811] border border-matrix/30 rounded-2xl w-full max-w-[500px] aspect-square mx-auto flex flex-col justify-between p-5 sm:p-7 shadow-glow relative my-2">
-        <div class="text-center pt-1">
-          <span class="text-[10px] sm:text-[11px] font-black tracking-widest uppercase bg-matrix/10 text-matrix px-3.5 py-1.5 rounded-full border border-matrix/30">STREAMRANK ARG • DUELO EN DIRECTO</span>
+      <!-- PLACA DE CAPTURA DUELO (CUADRADA Y SIN CORTES) -->
+      <div id="duel-capture-card" class="bg-[#050811] border border-matrix/30 rounded-2xl w-full max-w-[500px] aspect-square mx-auto flex flex-col justify-between p-5 sm:p-7 shadow-glow relative my-2 overflow-hidden">
+        
+        <!-- Header sin píldora (Rectangular sobrio) -->
+        <div class="text-center pt-1 z-10">
+          <span class="text-[10px] sm:text-[11px] tech-badge bg-matrix/10 text-matrix px-3 py-1.5 border border-matrix/40">
+            STREAMRANK ARG • DUELO EN DIRECTO
+          </span>
         </div>
 
-        <div class="grid grid-cols-2 gap-3 sm:gap-4 items-stretch my-auto">
+        <!-- Tarjetas de Canales con altura flexible y espacio vertical para títulos -->
+        <div class="grid grid-cols-2 gap-3 sm:gap-4 items-stretch my-auto z-10">
           <!-- Canal A -->
-          <div class="text-center p-3.5 rounded-xl bg-[#0b1120]/90 border border-slate-700/70 flex flex-col justify-between h-[190px] sm:h-[210px]">
-            <div>
+          <div class="text-center p-3 sm:p-4 rounded-xl bg-[#0b1120]/95 border border-slate-700/80 flex flex-col justify-between min-h-[220px]">
+            <div class="space-y-1">
               <img id="duel-a-avatar" crossorigin="anonymous" src="" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full mx-auto border-2 border-matrix object-cover shadow-matrixSoft mb-1.5" alt="A">
-              <div id="duel-a-program" class="font-black text-white text-sm sm:text-base leading-tight line-clamp-2 break-words mt-0.5">--</div>
-              <h4 id="duel-a-name" class="text-[11px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider mt-0.5 truncate">--</h4>
-              <p id="duel-a-status" class="text-[9px] sm:text-[10px] font-mono text-matrix">OFFLINE</p>
+              <div id="duel-a-program" class="font-extrabold text-white text-xs sm:text-sm leading-snug line-clamp-2 h-9 overflow-hidden">--</div>
+              <h4 id="duel-a-name" class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">--</h4>
+              <p id="duel-a-status" class="text-[9px] font-mono text-matrix">OFFLINE</p>
             </div>
-            <div>
+            <div class="pt-2">
               <div id="duel-a-viewers" class="text-2xl sm:text-3xl font-black font-mono text-matrix matrix-glow">0</div>
-              <div class="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Espectadores</div>
+              <div class="text-[9px] text-slate-400 uppercase tracking-wider font-semibold">Espectadores</div>
             </div>
           </div>
 
           <!-- Canal B -->
-          <div class="text-center p-3.5 rounded-xl bg-[#0b1120]/90 border border-slate-700/70 flex flex-col justify-between h-[190px] sm:h-[210px]">
-            <div>
+          <div class="text-center p-3 sm:p-4 rounded-xl bg-[#0b1120]/95 border border-slate-700/80 flex flex-col justify-between min-h-[220px]">
+            <div class="space-y-1">
               <img id="duel-b-avatar" crossorigin="anonymous" src="" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full mx-auto border-2 border-cyan-400 object-cover shadow-cyan-500/50 mb-1.5" alt="B">
-              <div id="duel-b-program" class="font-black text-white text-sm sm:text-base leading-tight line-clamp-2 break-words mt-0.5">--</div>
-              <h4 id="duel-b-name" class="text-[11px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider mt-0.5 truncate">--</h4>
-              <p id="duel-b-status" class="text-[9px] sm:text-[10px] font-mono text-cyan-400">OFFLINE</p>
+              <div id="duel-b-program" class="font-extrabold text-white text-xs sm:text-sm leading-snug line-clamp-2 h-9 overflow-hidden">--</div>
+              <h4 id="duel-b-name" class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">--</h4>
+              <p id="duel-b-status" class="text-[9px] font-mono text-cyan-400">OFFLINE</p>
             </div>
-            <div>
+            <div class="pt-2">
               <div id="duel-b-viewers" class="text-2xl sm:text-3xl font-black font-mono text-cyan-400">0</div>
-              <div class="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Espectadores</div>
+              <div class="text-[9px] text-slate-400 uppercase tracking-wider font-semibold">Espectadores</div>
             </div>
           </div>
         </div>
 
-        <div class="space-y-2.5 pb-1">
+        <!-- Footer con Share, Día de la Semana y streamrank.modoia.online -->
+        <div class="space-y-2 pb-1 z-10">
           <div>
             <div class="flex justify-between text-xs font-mono font-bold mb-1">
               <span id="duel-pct-a" class="text-matrix">50%</span>
               <span class="text-slate-400 text-[10px] sm:text-xs tracking-wider">SHARE DE AUDIENCIA</span>
               <span id="duel-pct-b" class="text-cyan-400">50%</span>
             </div>
-            <div class="w-full h-3.5 sm:h-4 bg-slate-900 rounded-full overflow-hidden flex border border-[#162238] p-0.5">
-              <div id="duel-bar-a" class="h-full bg-matrix rounded-l-full transition-all duration-500 shadow-matrix" style="width: 50%"></div>
-              <div id="duel-bar-b" class="h-full bg-cyan-400 rounded-r-full transition-all duration-500 shadow-cyan-400" style="width: 50%"></div>
+            <div class="w-full h-3 bg-slate-900 rounded overflow-hidden flex border border-[#162238] p-0.5">
+              <div id="duel-bar-a" class="h-full bg-matrix rounded-l transition-all duration-500 shadow-matrix" style="width: 50%"></div>
+              <div id="duel-bar-b" class="h-full bg-cyan-400 rounded-r transition-all duration-500 shadow-cyan-400" style="width: 50%"></div>
             </div>
           </div>
 
-          <div class="flex items-center justify-between text-xs sm:text-sm font-mono pt-1.5 border-t border-[#162238]/80">
-            <span id="duel-timestamp" class="text-[#00FF66] font-bold tracking-wide">--</span>
-            <span class="text-slate-400 font-bold text-[10px] sm:text-xs tracking-wider">STREAMRANK.AR</span>
+          <div class="flex items-center justify-between text-[11px] sm:text-xs font-mono pt-2 border-t border-[#162238]">
+            <span id="duel-timestamp" class="text-matrix font-bold tracking-wide truncate max-w-[70%]">--</span>
+            <span class="text-slate-400 font-bold tracking-wider uppercase text-[10px] sm:text-xs">STREAMRANK.MODOIA.ONLINE</span>
           </div>
         </div>
       </div>
 
-      <div class="flex items-center justify-end space-x-3 pt-3 border-t border-[#162238]">
-        <button onclick="cerrarModalDuelo()" class="px-3 sm:px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-colors">
+      <!-- BOTONES DE DESCARGA: PNG HD Y GIF ANIMADO -->
+      <div class="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-3 border-t border-[#162238]">
+        <button onclick="cerrarModalDuelo()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-colors">
           Cerrar
         </button>
-        <button onclick="descargarDueloPNG()" class="px-4 sm:px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-matrix text-black hover:bg-emerald-400 transition-all shadow-matrix flex items-center">
-          <svg class="w-4 h-4 mr-1.5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-          </svg>
-          Descargar Placa HD
+        
+        <button id="btn-export-png" onclick="descargarDueloPNG()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-[#0b1120] text-matrix border border-matrix/50 hover:bg-matrix hover:text-black transition-all shadow-matrixSoft flex items-center justify-center space-x-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+          <span>Descargar PNG HD</span>
+        </button>
+
+        <button id="btn-export-gif" onclick="descargarDueloGIF()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 to-yellow-500 text-black hover:brightness-110 transition-all shadow-goldGlow flex items-center justify-center space-x-1.5">
+          <span>✨</span>
+          <span>Descargar GIF Animado</span>
         </button>
       </div>
 
@@ -1522,6 +1541,23 @@ const HTML_APP = `<!DOCTYPE html>
       if (num >= 10000) return (num / 1000).toFixed(1) + 'k';
       return formatNum(num);
     };
+
+    function getFechaConDiaSemana() {
+      const now = new Date();
+      const options = { 
+        timeZone: 'America/Argentina/Buenos_Aires',
+        weekday: 'long', 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric', 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit',
+        hour12: false
+      };
+      const formatted = new Intl.DateTimeFormat('es-AR', options).format(now);
+      return formatted.charAt(0).toUpperCase() + formatted.slice(1) + ' ART';
+    }
 
     function getFallbackAvatar(name) {
       const initials = (name || 'SR')
@@ -2013,31 +2049,30 @@ const HTML_APP = `<!DOCTYPE html>
       document.getElementById('duel-bar-a').style.width = pctA + '%';
       document.getElementById('duel-bar-b').style.width = pctB + '%';
 
-      const fechaActual = new Intl.DateTimeFormat('es-AR', {
-        timeZone: 'America/Argentina/Buenos_Aires',
-        dateStyle: 'short',
-        timeStyle: 'medium'
-      }).format(new Date());
-
-      document.getElementById('duel-timestamp').innerText = 'CAPTURA: ' + fechaActual + ' ART';
+      document.getElementById('duel-timestamp').innerText = 'CAPTURA: ' + getFechaConDiaSemana();
     };
 
+    // ========================================================================
+    // EXPORTACIONES: PNG HD & GIF ANIMADO CON EFECTO DORADO
+    // ========================================================================
     const descargarDueloPNG = async () => {
       const tarjeta = document.getElementById('duel-capture-card');
+      const btn = document.getElementById('btn-export-png');
+      const originalText = btn.innerHTML;
+
+      btn.innerText = 'GENERANDO...';
+      btn.disabled = true;
+
+      // Refrescamos fecha con día de la semana antes del snapshot
+      document.getElementById('duel-timestamp').innerText = 'CAPTURA: ' + getFechaConDiaSemana();
+
       try {
         const canvas = await html2canvas(tarjeta, {
           backgroundColor: '#050811',
           scale: 2,
           useCORS: true,
           allowTaint: false,
-          logging: false,
-          onclone: (clonedDoc) => {
-            const clonedCard = clonedDoc.getElementById('duel-capture-card');
-            if (clonedCard) {
-              clonedCard.style.letterSpacing = 'normal';
-              clonedCard.style.overflow = 'visible';
-            }
-          }
+          logging: false
         });
         const enlace = document.createElement('a');
         enlace.href = canvas.toDataURL('image/png');
@@ -2045,7 +2080,103 @@ const HTML_APP = `<!DOCTYPE html>
         enlace.click();
       } catch (err) {
         console.error('Error al exportar PNG:', err);
-        alert('No se pudo generar la placa. Revisa la conexión de red.');
+        alert('No se pudo generar la placa HD.');
+      } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
+    };
+
+    const descargarDueloGIF = async () => {
+      const tarjeta = document.getElementById('duel-capture-card');
+      const btn = document.getElementById('btn-export-gif');
+      const originalText = btn.innerHTML;
+
+      btn.innerText = 'PROCESANDO GIF...';
+      btn.disabled = true;
+
+      document.getElementById('duel-timestamp').innerText = 'CAPTURA: ' + getFechaConDiaSemana();
+
+      // Canvas flotante para simular lluvia de confetti dorado
+      let fxCanvas = document.getElementById('duel-fx-canvas');
+      if (!fxCanvas) {
+        fxCanvas = document.createElement('canvas');
+        fxCanvas.id = 'duel-fx-canvas';
+        fxCanvas.style.position = 'absolute';
+        fxCanvas.style.top = '0';
+        fxCanvas.style.left = '0';
+        fxCanvas.style.width = '100%';
+        fxCanvas.style.height = '100%';
+        fxCanvas.style.pointerEvents = 'none';
+        fxCanvas.style.zIndex = '20';
+        tarjeta.appendChild(fxCanvas);
+      }
+
+      fxCanvas.width = tarjeta.offsetWidth;
+      fxCanvas.height = tarjeta.offsetHeight;
+      const ctx = fxCanvas.getContext('2d');
+
+      const particles = Array.from({ length: 40 }, () => ({
+        x: Math.random() * fxCanvas.width,
+        y: Math.random() * fxCanvas.height,
+        r: Math.random() * 3 + 2,
+        speedY: Math.random() * 2.5 + 1.5,
+        color: Math.random() > 0.3 ? '#FFD700' : '#FFF275',
+        tilt: Math.random() * 10 - 5
+      }));
+
+      const frames = [];
+      const totalFrames = 10;
+
+      try {
+        for (let i = 0; i < totalFrames; i++) {
+          ctx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+          particles.forEach((p) => {
+            ctx.beginPath();
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x, p.y, p.r * 1.5, p.r);
+            p.y += p.speedY * 5;
+            p.x += p.tilt;
+            if (p.y > fxCanvas.height) {
+              p.y = -10;
+              p.x = Math.random() * fxCanvas.width;
+            }
+          });
+
+          const c = await html2canvas(tarjeta, {
+            scale: 1.2,
+            backgroundColor: '#050811',
+            useCORS: true,
+            logging: false
+          });
+          frames.push(c.toDataURL('image/png'));
+        }
+
+        fxCanvas.remove();
+
+        gifshot.createGIF({
+          images: frames,
+          interval: 0.1,
+          gifWidth: tarjeta.offsetWidth * 1.2,
+          gifHeight: tarjeta.offsetHeight * 1.2
+        }, function (obj) {
+          if (!obj.error) {
+            const enlace = document.createElement('a');
+            enlace.href = obj.image;
+            enlace.download = 'streamrank_duelo_animado_' + Date.now() + '.gif';
+            enlace.click();
+          } else {
+            alert('Error generando el GIF animado.');
+          }
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+        });
+
+      } catch (err) {
+        console.error('Error generando cuadros del GIF:', err);
+        if (fxCanvas) fxCanvas.remove();
+        btn.innerHTML = originalText;
+        btn.disabled = false;
       }
     };
 
@@ -2061,6 +2192,20 @@ app.get('/', (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(HTML_APP);
 });
+
+// ============================================================================
+// AUTO-PING INTERNO (MANTIENE LA INSTANCIA DESPIERTA 24/7 EN RENDER)
+// ============================================================================
+const PING_INTERVAL = 10 * 60 * 1000; // Cada 10 minutos
+const APP_URL = 'https://streamrank.onrender.com/';
+
+setInterval(() => {
+  https.get(APP_URL, (res) => {
+    console.log(`[Auto-Ping Keep-Alive] Conexión activa - Código: ${res.statusCode}`);
+  }).on('error', (err) => {
+    console.warn(`[Auto-Ping Warning] Error al autopinguear: ${err.message}`);
+  });
+}, PING_INTERVAL);
 
 // ============================================================================
 // ARRANQUE DEL SERVIDOR
