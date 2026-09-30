@@ -1147,7 +1147,7 @@ const HTML_APP = `<!DOCTYPE html>
               🎭 Entretenimiento
             </button>
             <button onclick="cambiarSolapa('Política')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
-              🏛️ Política
+              🏛️️ Política
             </button>
             <button onclick="cambiarSolapa('Deportes')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all bg-[#0b1120] text-slate-300 border border-[#162238] hover:border-matrix/50">
               ⚽ Deportes
@@ -1389,17 +1389,17 @@ const HTML_APP = `<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- PLACA DE CAPTURA DUELO (FLAT ORIGINAL LIMPIO) -->
+      <!-- PLACA DE CAPTURA DUELO (CON RESPIRO SUPERIOR Y FUENTES CLARAS) -->
       <div id="duel-capture-card" style="background-color: #050811; border: 1px solid #162238; width: 100%; max-width: 520px; box-sizing: border-box;" class="mx-auto flex flex-col justify-between p-6 relative overflow-hidden rounded-2xl my-2">
         
-        <!-- Header Técnico Rectangular Plano -->
-        <div class="text-center z-10 mb-3">
+        <!-- Header Técnico con buen margen inferior -->
+        <div class="text-center z-10 mb-5">
           <span class="tech-badge bg-[#0b1120] text-matrix px-3.5 py-1.5 border border-matrix/40 text-[10px] sm:text-[11px] tracking-widest inline-block">
             STREAMRANK ARG • DUELO EN DIRECTO
           </span>
         </div>
 
-        <!-- Contenedor 1 vs 1 Plano -->
+        <!-- Contenedor 1 vs 1 -->
         <div class="grid grid-cols-2 gap-4 items-stretch z-10 relative my-auto">
           
           <!-- Canal A -->
@@ -1414,10 +1414,12 @@ const HTML_APP = `<!DOCTYPE html>
                 <img id="duel-a-avatar" crossorigin="anonymous" src="" class="w-14 h-14 rounded-full border-2 border-matrix object-cover" alt="A">
               </div>
               
+              <!-- TÍTULO MÁS LEGIBLE (FONT-SEMIBOLD, MENOS GRUESO) -->
               <div style="min-height: 48px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px;">
-                <p id="duel-a-program" style="font-size: 12px; font-weight: 800; color: #FFFFFF; line-height: 1.35; margin: 0; padding: 0 2px; text-align: center; word-break: break-word;">--</p>
+                <p id="duel-a-program" style="font-size: 12px; font-weight: 600; color: #FFFFFF; line-height: 1.35; margin: 0; padding: 0 2px; text-align: center; word-break: break-word;">--</p>
               </div>
 
+              <!-- NOMBRE DE CANAL -->
               <h4 id="duel-a-name" style="font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.05em; margin: 0; padding-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">--</h4>
               <p id="duel-a-status" class="text-[9px] font-mono font-bold text-matrix">OFFLINE</p>
             </div>
@@ -1440,10 +1442,12 @@ const HTML_APP = `<!DOCTYPE html>
                 <img id="duel-b-avatar" crossorigin="anonymous" src="" class="w-14 h-14 rounded-full border-2 border-cyan-400 object-cover" alt="B">
               </div>
               
+              <!-- TÍTULO MÁS LEGIBLE (FONT-SEMIBOLD, MENOS GRUESO) -->
               <div style="min-height: 48px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px;">
-                <p id="duel-b-program" style="font-size: 12px; font-weight: 800; color: #FFFFFF; line-height: 1.35; margin: 0; padding: 0 2px; text-align: center; word-break: break-word;">--</p>
+                <p id="duel-b-program" style="font-size: 12px; font-weight: 600; color: #FFFFFF; line-height: 1.35; margin: 0; padding: 0 2px; text-align: center; word-break: break-word;">--</p>
               </div>
 
+              <!-- NOMBRE DE CANAL -->
               <h4 id="duel-b-name" style="font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.05em; margin: 0; padding-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">--</h4>
               <p id="duel-b-status" class="text-[9px] font-mono font-bold text-cyan-400">OFFLINE</p>
             </div>
@@ -1455,7 +1459,7 @@ const HTML_APP = `<!DOCTYPE html>
           </div>
         </div>
 
-        <!-- Footer Plano Limpio -->
+        <!-- Footer -->
         <div class="space-y-3 z-10 pt-3">
           <div>
             <div class="flex justify-between text-xs font-mono font-bold mb-1 px-0.5">
@@ -2066,7 +2070,7 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     // ========================================================================
-    // MOTOR CANVAS 2D NATIVO PROFESIONAL (BARRA PERFECTA & CONFETI REALISTA)
+    // MOTOR CANVAS 2D NATIVO PROFESIONAL
     // ========================================================================
     function roundRect(ctx, x, y, width, height, radius) {
       ctx.beginPath();
@@ -2122,20 +2126,20 @@ const HTML_APP = `<!DOCTYPE html>
       roundRect(ctx, 2, 2, 1036, 1036, 32);
       ctx.stroke();
 
-      // Badge superior central
+      // Badge superior central (Posición Y=44)
       ctx.fillStyle = '#0b1120';
-      roundRect(ctx, 270, 48, 500, 52, 8);
+      roundRect(ctx, 270, 44, 500, 50, 8);
       ctx.fill();
       ctx.strokeStyle = 'rgba(0, 255, 102, 0.4)';
       ctx.lineWidth = 2;
-      roundRect(ctx, 270, 48, 500, 52, 8);
+      roundRect(ctx, 270, 44, 500, 50, 8);
       ctx.stroke();
 
       ctx.fillStyle = '#00ff66';
-      ctx.font = 'bold 22px monospace';
+      ctx.font = 'bold 21px monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('STREAMRANK ARG • DUELO EN DIRECTO', 520, 75);
+      ctx.fillText('STREAMRANK ARG • DUELO EN DIRECTO', 520, 69);
 
       // Datos
       const nameA = document.getElementById('duel-a-name').innerText;
@@ -2148,8 +2152,8 @@ const HTML_APP = `<!DOCTYPE html>
       const isLiveB = document.getElementById('duel-b-status').innerText.includes('VIVO');
 
       const colWidth = 444;
-      const colHeight = 520;
-      const colY = 150;
+      const colHeight = 510;
+      const colY = 170; // Bajamos de 150 a 170 para que respire del badge superior
       const colAX = 52;
       const colBX = 544;
 
@@ -2177,14 +2181,14 @@ const HTML_APP = `<!DOCTYPE html>
         roundRect(ctx, colAX + 147, colY - 20, 150, 40, 8);
         ctx.fill();
         ctx.fillStyle = '#000000';
-        ctx.font = '900 18px system-ui, sans-serif';
+        ctx.font = '900 17px system-ui, sans-serif';
         ctx.fillText('👑 GANADOR', colAX + 222, colY + 1);
       } else if (viewersB > viewersA && viewersB > 0) {
         ctx.fillStyle = '#f59e0b';
         roundRect(ctx, colBX + 147, colY - 20, 150, 40, 8);
         ctx.fill();
         ctx.fillStyle = '#000000';
-        ctx.font = '900 18px system-ui, sans-serif';
+        ctx.font = '900 17px system-ui, sans-serif';
         ctx.fillText('👑 GANADOR', colBX + 222, colY + 1);
       }
 
@@ -2216,50 +2220,50 @@ const HTML_APP = `<!DOCTYPE html>
       drawAvatar(imgA, colAX + 222, colY + 84, '#00ff66');
       drawAvatar(imgB, colBX + 222, colY + 84, '#22d3ee');
 
-      // Títulos de programa
+      // TÍTULOS DE PROGRAMA REFINADOS: 600 (SEMIBOLD) SIN EMPASTE
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 23px system-ui, sans-serif';
-      wrapText(ctx, progA, colAX + 222, colY + 195, 390, 32, 2);
-      wrapText(ctx, progB, colBX + 222, colY + 195, 390, 32, 2);
+      ctx.font = '600 21px system-ui, sans-serif';
+      wrapText(ctx, progA, colAX + 222, colY + 190, 380, 30, 2);
+      wrapText(ctx, progB, colBX + 222, colY + 190, 380, 30, 2);
 
       // Nombres de canal
       ctx.fillStyle = '#94A3B8';
-      ctx.font = 'bold 20px system-ui, sans-serif';
-      ctx.fillText(nameA.toUpperCase(), colAX + 222, colY + 270);
-      ctx.fillText(nameB.toUpperCase(), colBX + 222, colY + 270);
+      ctx.font = 'bold 19px system-ui, sans-serif';
+      ctx.fillText(nameA.toUpperCase(), colAX + 222, colY + 264);
+      ctx.fillText(nameB.toUpperCase(), colBX + 222, colY + 264);
 
       // Estado en vivo
-      ctx.font = 'bold 17px monospace';
+      ctx.font = 'bold 16px monospace';
       ctx.fillStyle = isLiveA ? '#00ff66' : '#64748B';
-      ctx.fillText(isLiveA ? '🔴 EN VIVO' : '⚫ OFFLINE', colAX + 222, colY + 305);
+      ctx.fillText(isLiveA ? '🔴 EN VIVO' : '⚫ OFFLINE', colAX + 222, colY + 300);
 
       ctx.fillStyle = isLiveB ? '#22d3ee' : '#64748B';
-      ctx.fillText(isLiveB ? '🔴 EN VIVO' : '⚫ OFFLINE', colBX + 222, colY + 305);
+      ctx.fillText(isLiveB ? '🔴 EN VIVO' : '⚫ OFFLINE', colBX + 222, colY + 300);
 
-      // Separador
+      // Separador interno
       ctx.strokeStyle = '#1e293b';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(colAX + 30, colY + 345);
-      ctx.lineTo(colAX + colWidth - 30, colY + 345);
-      ctx.moveTo(colBX + 30, colY + 345);
-      ctx.lineTo(colBX + colWidth - 30, colY + 345);
+      ctx.moveTo(colAX + 30, colY + 338);
+      ctx.lineTo(colAX + colWidth - 30, colY + 338);
+      ctx.moveTo(colBX + 30, colY + 338);
+      ctx.lineTo(colBX + colWidth - 30, colY + 338);
       ctx.stroke();
 
       // Espectadores
-      ctx.font = '900 58px monospace';
+      ctx.font = '900 56px monospace';
       ctx.fillStyle = '#00ff66';
-      ctx.fillText(formatNum(viewersA), colAX + 222, colY + 415);
+      ctx.fillText(formatNum(viewersA), colAX + 222, colY + 406);
       ctx.fillStyle = '#22d3ee';
-      ctx.fillText(formatNum(viewersB), colBX + 222, colY + 415);
+      ctx.fillText(formatNum(viewersB), colBX + 222, colY + 406);
 
-      ctx.font = 'bold 18px system-ui, sans-serif';
+      ctx.font = 'bold 17px system-ui, sans-serif';
       ctx.fillStyle = '#94a3b8';
-      ctx.fillText('ESPECTADORES', colAX + 222, colY + 470);
-      ctx.fillText('ESPECTADORES', colBX + 222, colY + 470);
+      ctx.fillText('ESPECTADORES', colAX + 222, colY + 462);
+      ctx.fillText('ESPECTADORES', colBX + 222, colY + 462);
 
       // ======================================================================
-      // CONFETI DORADO VECTORIAL CON GIRO Y GRADIENTE METÁLICO (SOLO GIF)
+      // CONFETI VECTORIAL DINÁMICO
       // ======================================================================
       if (isGif) {
         const targetColX = (viewersA >= viewersB) ? colAX : colBX;
@@ -2269,14 +2273,13 @@ const HTML_APP = `<!DOCTYPE html>
 
         const numParticles = 40;
         for (let i = 0; i < numParticles; i++) {
-          // Posición continua calculada con función senoidal
           const baseY = (i * 35 + frameIndex * 26) % (colHeight + 40) - 20;
           const wobble = Math.sin((frameIndex + i) * 0.4) * 16;
           const px = targetColX + 30 + ((i * 47) % (colWidth - 60)) + wobble;
           const py = colY + baseY;
 
           const angle = (frameIndex * 0.25) + i;
-          const flipScale = Math.cos(angle); // Simulación de giro en perspectiva 3D
+          const flipScale = Math.cos(angle);
 
           const pw = 12;
           const ph = 6;
@@ -2286,7 +2289,6 @@ const HTML_APP = `<!DOCTYPE html>
           ctx.rotate(angle * 0.3);
           ctx.scale(1, flipScale);
 
-          // Degradado dorado metálico de alta calidad
           const goldGrad = ctx.createLinearGradient(-pw / 2, -ph / 2, pw / 2, ph / 2);
           goldGrad.addColorStop(0, '#FFE57F');
           goldGrad.addColorStop(0.5, '#FFD700');
@@ -2295,7 +2297,6 @@ const HTML_APP = `<!DOCTYPE html>
           ctx.fillStyle = goldGrad;
           ctx.fillRect(-pw / 2, -ph / 2, pw, ph);
 
-          // Brillo sutil en el borde de la cinta
           ctx.strokeStyle = '#FFF8E1';
           ctx.lineWidth = 1;
           ctx.strokeRect(-pw / 2, -ph / 2, pw, ph);
@@ -2306,7 +2307,7 @@ const HTML_APP = `<!DOCTYPE html>
       }
 
       // ======================================================================
-      // BARRA DE SHARE SIN CORTES (TRAZADO UNIFICADO PERFECTO)
+      // BARRA DE SHARE DE AUDIENCIA
       // ======================================================================
       const totalShare = viewersA + viewersB;
       const pctA = totalShare > 0 ? Math.round((viewersA / totalShare) * 100) : 50;
@@ -2315,40 +2316,36 @@ const HTML_APP = `<!DOCTYPE html>
       ctx.font = '900 24px monospace';
       ctx.fillStyle = '#00ff66';
       ctx.textAlign = 'left';
-      ctx.fillText(pctA + '%', colAX, 725);
+      ctx.fillText(pctA + '%', colAX, 730);
 
       ctx.fillStyle = '#94A3B8';
       ctx.font = 'bold 18px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('SHARE DE AUDIENCIA', 520, 725);
+      ctx.fillText('SHARE DE AUDIENCIA', 520, 730);
 
       ctx.fillStyle = '#22d3ee';
       ctx.textAlign = 'right';
-      ctx.fillText(pctB + '%', colBX + colWidth, 725);
+      ctx.fillText(pctB + '%', colBX + colWidth, 730);
 
       const barX = colAX;
-      const barY = 744;
+      const barY = 748;
       const barTotalW = 936;
       const barH = 22;
       const barRadius = 11;
-      const splitX = barX + Math.max(12, Math.min(barTotalW - 12, (barTotalW * pctA) / 100));
+      const splitX = barX + Math.max(14, Math.min(barTotalW - 14, (barTotalW * pctA) / 100));
 
-      // Clip sobre toda la barra redondeada (evita bordes rotos)
       ctx.save();
       roundRect(ctx, barX, barY, barTotalW, barH, barRadius);
       ctx.clip();
 
-      // Lado Canal A (Verde)
       ctx.fillStyle = '#00ff66';
       ctx.fillRect(barX, barY, splitX - barX, barH);
 
-      // Lado Canal B (Cian)
       ctx.fillStyle = '#22d3ee';
       ctx.fillRect(splitX, barY, barX + barTotalW - splitX, barH);
 
       ctx.restore();
 
-      // Borde sutil contenedor de la barra
       ctx.strokeStyle = '#162238';
       ctx.lineWidth = 2;
       roundRect(ctx, barX, barY, barTotalW, barH, barRadius);
@@ -2358,36 +2355,36 @@ const HTML_APP = `<!DOCTYPE html>
       ctx.strokeStyle = '#162238';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(colAX, 818);
-      ctx.lineTo(colBX + colWidth, 818);
+      ctx.moveTo(colAX, 824);
+      ctx.lineTo(colBX + colWidth, 824);
       ctx.stroke();
 
       // Punto verde y Fecha
       ctx.fillStyle = '#00ff66';
       ctx.beginPath();
-      ctx.arc(colAX + 10, 866, 6, 0, Math.PI * 2);
+      ctx.arc(colAX + 10, 870, 6, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.fillStyle = '#FFFFFF';
       ctx.font = '600 20px monospace';
       ctx.textAlign = 'left';
-      ctx.fillText('CAPTURA: ' + getFechaConDiaSemana(), colAX + 30, 866);
+      ctx.fillText('CAPTURA: ' + getFechaConDiaSemana(), colAX + 30, 870);
 
-      // Badge Dominio a la derecha
+      // Badge Dominio
       const domainBoxWidth = 320;
       const domainBoxX = colBX + colWidth - domainBoxWidth;
       ctx.fillStyle = '#0b1120';
-      roundRect(ctx, domainBoxX, 840, domainBoxWidth, 52, 8);
+      roundRect(ctx, domainBoxX, 844, domainBoxWidth, 52, 8);
       ctx.fill();
       ctx.strokeStyle = '#162238';
       ctx.lineWidth = 2;
-      roundRect(ctx, domainBoxX, 840, domainBoxWidth, 52, 8);
+      roundRect(ctx, domainBoxX, 844, domainBoxWidth, 52, 8);
       ctx.stroke();
 
       ctx.fillStyle = '#CBD5E1';
       ctx.font = 'bold 18px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('STREAMRANK.MODOIA.ONLINE', domainBoxX + domainBoxWidth / 2, 866);
+      ctx.fillText('STREAMRANK.MODOIA.ONLINE', domainBoxX + domainBoxWidth / 2, 870);
 
       return canvas;
     }
