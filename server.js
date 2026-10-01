@@ -1119,34 +1119,45 @@ const HTML_APP = `<!DOCTYPE html>
   <header class="sticky top-0 z-40 bg-[#050811]/95 backdrop-blur-md border-b border-[#162238]">
     <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-20 flex items-center justify-between gap-1.5 sm:gap-2">
       
-      <!-- Marca + Badges -->
-      <div class="flex items-center space-x-1.5 sm:space-x-3 min-w-0">
+      <!-- Marca + Badges (Siempre visible, con BETA intacto en mobile y desktop) -->
+      <div class="flex items-center space-x-1.5 sm:space-x-3 min-w-0 flex-shrink-0">
         <div class="relative flex items-center justify-center w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-black border border-matrix/50 shadow-matrixSoft flex-shrink-0">
           <span class="absolute w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 rounded-full bg-matrix animate-ping opacity-75"></span>
           <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-matrix"></span>
         </div>
         <div class="min-w-0 flex items-center space-x-1 sm:space-x-1.5">
-          <span class="text-[13px] sm:text-xl font-black tracking-wider text-white">STREAMRANK</span>
+          <span class="text-[12px] sm:text-xl font-black tracking-wider text-white">STREAMRANK</span>
           <span class="text-[8px] sm:text-xs px-1 py-0.5 tech-badge bg-matrix/20 text-matrix border border-matrix/40 shrink-0">ARG</span>
-          <span class="inline-flex items-center text-[8px] sm:text-[9px] px-1 py-0.5 tech-badge bg-cyan-400/10 text-cyan-300 border border-cyan-400/40 shrink-0">BETA</span>
+          <span class="text-[8px] sm:text-[9px] px-1 py-0.5 tech-badge bg-cyan-400/10 text-cyan-300 border border-cyan-400/40 shrink-0">BETA</span>
         </div>
       </div>
 
-      <!-- Píldora de Telemetría (Visible en Mobile y Desktop con Fecha y Hora) -->
+      <!-- Píldora de Telemetría (Desktop intacto; Mobile adaptado con Día incluido) -->
       <div class="flex items-center space-x-1.5 sm:space-x-2 flex-shrink-0">
         <div class="flex items-center bg-[#0b1120] border border-[#162238] rounded-lg sm:rounded-xl px-2 sm:px-3.5 py-1 sm:py-2 space-x-1.5 sm:space-x-3">
-          <div class="flex items-center space-x-1 sm:space-x-1.5">
+          
+          <div class="flex items-center space-x-1 sm:space-x-1.5 shrink-0">
             <span class="inline-block w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-matrix shadow-matrix"></span>
-            <span class="text-[10px] sm:text-xs font-semibold text-slate-300"><span id="stat-live-count" class="text-matrix font-bold">0</span> <span class="hidden sm:inline">En Vivo</span></span>
+            <span class="text-[10px] sm:text-xs font-semibold text-slate-300">
+              <span id="stat-live-count" class="text-matrix font-bold">0</span> 
+              <span class="hidden sm:inline">En Vivo</span>
+            </span>
           </div>
+
           <div class="w-px h-3 sm:h-4 bg-slate-700"></div>
-          <div class="text-[10px] sm:text-xs text-slate-400">
-            <span class="hidden md:inline">Audiencia: </span><span id="stat-total-viewers" class="text-white font-mono font-bold">0</span>
+
+          <div class="text-[10px] sm:text-xs text-slate-400 shrink-0">
+            <span class="hidden md:inline">Audiencia: </span>
+            <span id="stat-total-viewers" class="text-white font-mono font-bold">0</span>
           </div>
+
           <div class="w-px h-3 sm:h-4 bg-slate-700"></div>
-          <div class="text-[9px] sm:text-[11px] font-mono text-slate-300" id="sync-clock">
+
+          <!-- Reloj de Sincronización: Formato completo en Desktop y Formato con Día en Mobile -->
+          <div class="text-[9px] sm:text-[11px] font-mono text-slate-300 whitespace-nowrap shrink-0" id="sync-clock">
             Sinc: --:--:--
           </div>
+
         </div>
       </div>
 
@@ -1613,6 +1624,15 @@ const HTML_APP = `<!DOCTYPE html>
       return dia + '/' + mes + ' ' + hora + ':' + min + ':' + seg + ' ART';
     }
 
+    function getFechaMobileFormateada() {
+      const now = new Date();
+      const dia = String(now.getDate()).padStart(2, '0');
+      const mes = String(now.getMonth() + 1).padStart(2, '0');
+      const hora = String(now.getHours()).padStart(2, '0');
+      const min = String(now.getMinutes()).padStart(2, '0');
+      return dia + '/' + mes + ' ' + hora + ':' + min;
+    }
+
     function fallbackImg(imgEl) {
       imgEl.onerror = null;
       imgEl.src = 'https://ui-avatars.com/api/?name=SR&background=0b1120&color=00ff66&bold=true';
@@ -1678,7 +1698,11 @@ const HTML_APP = `<!DOCTYPE html>
 
         const clockEl = document.getElementById('sync-clock');
         if (clockEl) {
-          clockEl.innerText = 'Sinc: ' + getFechaFormateada();
+          if (window.innerWidth < 640) {
+            clockEl.innerText = getFechaMobileFormateada();
+          } else {
+            clockEl.innerText = 'Sinc: ' + getFechaFormateada();
+          }
         }
 
         renderizarGrilla();
@@ -2198,7 +2222,6 @@ const HTML_APP = `<!DOCTYPE html>
       roundRect(ctx, colBX, colY, colWidth, colHeight, 24);
       ctx.stroke();
 
-      // DIBUJO DE BADGE GANADOR EN CANVAS: CON ALTURA Y ESPACIO SUFICIENTE SOBRE EL AVATAR
       function drawWinnerBadge(targetX) {
         ctx.save();
         const badgeW = 180;
@@ -2206,7 +2229,6 @@ const HTML_APP = `<!DOCTYPE html>
         const badgeX = targetX + (colWidth - badgeW) / 2;
         const badgeY = colY - 23;
 
-        // Fondo degradado metálico dorado oscuro
         const grad = ctx.createLinearGradient(badgeX, badgeY, badgeX, badgeY + badgeH);
         grad.addColorStop(0, '#2b2005');
         grad.addColorStop(1, '#0d0a02');
@@ -2214,12 +2236,10 @@ const HTML_APP = `<!DOCTYPE html>
         roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 10);
         ctx.fill();
 
-        // Borde dorado de alto contraste
         ctx.strokeStyle = '#ffd700';
         ctx.lineWidth = 2.5;
         ctx.stroke();
 
-        // Corona y texto centrados geométricamente
         ctx.fillStyle = '#ffd700';
         ctx.font = '900 18px system-ui, sans-serif';
         ctx.textAlign = 'center';
@@ -2258,7 +2278,6 @@ const HTML_APP = `<!DOCTYPE html>
         ctx.stroke();
       }
 
-      // El avatar baja a colY + 98 para que quede un espacio limpio de más de 20px bajo la medalla
       drawAvatar(imgA, colAX + 222, colY + 98, '#00ff66');
       drawAvatar(imgB, colBX + 222, colY + 98, '#22d3ee');
 
@@ -2376,6 +2395,11 @@ const HTML_APP = `<!DOCTYPE html>
       ctx.fillRect(splitX, barY, barX + barTotalW - splitX, barH);
 
       ctx.restore();
+
+      ctx.strokeStyle = '#162238';
+      ctx.lineWidth = 2;
+      roundRect(ctx, barX, barY, barTotalW, barH, barRadius);
+      ctx.stroke();
 
       ctx.strokeStyle = '#162238';
       ctx.lineWidth = 2;
