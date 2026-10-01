@@ -868,7 +868,7 @@ actualizarTelemetria();
 setInterval(actualizarTelemetria, 25000);
 
 // ============================================================================
-// VERIFICACIÓN SEARCH CONSOLE & SITEMAPS
+// VERIFICACIÓN SEARCH CONSOLE, SITEMAPS & FAVICON
 // ============================================================================
 app.get('/googleed9832fd2dd8faf4.html', (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -894,6 +894,10 @@ app.get('/robots.txt', (req, res) => {
   const robotsTxt = `User-agent: *\nAllow: /\n\nSitemap: https://streamrank.modoia.online/sitemap.xml`;
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.send(robotsTxt);
+});
+
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).end();
 });
 
 // ============================================================================
@@ -1108,7 +1112,7 @@ const HTML_APP = `<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- Píldora de Telemetría (Siempre visible en Mobile y Desktop con Fecha y Hora) -->
+      <!-- Píldora de Telemetría (Visible en Mobile y Desktop con Fecha y Hora) -->
       <div class="flex items-center space-x-1.5 sm:space-x-2 flex-shrink-0">
         <div class="flex items-center bg-[#0b1120] border border-[#162238] rounded-lg sm:rounded-xl px-2 sm:px-3.5 py-1 sm:py-2 space-x-1.5 sm:space-x-3">
           <div class="flex items-center space-x-1 sm:space-x-1.5">
@@ -1594,19 +1598,6 @@ const HTML_APP = `<!DOCTYPE html>
       return dia + '/' + mes + ' ' + hora + ':' + min + ':' + seg + ' ART';
     }
 
-    function getFallbackAvatar(name) {
-      const iniciales = (name || 'SR')
-        .replace(/[^a-zA-Z0-9 ]/g, '')
-        .split(' ')
-        .filter(Boolean)
-        .map(w => w[0])
-        .slice(0, 2)
-        .join('')
-        .toUpperCase() || 'SR';
-
-      return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(iniciales) + '&background=0b1120&color=00ff66&bold=true';
-    }
-
     function fallbackImg(imgEl) {
       imgEl.onerror = null;
       imgEl.src = 'https://ui-avatars.com/api/?name=SR&background=0b1120&color=00ff66&bold=true';
@@ -1790,7 +1781,7 @@ const HTML_APP = `<!DOCTYPE html>
         html += '<span class="text-base sm:text-lg font-black font-mono leading-none ' + (tieneBotShield ? 'text-amber-400' : (isLive ? 'text-matrix matrix-glow' : 'text-slate-500')) + '">' + formatNum(c.totalViewers) + '</span>';
         html += '</div>';
 
-        html += '<button onclick="abrirDueloCon(\'' + c.id + '\')" class="px-3 py-1 rounded-lg bg-black/80 hover:bg-matrix hover:text-black transition-all text-matrix font-black text-xs border border-matrix/50 shrink-0" title="Duelo Versus">';
+        html += '<button data-duel-id="' + c.id + '" class="btn-open-duel px-3 py-1 rounded-lg bg-black/80 hover:bg-matrix hover:text-black transition-all text-matrix font-black text-xs border border-matrix/50 shrink-0" title="Duelo Versus">';
         html += 'VS';
         html += '</button>';
         html += '</div>';
@@ -1819,6 +1810,12 @@ const HTML_APP = `<!DOCTYPE html>
       }
 
       container.innerHTML = html;
+
+      container.querySelectorAll('.btn-open-duel').forEach(btn => {
+        btn.addEventListener('click', () => {
+          abrirDueloCon(btn.getAttribute('data-duel-id'));
+        });
+      });
     };
 
     const solicitarDescargaCSV = () => {
