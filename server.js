@@ -63,6 +63,8 @@ async function initTurso() {
       channel_id TEXT,
       channel_name TEXT,
       viewers INTEGER,
+      organic_viewers INTEGER,
+      bot_count INTEGER DEFAULT 0,
       program_name TEXT,
       is_live INTEGER,
       bot_alert INTEGER DEFAULT 0,
@@ -72,10 +74,10 @@ async function initTurso() {
   console.log('[Turso DB] Inicialización completada.');
 }
 
-async function saveMetricToTurso(channelId, channelName, viewers, programName, isLive, botAlert = 0) {
+async function saveMetricToTurso(channelId, channelName, viewers, organicViewers, botCount, programName, isLive, botAlert = 0) {
   await executeTursoQuery(
-    'INSERT INTO metrics_history (channel_id, channel_name, viewers, program_name, is_live, bot_alert) VALUES (?, ?, ?, ?, ?, ?)',
-    [channelId, channelName, viewers || 0, programName || 'Transmisión en vivo', isLive ? 1 : 0, botAlert ? 1 : 0]
+    'INSERT INTO metrics_history (channel_id, channel_name, viewers, organic_viewers, bot_count, program_name, is_live, bot_alert) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [channelId, channelName, viewers || 0, organicViewers || 0, botCount || 0, programName || 'Transmisión en vivo', isLive ? 1 : 0, botAlert ? 1 : 0]
   );
 }
 
@@ -409,6 +411,8 @@ let telemetriaCache = CHANNELS.map((canal) => ({
   isEmerging: canal.isEmerging,
   isLive: false,
   totalViewers: 0,
+  organicViewers: 0,
+  botCount: 0,
   title: 'Sincronizando señal en vivo...',
   thumbnail: null,
   bot_shield: false,
@@ -678,7 +682,7 @@ const scrapeKick = async (slug) => {
 };
 
 // ============================================================================
-// ESCUDO ANTI-BOTS
+// ESCUDO ANTI-BOTS Y AUDITORÍA DE TRÁFICO
 // ============================================================================
 const evaluarAnomaliaTrafico = (canal, totalViewers) => {
   const ahora = Date.now();
@@ -689,7 +693,7 @@ const evaluarAnomaliaTrafico = (canal, totalViewers) => {
   historialLecturas.set(canal.id, historial);
 
   if (!totalViewers || totalViewers < 2000) {
-    return { bot_shield: false, bot_alert: 0, reason: null, decoupled: false };
+    return { bot_shield: false, bot_alert: 0, reason: null, decoupled: false, organicViewers: totalViewers, botCount: 0 };
   }
 
   if (historial.length >= 2) {
@@ -701,26 +705,34 @@ const evaluarAnomaliaTrafico = (canal, totalViewers) => {
     if (tiempoDiff <= 180000) {
       const saltoDesmedido = (porcentajeSalto > 1.6 && deltaViewers > 3500) || deltaViewers >= 18000;
       if (saltoDesmedido) {
+        const organicViewers = anterior.viewers || Math.round(totalViewers * 0.4);
+        const botCount = Math.max(0, totalViewers - organicViewers);
         return {
           bot_shield: true,
           bot_alert: 1,
           reason: 'Inyección externa acelerada (>160% o +18k en <3 min)',
-          decoupled: true
+          decoupled: true,
+          organicViewers,
+          botCount
         };
       }
     }
   }
 
   if (canal.baselineMax && totalViewers > canal.baselineMax * 2.8) {
+    const organicViewers = canal.baselineMax;
+    const botCount = Math.max(0, totalViewers - organicViewers);
     return {
       bot_shield: true,
       bot_alert: 1,
       reason: `Pico atípico desproporcionado (+${Math.round((totalViewers / canal.baselineMax) * 100)}% de baseline)`,
-      decoupled: true
+      decoupled: true,
+      organicViewers,
+      botCount
     };
   }
 
-  return { bot_shield: false, bot_alert: 0, reason: null, decoupled: false };
+  return { bot_shield: false, bot_alert: 0, reason: null, decoupled: false, organicViewers: totalViewers, botCount: 0 };
 };
 
 // ============================================================================
@@ -750,7 +762,7 @@ const procesarCanalIndividual = async (canal) => {
 
     const anomalia = isLive
       ? evaluarAnomaliaTrafico(canal, totalViewers)
-      : { bot_shield: false, bot_alert: 0, reason: null, decoupled: false };
+      : { bot_shield: false, bot_alert: 0, reason: null, decoupled: false, organicViewers: 0, botCount: 0 };
 
     const itemTelemetria = {
       id: canal.id,
@@ -762,6 +774,8 @@ const procesarCanalIndividual = async (canal) => {
       isEmerging: canal.isEmerging,
       isLive,
       totalViewers,
+      organicViewers: anomalia.organicViewers,
+      botCount: anomalia.botCount,
       title,
       thumbnail,
       bot_shield: anomalia.bot_shield,
@@ -800,6 +814,8 @@ const procesarCanalIndividual = async (canal) => {
         subtema: canal.subtheme,
         titulo_programa: title,
         viewers_total: totalViewers,
+        viewers_organicos: anomalia.organicViewers,
+        bots_inyectados: anomalia.botCount,
         viewers_yt: ytRes.viewers || 0,
         viewers_tw: twRes.viewers || 0,
         viewers_ki: kiRes.viewers || 0,
@@ -813,7 +829,7 @@ const procesarCanalIndividual = async (canal) => {
         historicalSnapshots.splice(0, historicalSnapshots.length - (MAX_HISTORICAL_RECORDS - 5000));
       }
 
-      saveMetricToTurso(canal.id, canal.name, totalViewers, title, isLive, anomalia.bot_alert);
+      saveMetricToTurso(canal.id, canal.name, totalViewers, anomalia.organicViewers, anomalia.botCount, title, isLive, anomalia.bot_alert);
     }
 
     return itemTelemetria;
@@ -968,7 +984,9 @@ app.get('/api/export-csv', async (req, res) => {
       rows = parsedRows.map((r) => [
         `"${r.channel_id}"`,
         `"${(r.channel_name || '').replace(/"/g, '""')}"`,
-        r.viewers,
+        r.viewers || 0,
+        r.organic_viewers !== null ? r.organic_viewers : r.viewers || 0,
+        r.bot_count || 0,
         `"${(r.program_name || '').replace(/"/g, '""')}"`,
         r.is_live ? 'SI' : 'NO',
         r.bot_alert ? 'DETECTADO' : 'NORMAL',
@@ -999,6 +1017,8 @@ app.get('/api/export-csv', async (req, res) => {
       `"${s.canal_id}"`,
       `"${s.nombre.replace(/"/g, '""')}"`,
       s.viewers_total,
+      s.viewers_organicos !== undefined ? s.viewers_organicos : s.viewers_total,
+      s.bots_inyectados !== undefined ? s.bots_inyectados : 0,
       `"${s.titulo_programa.replace(/"/g, '""')}"`,
       'SI',
       s.bot_alert ? 'DETECTADO' : 'NORMAL',
@@ -1012,7 +1032,7 @@ app.get('/api/export-csv', async (req, res) => {
     '# Historial acumulativo iniciado en Septiembre 2026 (Retención 24 meses).',
     `# Fecha de Exportación: ${bsAsTime.timestamp} (Hora Oficial Argentina)`,
     '',
-    ['Canal_ID', 'Canal_Nombre', 'Espectadores_Concurrentes', 'Programa_Emitido', 'En_Vivo', 'Alerta_Bots_Shield', 'Timestamp'].join(',')
+    ['Canal_ID', 'Canal_Nombre', 'Audiencia_Total_Bruta', 'Audiencia_Validada_Organica', 'Inyeccion_Externa_Bots', 'Programa_Emitido', 'En_Vivo', 'Estado_Shield', 'Timestamp'].join(',')
   ];
 
   const csvContent = [...fileHeaders, ...rows.map((r) => r.join(','))].join('\n');
@@ -1229,7 +1249,7 @@ const HTML_APP = `<!DOCTYPE html>
       <div class="relative w-full rounded-2xl bg-gradient-to-r from-emerald-950/20 via-[#0b1120] to-blue-950/20 border border-matrix/30 p-5 sm:p-6 flex flex-col md:flex-row items-center justify-between gap-5 text-center md:text-left">
         <div class="space-y-1.5">
           <span class="inline-flex items-center text-[10px] tech-badge text-matrix bg-matrix/10 px-2.5 py-0.5 border border-matrix/30">ESPACIO EXCLUSIVO DE MARCA</span>
-          <h3 class="text-base sm:lg font-bold text-slate-100 tracking-tight">Posicioná tu marca en el epicentro del streaming nacional</h3>
+          <h3 class="text-base sm:text-lg font-bold text-slate-100 tracking-tight">Posicioná tu marca en el epicentro del streaming nacional</h3>
           <p class="text-xs text-slate-400 font-normal leading-relaxed">Presencia exclusiva y alcance directo ante cientos de miles de espectadores concurrentes en vivo.</p>
         </div>
         <a href="mailto:info@modoia.online?subject=Publicidad%20y%20Sponsoreo%20-%20StreamRank" class="w-full md:w-auto px-5 py-2.5 rounded-xl bg-[#0b1120] hover:bg-matrix hover:text-black border border-matrix/40 text-matrix text-xs font-bold transition-all shadow-matrixSoft shrink-0 text-center tracking-wider">
@@ -2084,7 +2104,7 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     // ========================================================================
-    // COMPARTIR EN X (BLINDADO Y SIN CARACTERES QUE ROMPAN EL PARSER)
+    // COMPARTIR EN X
     // ========================================================================
     const compartirEnX = () => {
       const nameA = document.getElementById('duel-a-name').innerText;
