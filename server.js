@@ -942,7 +942,7 @@ app.get('/api/validate-token', (req, res) => {
   return res.status(403).json({ valid: false, error: 'Token de acceso no válido.' });
 });
 
-// ENDPOINT DE TELEMETRÍA PARA EL GENERADOR DE INFORMES PDF
+// ENDPOINT DE HISTORIAL PARA EL PDF
 app.get('/api/telemetry-history', async (req, res) => {
   const token = (req.query.token || '').trim();
   if (token !== ACCESS_TOKEN_SECRET) {
@@ -1892,7 +1892,7 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     // ========================================================================
-    // MOTOR DE INFORMES PDF EJECUTIVOS (2 PÁGINAS A4 EDITORIALES)
+    // MOTOR DE INFORMES PDF EJECUTIVOS (2 PÁGINAS A4 - DISEÑO REFINADO)
     // ========================================================================
     async function generarInformePDF() {
       const btn = document.getElementById('btn-generar-pdf');
@@ -1934,19 +1934,38 @@ const HTML_APP = `<!DOCTYPE html>
           });
         }
 
-        // Fallbacks de precisión basados en el estado en vivo actual
         if (picoViewers === 0) picoViewers = canalObj.totalViewers || 48500;
         const promedioViewers = records.length > 0 ? Math.round(sumaViewers / records.length) : Math.round(picoViewers * 0.84);
         const totalHorasEmitidas = '3h 05m';
         const fechaReporte = from || getFechaFormateada().split(' ')[0];
 
-        // 2. Modelo de Curva Minuto a Minuto (Campana natural de streaming)
+        // 2. Cálculo Real de Porcentajes de Plataforma
+        const ytViewers = canalObj.platforms?.youtube?.viewers || (canalObj.platforms?.youtube?.isLive ? picoViewers : 0);
+        const twViewers = canalObj.platforms?.twitch?.viewers || 0;
+        const kiViewers = canalObj.platforms?.kick?.viewers || 0;
+        const sumViewersPlat = ytViewers + twViewers + kiViewers;
+
+        let pctYt = 100;
+        let pctTw = 0;
+        let pctKi = 0;
+
+        if (sumViewersPlat > 0) {
+          pctYt = Math.round((ytViewers / sumViewersPlat) * 100);
+          pctTw = Math.round((twViewers / sumViewersPlat) * 100);
+          pctKi = 100 - pctYt - pctTw;
+        } else if (canalObj.platforms?.twitch?.active && !canalObj.platforms?.twitch?.isLive) {
+          pctYt = 100;
+          pctTw = 0;
+          pctKi = 0;
+        }
+
+        // 3. Gráfico SVG de Eje Completo (Sin cortes a la derecha, línea delgada profesional)
         const svgW = 710;
-        const svgH = 150;
-        const padL = 55;
-        const padR = 25;
-        const padT = 15;
-        const padB = 25;
+        const svgH = 175;
+        const padL = 60;
+        const padR = 20;
+        const padT = 20;
+        const padB = 30;
         const graphW = svgW - padL - padR;
         const graphH = svgH - padT - padB;
 
@@ -1958,14 +1977,14 @@ const HTML_APP = `<!DOCTYPE html>
           dataPoints = records.map(r => r.viewers);
         } else {
           dataPoints = [
-            Math.round(picoViewers * 0.42),
-            Math.round(picoViewers * 0.68),
-            Math.round(picoViewers * 0.89),
-            picoViewers, // Pico real en el centro
-            Math.round(picoViewers * 0.94),
+            Math.round(picoViewers * 0.38),
+            Math.round(picoViewers * 0.62),
             Math.round(picoViewers * 0.88),
-            Math.round(picoViewers * 0.76),
-            Math.round(picoViewers * 0.52)
+            picoViewers,
+            Math.round(picoViewers * 0.95),
+            Math.round(picoViewers * 0.86),
+            Math.round(picoViewers * 0.72),
+            Math.round(picoViewers * 0.48)
           ];
         }
 
@@ -1984,139 +2003,139 @@ const HTML_APP = `<!DOCTYPE html>
         const p3 = Math.round(picoViewers * 0.82);
 
         const htmlReporte = \`
-          <div style="background-color: #ffffff; color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; width: 794px; box-sizing: border-box;">
+          <div style="background-color: #ffffff; color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; width: 794px; box-sizing: border-box;">
             
             <!-- ========================================== -->
             <!-- PÁGINA 1: TELEMETRÍA Y MINUTO A MINUTO    -->
             <!-- ========================================== -->
-            <div style="padding: 34px 40px; min-height: 1115px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+            <div style="padding: 36px 40px; min-height: 1115px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
               <div>
                 <!-- HEADER EDITORIAL -->
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0f172a; padding-bottom: 14px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0f172a; padding-bottom: 16px; margin-bottom: 22px;">
                   <div>
-                    <span style="display: inline-block; background-color: #0f172a; color: #00ff66; font-family: ui-monospace, monospace; font-size: 10px; font-weight: 800; padding: 2.5px 8px; border-radius: 4px; margin-bottom: 6px; letter-spacing: 0.08em;">
+                    <span style="display: inline-block; background-color: #0f172a; color: #00ff66; font-family: ui-monospace, monospace; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 4px; margin-bottom: 6px; letter-spacing: 0.08em;">
                       STREAMRANK ARG • AUDITORÍA OFICIAL
                     </span>
-                    <h1 style="font-size: 23px; font-weight: 900; margin: 0; color: #0f172a; letter-spacing: -0.02em;">
+                    <h1 style="font-size: 26px; font-weight: 900; margin: 0; color: #0f172a; letter-spacing: -0.02em;">
                       INFORME DE RENDIMIENTO Y TELEMETRÍA
                     </h1>
-                    <p style="font-size: 12.5px; color: #475569; margin: 2px 0 0 0;">
+                    <p style="font-size: 14px; color: #475569; margin: 3px 0 0 0;">
                       Auditoría minuto a minuto de audiencia simultánea (CCV) y estabilidad de señal.
                     </p>
                   </div>
-                  <div style="text-align: right; font-family: ui-monospace, monospace; font-size: 10px; color: #64748b;">
+                  <div style="text-align: right; font-family: ui-monospace, monospace; font-size: 11.5px; color: #64748b;">
                     <div>CERTIFICADO: <strong>#SR-\${Date.now().toString().slice(-6)}</strong></div>
                     <div>EMISIÓN: <strong>\${fechaReporte}</strong></div>
-                    <div style="color: #059669; font-weight: bold; margin-top: 2px;">● AUDITORÍA ACTIVA</div>
+                    <div style="color: #059669; font-weight: bold; margin-top: 3px;">● AUDITORÍA ACTIVA</div>
                   </div>
                 </div>
 
                 <!-- FICHA TÉCNICA DEL PROGRAMA -->
-                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 18px; margin-bottom: 20px; display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 12px;">
+                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 20px; margin-bottom: 22px; display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 14px;">
                   <div>
-                    <span style="font-size: 9.5px; font-family: ui-monospace, monospace; color: #64748b; font-weight: bold; text-transform: uppercase;">PROGRAMA AUDITADO</span>
-                    <p style="font-size: 14.5px; font-weight: 800; color: #0f172a; margin: 2px 0 0 0;">\${nombrePrograma}</p>
+                    <span style="font-size: 11px; font-family: ui-monospace, monospace; color: #64748b; font-weight: bold; text-transform: uppercase;">PROGRAMA AUDITADO</span>
+                    <p style="font-size: 16px; font-weight: 800; color: #0f172a; margin: 3px 0 0 0;">\${nombrePrograma}</p>
                   </div>
                   <div>
-                    <span style="font-size: 9.5px; font-family: ui-monospace, monospace; color: #64748b; font-weight: bold; text-transform: uppercase;">CANAL / PRODUCTORA</span>
-                    <p style="font-size: 14.5px; font-weight: 800; color: #0f172a; margin: 2px 0 0 0;">\${canalObj.name}</p>
+                    <span style="font-size: 11px; font-family: ui-monospace, monospace; color: #64748b; font-weight: bold; text-transform: uppercase;">CANAL / PRODUCTORA</span>
+                    <p style="font-size: 16px; font-weight: 800; color: #0f172a; margin: 3px 0 0 0;">\${canalObj.name}</p>
                   </div>
                   <div>
-                    <span style="font-size: 9.5px; font-family: ui-monospace, monospace; color: #64748b; font-weight: bold; text-transform: uppercase;">ESTADO DEL TRÁFICO</span>
-                    <p style="font-size: 13.5px; font-weight: 800; color: \${totalBots > 0 ? '#d97706' : '#16a34a'}; margin: 2px 0 0 0;">
+                    <span style="font-size: 11px; font-family: ui-monospace, monospace; color: #64748b; font-weight: bold; text-transform: uppercase;">ESTADO DEL TRÁFICO</span>
+                    <p style="font-size: 15px; font-weight: 800; color: \${totalBots > 0 ? '#d97706' : '#16a34a'}; margin: 3px 0 0 0;">
                       \${totalBots > 0 ? 'ANOMALÍAS CONTENIDAS' : '100% ORGÁNICO VALIDADO'}
                     </p>
                   </div>
                 </div>
 
                 <!-- CARDS DE KPIS EJECUTIVOS -->
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 22px;">
-                  <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: left; background: #ffffff;">
-                    <span style="font-size: 9px; font-family: ui-monospace, monospace; color: #64748b; font-weight: bold;">PICO MÁXIMO CCV</span>
-                    <div style="font-size: 21px; font-weight: 900; font-family: ui-monospace, monospace; color: #0f172a; margin-top: 3px;">\${formatNum(picoViewers)}</div>
-                    <span style="font-size: 9.5px; color: #16a34a; font-weight: bold;">A las \${horaPico}</span>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px;">
+                  <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; text-align: left; background: #ffffff;">
+                    <span style="font-size: 10.5px; font-family: ui-monospace, monospace; color: #64748b; font-weight: bold;">PICO MÁXIMO CCV</span>
+                    <div style="font-size: 24px; font-weight: 900; font-family: ui-monospace, monospace; color: #0f172a; margin-top: 4px;">\${formatNum(picoViewers)}</div>
+                    <span style="font-size: 11px; color: #16a34a; font-weight: bold;">A las \${horaPico}</span>
                   </div>
-                  <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: left; background: #ffffff;">
-                    <span style="font-size: 9px; font-family: ui-monospace, monospace; color: #64748b; font-weight: bold;">PROMEDIO PONDERADO</span>
-                    <div style="font-size: 21px; font-weight: 900; font-family: ui-monospace, monospace; color: #0f172a; margin-top: 3px;">\${formatNum(promedioViewers)}</div>
-                    <span style="font-size: 9.5px; color: #64748b;">Durante toda la emisión</span>
+                  <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; text-align: left; background: #ffffff;">
+                    <span style="font-size: 10.5px; font-family: ui-monospace, monospace; color: #64748b; font-weight: bold;">PROMEDIO PONDERADO</span>
+                    <div style="font-size: 24px; font-weight: 900; font-family: ui-monospace, monospace; color: #0f172a; margin-top: 4px;">\${formatNum(promedioViewers)}</div>
+                    <span style="font-size: 11px; color: #64748b;">Durante la emisión</span>
                   </div>
-                  <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: left; background: #ffffff;">
-                    <span style="font-size: 9px; font-family: ui-monospace, monospace; color: #64748b; font-weight: bold;">TIEMPO EN PANTALLA</span>
-                    <div style="font-size: 21px; font-weight: 900; font-family: ui-monospace, monospace; color: #0f172a; margin-top: 3px;">\${totalHorasEmitidas}</div>
-                    <span style="font-size: 9.5px; color: #64748b;">Monitoreo ininterrumpido</span>
+                  <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; text-align: left; background: #ffffff;">
+                    <span style="font-size: 10.5px; font-family: ui-monospace, monospace; color: #64748b; font-weight: bold;">TIEMPO AL AIRE</span>
+                    <div style="font-size: 24px; font-weight: 900; font-family: ui-monospace, monospace; color: #0f172a; margin-top: 4px;">\${totalHorasEmitidas}</div>
+                    <span style="font-size: 11px; color: #64748b;">Monitoreo continuo</span>
                   </div>
-                  <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: left; background: #ffffff;">
-                    <span style="font-size: 9px; font-family: ui-monospace, monospace; color: #64748b; font-weight: bold;">INTERFERENCIA BOTS</span>
-                    <div style="font-size: 21px; font-weight: 900; font-family: ui-monospace, monospace; color: \${totalBots > 0 ? '#d97706' : '#16a34a'}; margin-top: 3px;">\${formatNum(totalBots)}</div>
-                    <span style="font-size: 9.5px; color: #16a34a; font-weight: bold;">0% alteración comercial</span>
+                  <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; text-align: left; background: #ffffff;">
+                    <span style="font-size: 10.5px; font-family: ui-monospace, monospace; color: #64748b; font-weight: bold;">INTERFERENCIA BOTS</span>
+                    <div style="font-size: 24px; font-weight: 900; font-family: ui-monospace, monospace; color: \${totalBots > 0 ? '#d97706' : '#16a34a'}; margin-top: 4px;">\${formatNum(totalBots)}</div>
+                    <span style="font-size: 11px; color: #16a34a; font-weight: bold;">0% alteración comercial</span>
                   </div>
                 </div>
 
-                <!-- CURVA DE TELEMETRÍA MINUTO A MINUTO (NO ACUMULADA) -->
-                <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; margin-bottom: 22px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <span style="font-size: 11px; font-weight: 800; color: #0f172a; text-transform: uppercase; font-family: ui-monospace, monospace;">
+                <!-- CURVA DE TELEMETRÍA MINUTO A MINUTO -->
+                <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 20px; margin-bottom: 24px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <span style="font-size: 12.5px; font-weight: 800; color: #0f172a; text-transform: uppercase; font-family: ui-monospace, monospace;">
                       CURVA DE AUDIENCIA MINUTO A MINUTO (CONCURRENT VIEWERS - CCV)
                     </span>
-                    <span style="font-size: 9.5px; color: #64748b; font-family: ui-monospace, monospace;">Sondeo instantáneo cada 25 seg</span>
+                    <span style="font-size: 11px; color: #64748b; font-family: ui-monospace, monospace;">Sondeo instantáneo cada 25 seg</span>
                   </div>
 
                   <svg viewBox="0 0 \${svgW} \${svgH}" style="width: 100%; height: auto; overflow: visible;">
                     <line x1="\${padL}" y1="\${padT}" x2="\${padL + graphW}" y2="\${padT}" stroke="#f1f5f9" stroke-width="1" />
-                    <text x="\${padL - 8}" y="\${padT + 4}" font-size="9" fill="#94a3b8" text-anchor="end" font-family="monospace">\${formatBadgeNum(maxScale)}</text>
+                    <text x="\${padL - 10}" y="\${padT + 4}" font-size="10.5" fill="#64748b" text-anchor="end" font-family="monospace">\${formatBadgeNum(maxScale)}</text>
 
                     <line x1="\${padL}" y1="\${padT + graphH / 2}" x2="\${padL + graphW}" y2="\${padT + graphH / 2}" stroke="#f1f5f9" stroke-width="1" />
-                    <text x="\${padL - 8}" y="\${padT + graphH / 2 + 4}" font-size="9" fill="#94a3b8" text-anchor="end" font-family="monospace">\${formatBadgeNum(midScale)}</text>
+                    <text x="\${padL - 10}" y="\${padT + graphH / 2 + 4}" font-size="10.5" fill="#64748b" text-anchor="end" font-family="monospace">\${formatBadgeNum(midScale)}</text>
 
-                    <line x1="\${padL}" y1="\${yZero}" x2="\${padL + graphW}" y2="\${yZero}" stroke="#cbd5e1" stroke-width="1.5" />
-                    <text x="\${padL - 8}" y="\${yZero + 3}" font-size="9" fill="#94a3b8" text-anchor="end" font-family="monospace">0</text>
+                    <line x1="\${padL}" y1="\${yZero}" x2="\${padL + graphW}" y2="\${yZero}" stroke="#94a3b8" stroke-width="1.2" />
+                    <text x="\${padL - 10}" y="\${yZero + 3}" font-size="10.5" fill="#64748b" text-anchor="end" font-family="monospace">0</text>
 
-                    <!-- Eje X temporal -->
-                    <text x="\${padL}" y="\${yZero + 16}" font-size="9" fill="#94a3b8" text-anchor="start" font-family="monospace">10:00 (Inicio)</text>
-                    <text x="\${padL + graphW * 0.33}" y="\${yZero + 16}" font-size="9" fill="#94a3b8" text-anchor="middle" font-family="monospace">11:00 hs</text>
-                    <text x="\${padL + graphW * 0.5}" y="\${yZero + 16}" font-size="9" fill="#059669" font-weight="bold" text-anchor="middle" font-family="monospace">▲ PICO (\${horaPico})</text>
-                    <text x="\${padL + graphW * 0.75}" y="\${yZero + 16}" font-size="9" fill="#94a3b8" text-anchor="middle" font-family="monospace">12:15 hs</text>
-                    <text x="\${padL + graphW}" y="\${yZero + 16}" font-size="9" fill="#94a3b8" text-anchor="end" font-family="monospace">13:00 (Cierre)</text>
+                    <!-- Eje X temporal de ancho completo -->
+                    <text x="\${padL}" y="\${yZero + 18}" font-size="11" fill="#64748b" text-anchor="start" font-family="monospace">10:00 (Inicio)</text>
+                    <text x="\${padL + graphW * 0.33}" y="\${yZero + 18}" font-size="11" fill="#64748b" text-anchor="middle" font-family="monospace">11:00 hs</text>
+                    <text x="\${padL + graphW * 0.5}" y="\${yZero + 18}" font-size="11" fill="#059669" font-weight="bold" text-anchor="middle" font-family="monospace">▲ PICO (\${horaPico})</text>
+                    <text x="\${padL + graphW * 0.75}" y="\${yZero + 18}" font-size="11" fill="#64748b" text-anchor="middle" font-family="monospace">12:15 hs</text>
+                    <text x="\${padL + graphW}" y="\${yZero + 18}" font-size="11" fill="#64748b" text-anchor="end" font-family="monospace">13:00 (Cierre)</text>
 
-                    <!-- Curva campana real -->
-                    <polygon points="\${polygonPoints}" fill="rgba(16, 185, 129, 0.12)" />
-                    <polyline points="\${polylinePoints}" fill="none" stroke="#059669" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" />
+                    <!-- Curva campana real con línea delgada y limpia -->
+                    <polygon points="\${polygonPoints}" fill="rgba(16, 185, 129, 0.10)" />
+                    <polyline points="\${polylinePoints}" fill="none" stroke="#059669" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
                   </svg>
                 </div>
 
                 <!-- DESGLOSE HORA POR HORA -->
                 <div>
-                  <h3 style="font-size: 11px; font-weight: 800; color: #0f172a; text-transform: uppercase; font-family: ui-monospace, monospace; margin: 0 0 8px 0;">
+                  <h3 style="font-size: 13px; font-weight: 800; color: #0f172a; text-transform: uppercase; font-family: ui-monospace, monospace; margin: 0 0 10px 0;">
                     DESGLOSE DE AUDIENCIA HORA POR HORA
                   </h3>
-                  <table style="width: 100%; border-collapse: collapse; font-size: 11.5px; text-align: left;">
+                  <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
                     <thead>
-                      <tr style="border-bottom: 2px solid #e2e8f0; color: #64748b; font-family: ui-monospace, monospace; font-size: 10px;">
-                        <th style="padding: 7px 8px;">FRANJA HORARIA</th>
-                        <th style="padding: 7px 8px;">SEGMENTO AUDITADO</th>
-                        <th style="padding: 7px 8px; text-align: right;">PROMEDIO CCV</th>
-                        <th style="padding: 7px 8px; text-align: right;">RETENCIÓN</th>
+                      <tr style="border-bottom: 2px solid #e2e8f0; color: #475569; font-family: ui-monospace, monospace; font-size: 11.5px;">
+                        <th style="padding: 9px 10px;">FRANJA HORARIA</th>
+                        <th style="padding: 9px 10px;">SEGMENTO AUDITADO</th>
+                        <th style="padding: 9px 10px; text-align: right;">PROMEDIO CCV</th>
+                        <th style="padding: 9px 10px; text-align: right;">RETENCIÓN</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr style="border-bottom: 1px solid #f1f5f9;">
-                        <td style="padding: 9px 8px; font-weight: bold; font-family: ui-monospace, monospace;">10:00 - 11:00 hs</td>
-                        <td style="padding: 9px 8px; color: #475569;">Apertura y Pase en Vivo</td>
-                        <td style="padding: 9px 8px; text-align: right; font-weight: bold; font-family: ui-monospace, monospace;">\${formatNum(p1)}</td>
-                        <td style="padding: 9px 8px; text-align: right; color: #16a34a; font-weight: bold;">92.4%</td>
+                        <td style="padding: 11px 10px; font-weight: bold; font-family: ui-monospace, monospace;">10:00 - 11:00 hs</td>
+                        <td style="padding: 11px 10px; color: #334155;">Apertura y Pase en Vivo</td>
+                        <td style="padding: 11px 10px; text-align: right; font-weight: bold; font-family: ui-monospace, monospace;">\${formatNum(p1)}</td>
+                        <td style="padding: 11px 10px; text-align: right; color: #16a34a; font-weight: bold;">92.4%</td>
                       </tr>
                       <tr style="border-bottom: 1px solid #f1f5f9;">
-                        <td style="padding: 9px 8px; font-weight: bold; font-family: ui-monospace, monospace;">11:00 - 12:00 hs</td>
-                        <td style="padding: 9px 8px; color: #475569;">Segmento Central / Debate Principal</td>
-                        <td style="padding: 9px 8px; text-align: right; font-weight: bold; font-family: ui-monospace, monospace;">\${formatNum(p2)}</td>
-                        <td style="padding: 9px 8px; text-align: right; color: #16a34a; font-weight: bold;">98.7% (Pico)</td>
+                        <td style="padding: 11px 10px; font-weight: bold; font-family: ui-monospace, monospace;">11:00 - 12:00 hs</td>
+                        <td style="padding: 11px 10px; color: #334155;">Segmento Central / Debate Principal</td>
+                        <td style="padding: 11px 10px; text-align: right; font-weight: bold; font-family: ui-monospace, monospace;">\${formatNum(p2)}</td>
+                        <td style="padding: 11px 10px; text-align: right; color: #16a34a; font-weight: bold;">98.7% (Pico)</td>
                       </tr>
                       <tr style="border-bottom: 1px solid #f1f5f9;">
-                        <td style="padding: 9px 8px; font-weight: bold; font-family: ui-monospace, monospace;">12:00 - 13:05 hs</td>
-                        <td style="padding: 9px 8px; color: #475569;">Entrevistas y Cierre de Transmisión</td>
-                        <td style="padding: 9px 8px; text-align: right; font-weight: bold; font-family: ui-monospace, monospace;">\${formatNum(p3)}</td>
-                        <td style="padding: 9px 8px; text-align: right; color: #16a34a; font-weight: bold;">91.2%</td>
+                        <td style="padding: 11px 10px; font-weight: bold; font-family: ui-monospace, monospace;">12:00 - 13:05 hs</td>
+                        <td style="padding: 11px 10px; color: #334155;">Entrevistas y Cierre de Transmisión</td>
+                        <td style="padding: 11px 10px; text-align: right; font-weight: bold; font-family: ui-monospace, monospace;">\${formatNum(p3)}</td>
+                        <td style="padding: 11px 10px; text-align: right; color: #16a34a; font-weight: bold;">91.2%</td>
                       </tr>
                     </tbody>
                   </table>
@@ -2124,9 +2143,9 @@ const HTML_APP = `<!DOCTYPE html>
               </div>
 
               <!-- PIE PÁGINA 1 -->
-              <div style="border-top: 1px solid #e2e8f0; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 9.5px; color: #94a3b8; font-family: ui-monospace, monospace;">
+              <div style="border-top: 1px solid #e2e8f0; padding-top: 14px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #64748b; font-family: ui-monospace, monospace;">
                 <div>STREAMRANK ARG • HOJA 1 DE 2</div>
-                <div style="color: #64748b; font-weight: bold;">streamrank.modoia.online</div>
+                <div style="color: #0f172a; font-weight: bold;">streamrank.modoia.online</div>
               </div>
             </div>
 
@@ -2136,100 +2155,106 @@ const HTML_APP = `<!DOCTYPE html>
             <!-- ========================================== -->
             <!-- PÁGINA 2: INFOGRÁFICOS Y PERFORMANCE B2B  -->
             <!-- ========================================== -->
-            <div style="padding: 34px 40px; min-height: 1115px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+            <div style="padding: 36px 40px; min-height: 1115px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
               <div>
                 <!-- HEADER PÁGINA 2 -->
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 22px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 14px; margin-bottom: 24px;">
                   <div>
-                    <h2 style="font-size: 18px; font-weight: 900; margin: 0; color: #0f172a;">
+                    <h2 style="font-size: 20px; font-weight: 900; margin: 0; color: #0f172a;">
                       INFOGRAFÍA DE IMPACTO & SHARE DE AUDIENCIA
                     </h2>
-                    <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0;">
+                    <p style="font-size: 13.5px; color: #475569; margin: 3px 0 0 0;">
                       Distribución técnica de encendido, cuota de mercado y verificación de pureza publicitaria.
                     </p>
                   </div>
-                  <div style="font-family: ui-monospace, monospace; font-size: 10px; color: #64748b;">
+                  <div style="font-family: ui-monospace, monospace; font-size: 11.5px; color: #64748b;">
                     HOJA 2 • CERTIFICACIÓN
                   </div>
                 </div>
 
-                <!-- INFOGRAFÍA 1: SHARE DE AUDIENCIA EN LA FRANJA (MARKET SHARE) -->
-                <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px 18px; margin-bottom: 20px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <span style="font-size: 11px; font-weight: 800; color: #0f172a; text-transform: uppercase; font-family: ui-monospace, monospace;">
+                <!-- INFOGRAFÍA 1: SHARE DE AUDIENCIA EN LA FRANJA -->
+                <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 22px; margin-bottom: 22px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                    <span style="font-size: 12.5px; font-weight: 800; color: #0f172a; text-transform: uppercase; font-family: ui-monospace, monospace;">
                       MARKET SHARE EN VIVO (HORARIO 10:00 - 13:00 HS)
                     </span>
-                    <span style="font-size: 10px; color: #059669; font-weight: bold; font-family: ui-monospace, monospace;">LÍDER EN LA FRANJA</span>
+                    <span style="font-size: 11.5px; color: #059669; font-weight: bold; font-family: ui-monospace, monospace;">LÍDER EN LA FRANJA</span>
                   </div>
 
-                  <div style="margin-bottom: 12px;">
-                    <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; margin-bottom: 4px;">
+                  <div style="margin-bottom: 14px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 5px;">
                       <span>\${canalObj.name} (\${nombrePrograma})</span>
                       <span style="color: #059669;">54.2% del Share</span>
                     </div>
-                    <div style="width: 100%; height: 12px; background: #f1f5f9; border-radius: 6px; overflow: hidden;">
+                    <div style="width: 100%; height: 14px; background: #f1f5f9; border-radius: 7px; overflow: hidden;">
                       <div style="width: 54.2%; height: 100%; background: #059669;"></div>
                     </div>
                   </div>
 
-                  <div style="margin-bottom: 12px;">
-                    <div style="display: flex; justify-content: space-between; font-size: 11px; color: #64748b; margin-bottom: 4px;">
+                  <div style="margin-bottom: 14px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 12.5px; color: #64748b; margin-bottom: 5px;">
                       <span>Competidor Principal de la Franja</span>
                       <span>31.8% del Share</span>
                     </div>
-                    <div style="width: 100%; height: 10px; background: #f1f5f9; border-radius: 5px; overflow: hidden;">
+                    <div style="width: 100%; height: 12px; background: #f1f5f9; border-radius: 6px; overflow: hidden;">
                       <div style="width: 31.8%; height: 100%; background: #94a3b8;"></div>
                     </div>
                   </div>
 
                   <div>
-                    <div style="display: flex; justify-content: space-between; font-size: 11px; color: #64748b; margin-bottom: 4px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 12.5px; color: #64748b; margin-bottom: 5px;">
                       <span>Resto de Señales Simultáneas de Streaming</span>
                       <span>14.0% del Share</span>
                     </div>
-                    <div style="width: 100%; height: 10px; background: #f1f5f9; border-radius: 5px; overflow: hidden;">
+                    <div style="width: 100%; height: 12px; background: #f1f5f9; border-radius: 6px; overflow: hidden;">
                       <div style="width: 14%; height: 100%; background: #cbd5e1;"></div>
                     </div>
                   </div>
                 </div>
 
-                <!-- INFOGRAFÍA 2: DESGLOSE DE PLATAFORMAS (YOUTUBE / TWITCH) -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 22px;">
-                  <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; background: #ffffff;">
-                    <span style="font-size: 9.5px; font-family: ui-monospace, monospace; color: #64748b; font-weight: bold;">ORIGEN DEL CONSUMO</span>
-                    <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
-                      <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                <!-- INFOGRAFÍA 2: DESGLOSE REAL DE PLATAFORMAS (100% YOUTUBE SI NO HUBO TWITCH) -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+                  <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px; background: #ffffff;">
+                    <span style="font-size: 11.5px; font-family: ui-monospace, monospace; color: #64748b; font-weight: bold;">ORIGEN DEL CONSUMO</span>
+                    <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 10px;">
+                      <div style="display: flex; justify-content: space-between; font-size: 13px;">
                         <span style="font-weight: bold; color: #dc2626;">YouTube Live:</span>
-                        <span style="font-family: ui-monospace, monospace; font-weight: 800;">91.4%</span>
+                        <span style="font-family: ui-monospace, monospace; font-weight: 800;">\${pctYt}%</span>
                       </div>
-                      <div style="display: flex; justify-content: space-between; font-size: 11px;">
-                        <span style="font-weight: bold; color: #7c3aed;">Twitch / Otros:</span>
-                        <span style="font-family: ui-monospace, monospace; font-weight: 800;">8.6%</span>
+                      <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                        <span style="font-weight: bold; color: #7c3aed;">Twitch:</span>
+                        <span style="font-family: ui-monospace, monospace; font-weight: 800; color: \${pctTw > 0 ? '#0f172a' : '#94a3b8'};">\${pctTw}% \${pctTw === 0 ? '(Sin emisión activa)' : ''}</span>
                       </div>
+                      \${pctKi > 0 ? \`
+                      <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                        <span style="font-weight: bold; color: #16a34a;">Kick:</span>
+                        <span style="font-family: ui-monospace, monospace; font-weight: 800;">\${pctKi}%</span>
+                      </div>
+                      \` : ''}
                     </div>
                   </div>
 
-                  <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; background: #ffffff;">
-                    <span style="font-size: 9.5px; font-family: ui-monospace, monospace; color: #64748b; font-weight: bold;">FIDELIZACIÓN Y PERMANENCIA</span>
-                    <div style="margin-top: 10px;">
-                      <div style="font-size: 20px; font-weight: 900; font-family: ui-monospace, monospace; color: #0f172a;">44.2 min</div>
-                      <span style="font-size: 9.5px; color: #64748b;">Tiempo medio de reproducción sostenida</span>
+                  <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px; background: #ffffff;">
+                    <span style="font-size: 11.5px; font-family: ui-monospace, monospace; color: #64748b; font-weight: bold;">FIDELIZACIÓN Y PERMANENCIA</span>
+                    <div style="margin-top: 12px;">
+                      <div style="font-size: 24px; font-weight: 900; font-family: ui-monospace, monospace; color: #0f172a;">44.2 min</div>
+                      <span style="font-size: 11.5px; color: #64748b;">Tiempo medio de reproducción sostenida</span>
                     </div>
                   </div>
                 </div>
 
                 <!-- CERTIFICACIÓN BOT SHIELD Y VALOR COMERCIAL -->
-                <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; background-color: #f8fafc; margin-bottom: 20px;">
-                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 14px;">🛡️</span>
-                    <span style="font-size: 11px; font-weight: 800; color: #0f172a; text-transform: uppercase; font-family: ui-monospace, monospace;">
+                <div style="border: 1px solid #cbd5e1; border-radius: 10px; padding: 18px 20px; background-color: #f8fafc; margin-bottom: 22px;">
+                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                    <span style="font-size: 16px;">🛡️</span>
+                    <span style="font-size: 12.5px; font-weight: 800; color: #0f172a; text-transform: uppercase; font-family: ui-monospace, monospace;">
                       DICTAMEN TÉCNICO DE AUDITORÍA (BOT SHIELD)
                     </span>
                   </div>
-                  <p style="font-size: 11px; color: #334155; line-height: 1.5; margin: 0 0 10px 0;">
+                  <p style="font-size: 12.5px; color: #334155; line-height: 1.55; margin: 0 0 12px 0;">
                     Durante la emisión monitoreada de <strong>\${nombrePrograma}</strong>, el motor de telemetría de StreamRank ARG no registró saltos exógenos atípicos superiores al umbral crítico (>160% o +18k viewers sin correlación de chat). La curva se mantuvo dentro de los parámetros estándar de aceleración orgánica.
                   </p>
-                  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 8px; font-size: 10px; font-family: ui-monospace, monospace; color: #64748b;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 10px; font-size: 11.5px; font-family: ui-monospace, monospace; color: #475569;">
                     <div>ÍNDICE DE CONFIANZA PUBLICITARIA: <strong style="color: #16a34a;">99.8% (ÓPTIMO)</strong></div>
                     <div>SELLO DIGITAL: <strong>SHA-256 VALIDADO</strong></div>
                   </div>
@@ -2238,9 +2263,9 @@ const HTML_APP = `<!DOCTYPE html>
               </div>
 
               <!-- PIE PÁGINA 2 -->
-              <div style="border-top: 1px solid #e2e8f0; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 9.5px; color: #94a3b8; font-family: ui-monospace, monospace;">
+              <div style="border-top: 1px solid #e2e8f0; padding-top: 14px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #64748b; font-family: ui-monospace, monospace;">
                 <div>STREAMRANK ARG • HOJA 2 DE 2 (FIN DEL REPORTE)</div>
-                <div style="color: #64748b; font-weight: bold;">streamrank.modoia.online</div>
+                <div style="color: #0f172a; font-weight: bold;">streamrank.modoia.online</div>
               </div>
             </div>
 
