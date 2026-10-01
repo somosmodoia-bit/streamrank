@@ -1460,16 +1460,16 @@ const HTML_APP = `<!DOCTYPE html>
         <div class="grid grid-cols-2 gap-2 sm:gap-3.5 items-stretch z-10 relative my-auto">
           
           <!-- Canal A -->
-          <div id="card-col-a" style="background-color: #0b1120; border: 1px solid #1e293b;" class="relative text-center p-2.5 sm:p-3.5 rounded-lg sm:rounded-xl flex flex-col justify-between transition-all duration-200 min-h-[210px] sm:min-h-[235px]">
+          <div id="card-col-a" style="background-color: #0b1120; border: 1px solid #1e293b;" class="relative text-center p-2.5 sm:p-3.5 pt-4 sm:pt-5 rounded-lg sm:rounded-xl flex flex-col justify-between transition-all duration-200 min-h-[220px] sm:min-h-[245px]">
             
-            <!-- BADGE GANADOR DORADO OSCURO CON CONTRASTE -->
-            <div id="trophy-badge-a" class="hidden absolute -top-3 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded tech-badge text-[9px] sm:text-[10px] font-black flex items-center gap-1.5 border border-[#ffd700] shadow-[0_0_12px_rgba(255,215,0,0.45)] whitespace-nowrap" style="background: linear-gradient(180deg, #2a2004 0%, #120d02 100%); color: #fff8db;">
-              <span class="text-sm filter drop-shadow">👑</span> <span style="color: #ffd700; letter-spacing: 0.1em;">GANADOR</span>
+            <!-- BADGE GANADOR DORADO METÁLICO: UBICADO MÁS ARRIBA Y CENTRADO SIN PISAR EL AVATAR -->
+            <div id="trophy-badge-a" class="hidden absolute -top-3.5 left-1/2 -translate-x-1/2 z-20 px-3.5 py-1 rounded tech-badge text-[10px] sm:text-[11px] font-black flex items-center justify-center gap-1.5 border border-[#ffd700] shadow-[0_0_15px_rgba(255,215,0,0.5)] whitespace-nowrap" style="background: linear-gradient(180deg, #2b2005 0%, #0d0a02 100%); color: #fff8db;">
+              <span class="text-xs sm:text-sm leading-none">👑</span> <span style="color: #ffd700; letter-spacing: 0.1em; line-height: 1;">GANADOR</span>
             </div>
 
             <div>
-              <div class="w-11 h-11 sm:w-13 sm:h-13 mx-auto mb-1.5 sm:mb-2">
-                <img id="duel-a-avatar" crossorigin="anonymous" src="" class="w-11 h-11 sm:w-13 sm:h-13 rounded-full border-2 border-matrix object-cover" alt="A">
+              <div class="w-11 h-11 sm:w-13 sm:h-13 mx-auto mb-1.5 sm:mb-2 mt-1 sm:mt-1.5">
+                <img id="duel-a-avatar" crossorigin="anonymous" src="" class="w-11 h-11 sm:w-13 sm:h-13 rounded-full border-2 border-matrix object-cover shadow-sm" alt="A">
               </div>
               
               <div style="min-height: 42px; display: flex; align-items: center; justify-content: center; margin-bottom: 4px;">
@@ -1487,16 +1487,16 @@ const HTML_APP = `<!DOCTYPE html>
           </div>
 
           <!-- Canal B -->
-          <div id="card-col-b" style="background-color: #0b1120; border: 1px solid #1e293b;" class="relative text-center p-2.5 sm:p-3.5 rounded-lg sm:rounded-xl flex flex-col justify-between transition-all duration-200 min-h-[210px] sm:min-h-[235px]">
+          <div id="card-col-b" style="background-color: #0b1120; border: 1px solid #1e293b;" class="relative text-center p-2.5 sm:p-3.5 pt-4 sm:pt-5 rounded-lg sm:rounded-xl flex flex-col justify-between transition-all duration-200 min-h-[220px] sm:min-h-[245px]">
             
-            <!-- BADGE GANADOR DORADO OSCURO CON CONTRASTE -->
-            <div id="trophy-badge-b" class="hidden absolute -top-3 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded tech-badge text-[9px] sm:text-[10px] font-black flex items-center gap-1.5 border border-[#ffd700] shadow-[0_0_12px_rgba(255,215,0,0.45)] whitespace-nowrap" style="background: linear-gradient(180deg, #2a2004 0%, #120d02 100%); color: #fff8db;">
-              <span class="text-sm filter drop-shadow">👑</span> <span style="color: #ffd700; letter-spacing: 0.1em;">GANADOR</span>
+            <!-- BADGE GANADOR DORADO METÁLICO: UBICADO MÁS ARRIBA Y CENTRADO SIN PISAR EL AVATAR -->
+            <div id="trophy-badge-b" class="hidden absolute -top-3.5 left-1/2 -translate-x-1/2 z-20 px-3.5 py-1 rounded tech-badge text-[10px] sm:text-[11px] font-black flex items-center justify-center gap-1.5 border border-[#ffd700] shadow-[0_0_15px_rgba(255,215,0,0.5)] whitespace-nowrap" style="background: linear-gradient(180deg, #2b2005 0%, #0d0a02 100%); color: #fff8db;">
+              <span class="text-xs sm:text-sm leading-none">👑</span> <span style="color: #ffd700; letter-spacing: 0.1em; line-height: 1;">GANADOR</span>
             </div>
 
             <div>
-              <div class="w-11 h-11 sm:w-13 sm:h-13 mx-auto mb-1.5 sm:mb-2">
-                <img id="duel-b-avatar" crossorigin="anonymous" src="" class="w-11 h-11 sm:w-13 sm:h-13 rounded-full border-2 border-cyan-400 object-cover" alt="B">
+              <div class="w-11 h-11 sm:w-13 sm:h-13 mx-auto mb-1.5 sm:mb-2 mt-1 sm:mt-1.5">
+                <img id="duel-b-avatar" crossorigin="anonymous" src="" class="w-11 h-11 sm:w-13 sm:h-13 rounded-full border-2 border-cyan-400 object-cover shadow-sm" alt="B">
               </div>
               
               <div style="min-height: 42px; display: flex; align-items: center; justify-content: center; margin-bottom: 4px;">
@@ -2198,30 +2198,30 @@ const HTML_APP = `<!DOCTYPE html>
       roundRect(ctx, colBX, colY, colWidth, colHeight, 24);
       ctx.stroke();
 
-      // DIBUJO DE BADGE GANADOR EN CANVAS: FONDO OSCURO DORADO CON BORDE Y CORONA CLARA
+      // DIBUJO DE BADGE GANADOR EN CANVAS: CON ALTURA Y ESPACIO SUFICIENTE SOBRE EL AVATAR
       function drawWinnerBadge(targetX) {
         ctx.save();
-        const badgeW = 160;
-        const badgeH = 42;
+        const badgeW = 180;
+        const badgeH = 46;
         const badgeX = targetX + (colWidth - badgeW) / 2;
-        const badgeY = colY - 21;
+        const badgeY = colY - 23;
 
-        // Fondo degradado dorado oscuro
+        // Fondo degradado metálico dorado oscuro
         const grad = ctx.createLinearGradient(badgeX, badgeY, badgeX, badgeY + badgeH);
-        grad.addColorStop(0, '#2a2004');
-        grad.addColorStop(1, '#120d02');
+        grad.addColorStop(0, '#2b2005');
+        grad.addColorStop(1, '#0d0a02');
         ctx.fillStyle = grad;
-        roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 8);
+        roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 10);
         ctx.fill();
 
         // Borde dorado de alto contraste
         ctx.strokeStyle = '#ffd700';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2.5;
         ctx.stroke();
 
-        // Corona y texto
+        // Corona y texto centrados geométricamente
         ctx.fillStyle = '#ffd700';
-        ctx.font = '900 17px system-ui, sans-serif';
+        ctx.font = '900 18px system-ui, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('👑 GANADOR', badgeX + badgeW / 2, badgeY + badgeH / 2 + 1);
@@ -2258,45 +2258,46 @@ const HTML_APP = `<!DOCTYPE html>
         ctx.stroke();
       }
 
-      drawAvatar(imgA, colAX + 222, colY + 84, '#00ff66');
-      drawAvatar(imgB, colBX + 222, colY + 84, '#22d3ee');
+      // El avatar baja a colY + 98 para que quede un espacio limpio de más de 20px bajo la medalla
+      drawAvatar(imgA, colAX + 222, colY + 98, '#00ff66');
+      drawAvatar(imgB, colBX + 222, colY + 98, '#22d3ee');
 
       ctx.fillStyle = '#FFFFFF';
       ctx.font = '600 21px system-ui, sans-serif';
-      wrapText(ctx, progA, colAX + 222, colY + 190, 380, 30, 2);
-      wrapText(ctx, progB, colBX + 222, colY + 190, 380, 30, 2);
+      wrapText(ctx, progA, colAX + 222, colY + 198, 380, 30, 2);
+      wrapText(ctx, progB, colBX + 222, colY + 198, 380, 30, 2);
 
       ctx.fillStyle = '#94A3B8';
       ctx.font = 'bold 19px system-ui, sans-serif';
-      ctx.fillText(nameA.toUpperCase(), colAX + 222, colY + 264);
-      ctx.fillText(nameB.toUpperCase(), colBX + 222, colY + 264);
+      ctx.fillText(nameA.toUpperCase(), colAX + 222, colY + 270);
+      ctx.fillText(nameB.toUpperCase(), colBX + 222, colY + 270);
 
       ctx.font = 'bold 16px monospace';
       ctx.fillStyle = isLiveA ? '#00ff66' : '#64748B';
-      ctx.fillText(isLiveA ? '🔴 EN VIVO' : '⚫ OFFLINE', colAX + 222, colY + 300);
+      ctx.fillText(isLiveA ? '🔴 EN VIVO' : '⚫ OFFLINE', colAX + 222, colY + 304);
 
       ctx.fillStyle = isLiveB ? '#22d3ee' : '#64748B';
-      ctx.fillText(isLiveB ? '🔴 EN VIVO' : '⚫ OFFLINE', colBX + 222, colY + 300);
+      ctx.fillText(isLiveB ? '🔴 EN VIVO' : '⚫ OFFLINE', colBX + 222, colY + 304);
 
       ctx.strokeStyle = '#1e293b';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(colAX + 30, colY + 338);
-      ctx.lineTo(colAX + colWidth - 30, colY + 338);
-      ctx.moveTo(colBX + 30, colY + 338);
-      ctx.lineTo(colBX + colWidth - 30, colY + 338);
+      ctx.moveTo(colAX + 30, colY + 342);
+      ctx.lineTo(colAX + colWidth - 30, colY + 342);
+      ctx.moveTo(colBX + 30, colY + 342);
+      ctx.lineTo(colBX + colWidth - 30, colY + 342);
       ctx.stroke();
 
       ctx.font = '900 56px monospace';
       ctx.fillStyle = '#00ff66';
-      ctx.fillText(formatNum(viewersA), colAX + 222, colY + 406);
+      ctx.fillText(formatNum(viewersA), colAX + 222, colY + 410);
       ctx.fillStyle = '#22d3ee';
-      ctx.fillText(formatNum(viewersB), colBX + 222, colY + 406);
+      ctx.fillText(formatNum(viewersB), colBX + 222, colY + 410);
 
       ctx.font = 'bold 17px system-ui, sans-serif';
       ctx.fillStyle = '#94a3b8';
-      ctx.fillText('ESPECTADORES', colAX + 222, colY + 462);
-      ctx.fillText('ESPECTADORES', colBX + 222, colY + 462);
+      ctx.fillText('ESPECTADORES', colAX + 222, colY + 464);
+      ctx.fillText('ESPECTADORES', colBX + 222, colY + 464);
 
       if (isGif) {
         const targetColX = (viewersA >= viewersB) ? colAX : colBX;
