@@ -1462,8 +1462,9 @@ const HTML_APP = `<!DOCTYPE html>
           <!-- Canal A -->
           <div id="card-col-a" style="background-color: #0b1120; border: 1px solid #1e293b;" class="relative text-center p-2.5 sm:p-3.5 rounded-lg sm:rounded-xl flex flex-col justify-between transition-all duration-200 min-h-[210px] sm:min-h-[235px]">
             
-            <div id="trophy-badge-a" class="hidden absolute -top-2.5 left-1/2 -translate-x-1/2 z-20 px-2 sm:px-2.5 py-0.5 rounded tech-badge bg-amber-400 text-black text-[9px] sm:text-[10px] font-black flex items-center gap-1 border border-amber-300 shadow-sm whitespace-nowrap">
-              <span>👑</span> GANADOR
+            <!-- BADGE GANADOR DORADO OSCURO CON CONTRASTE -->
+            <div id="trophy-badge-a" class="hidden absolute -top-3 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded tech-badge text-[9px] sm:text-[10px] font-black flex items-center gap-1.5 border border-[#ffd700] shadow-[0_0_12px_rgba(255,215,0,0.45)] whitespace-nowrap" style="background: linear-gradient(180deg, #2a2004 0%, #120d02 100%); color: #fff8db;">
+              <span class="text-sm filter drop-shadow">👑</span> <span style="color: #ffd700; letter-spacing: 0.1em;">GANADOR</span>
             </div>
 
             <div>
@@ -1488,8 +1489,9 @@ const HTML_APP = `<!DOCTYPE html>
           <!-- Canal B -->
           <div id="card-col-b" style="background-color: #0b1120; border: 1px solid #1e293b;" class="relative text-center p-2.5 sm:p-3.5 rounded-lg sm:rounded-xl flex flex-col justify-between transition-all duration-200 min-h-[210px] sm:min-h-[235px]">
             
-            <div id="trophy-badge-b" class="hidden absolute -top-2.5 left-1/2 -translate-x-1/2 z-20 px-2 sm:px-2.5 py-0.5 rounded tech-badge bg-amber-400 text-black text-[9px] sm:text-[10px] font-black flex items-center gap-1 border border-amber-300 shadow-sm whitespace-nowrap">
-              <span>👑</span> GANADOR
+            <!-- BADGE GANADOR DORADO OSCURO CON CONTRASTE -->
+            <div id="trophy-badge-b" class="hidden absolute -top-3 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded tech-badge text-[9px] sm:text-[10px] font-black flex items-center gap-1.5 border border-[#ffd700] shadow-[0_0_12px_rgba(255,215,0,0.45)] whitespace-nowrap" style="background: linear-gradient(180deg, #2a2004 0%, #120d02 100%); color: #fff8db;">
+              <span class="text-sm filter drop-shadow">👑</span> <span style="color: #ffd700; letter-spacing: 0.1em;">GANADOR</span>
             </div>
 
             <div>
@@ -1544,27 +1546,20 @@ const HTML_APP = `<!DOCTYPE html>
 
       </div>
 
-      <!-- BOTONES DE EXPORTACIÓN Y COMPARTIR EN X -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2.5 border-t border-[#162238]">
-        <button onclick="cerrarModalDuelo()" class="py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-colors border border-slate-800">
+      <!-- BOTONES DE EXPORTACIÓN (SIN BOTÓN DE X) -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2.5 border-t border-[#162238]">
+        <button onclick="cerrarModalDuelo()" class="w-full py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-colors border border-slate-800 order-3 sm:order-1">
           Cerrar
         </button>
         
-        <button id="btn-export-png" onclick="descargarDueloPNG()" class="py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-[#0b1120] text-matrix border border-matrix/50 hover:bg-matrix hover:text-black transition-all shadow-matrixSoft flex items-center justify-center space-x-1">
+        <button id="btn-export-png" onclick="descargarDueloPNG()" class="w-full py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-[#0b1120] text-matrix border border-matrix/50 hover:bg-matrix hover:text-black transition-all shadow-matrixSoft flex items-center justify-center space-x-1.5 order-1 sm:order-2">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-          <span>PNG</span>
+          <span>Descargar PNG</span>
         </button>
 
-        <button id="btn-export-gif" onclick="descargarDueloGIF()" class="py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-amber-400 text-black hover:bg-amber-300 transition-all flex items-center justify-center space-x-1">
+        <button id="btn-export-gif" onclick="descargarDueloGIF()" class="w-full py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-amber-400 text-black hover:bg-amber-300 transition-all font-black flex items-center justify-center space-x-1.5 order-2 sm:order-3">
           <span>✨</span>
-          <span>GIF</span>
-        </button>
-
-        <button id="btn-share-x" onclick="compartirEnX()" class="py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-black text-white hover:bg-neutral-900 border border-neutral-700 transition-all flex items-center justify-center space-x-1.5 shadow-md">
-          <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-          </svg>
-          <span>Postear</span>
+          <span>Descargar GIF</span>
         </button>
       </div>
 
@@ -2104,31 +2099,6 @@ const HTML_APP = `<!DOCTYPE html>
     };
 
     // ========================================================================
-    // COMPARTIR EN X
-    // ========================================================================
-    const compartirEnX = () => {
-      const nameA = document.getElementById('duel-a-name').innerText;
-      const nameB = document.getElementById('duel-b-name').innerText;
-      const viewersA = document.getElementById('duel-a-viewers').innerText;
-      const viewersB = document.getElementById('duel-b-viewers').innerText;
-      const pctA = document.getElementById('duel-pct-a').innerText;
-      const pctB = document.getElementById('duel-pct-b').innerText;
-
-      const lineas = [
-        '⚡ DUELO EN VIVO',
-        nameA + ' (' + viewersA + ' viewers - ' + pctA + ') vs ' + nameB + ' (' + viewersB + ' viewers - ' + pctB + ')',
-        '',
-        'Seguí las métricas oficiales en tiempo real acá 👇'
-      ];
-      const texto = lineas.join(String.fromCharCode(10));
-      const urlWeb = 'https://streamrank.modoia.online';
-      const hashtags = 'StreamRankARG,StreamingArgentina';
-
-      const twitterUrl = 'https://x.com/intent/tweet?text=' + encodeURIComponent(texto) + '&url=' + encodeURIComponent(urlWeb) + '&hashtags=' + hashtags;
-      window.open(twitterUrl, '_blank', 'width=600,height=450');
-    };
-
-    // ========================================================================
     // MOTOR CANVAS 2D NATIVO PROFESIONAL
     // ========================================================================
     function roundRect(ctx, x, y, width, height, radius) {
@@ -2228,20 +2198,40 @@ const HTML_APP = `<!DOCTYPE html>
       roundRect(ctx, colBX, colY, colWidth, colHeight, 24);
       ctx.stroke();
 
+      // DIBUJO DE BADGE GANADOR EN CANVAS: FONDO OSCURO DORADO CON BORDE Y CORONA CLARA
+      function drawWinnerBadge(targetX) {
+        ctx.save();
+        const badgeW = 160;
+        const badgeH = 42;
+        const badgeX = targetX + (colWidth - badgeW) / 2;
+        const badgeY = colY - 21;
+
+        // Fondo degradado dorado oscuro
+        const grad = ctx.createLinearGradient(badgeX, badgeY, badgeX, badgeY + badgeH);
+        grad.addColorStop(0, '#2a2004');
+        grad.addColorStop(1, '#120d02');
+        ctx.fillStyle = grad;
+        roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 8);
+        ctx.fill();
+
+        // Borde dorado de alto contraste
+        ctx.strokeStyle = '#ffd700';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Corona y texto
+        ctx.fillStyle = '#ffd700';
+        ctx.font = '900 17px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('👑 GANADOR', badgeX + badgeW / 2, badgeY + badgeH / 2 + 1);
+        ctx.restore();
+      }
+
       if (viewersA > viewersB && viewersA > 0) {
-        ctx.fillStyle = '#f59e0b';
-        roundRect(ctx, colAX + 147, colY - 20, 150, 40, 8);
-        ctx.fill();
-        ctx.fillStyle = '#000000';
-        ctx.font = '900 17px system-ui, sans-serif';
-        ctx.fillText('👑 GANADOR', colAX + 222, colY + 1);
+        drawWinnerBadge(colAX);
       } else if (viewersB > viewersA && viewersB > 0) {
-        ctx.fillStyle = '#f59e0b';
-        roundRect(ctx, colBX + 147, colY - 20, 150, 40, 8);
-        ctx.fill();
-        ctx.fillStyle = '#000000';
-        ctx.font = '900 17px system-ui, sans-serif';
-        ctx.fillText('👑 GANADOR', colBX + 222, colY + 1);
+        drawWinnerBadge(colBX);
       }
 
       const imgA = document.getElementById('duel-a-avatar');
