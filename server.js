@@ -868,6 +868,14 @@ actualizarTelemetria();
 setInterval(actualizarTelemetria, 25000);
 
 // ============================================================================
+// VERIFICACIÓN SEARCH CONSOLE POR ARCHIVO
+// ============================================================================
+app.get('/googleed9832fd2dd8faf4.html', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send('google-site-verification: googleed9832fd2dd8faf4.html');
+});
+
+// ============================================================================
 // ENDPOINTS
 // ============================================================================
 app.get('/health', (req, res) => {
@@ -998,11 +1006,24 @@ const HTML_APP = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>StreamRank ARG | Monitor Oficial de Audiencia y Streaming en Vivo</title>
 
+  <!-- Google Search Console Verification -->
+  <meta name="google-site-verification" content="googleed9832fd2dd8faf4">
+
   <meta name="description" content="StreamRank ARG: Monitor oficial en tiempo real de telemetría, audiencia simultánea y métricas de streaming en Argentina (YouTube Live, Twitch, Kick).">
   <meta name="keywords" content="StreamRank, streaming argentina, luzu tv en vivo, olga en vivo, rating streaming argentina, métricas de streamers, telemetría streaming, blender, vorterix, tn en vivo">
   <meta name="author" content="Modo IA">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://streamrank.modoia.online">
+
+  <!-- Open Graph / X Cards -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://streamrank.modoia.online">
+  <meta property="og:title" content="StreamRank ARG | Monitor de Audiencia en Vivo">
+  <meta property="og:description" content="Telemetría en tiempo real y métricas oficiales de streaming en Argentina. Minuto a minuto.">
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://streamrank.modoia.online">
+  <meta property="twitter:title" content="StreamRank ARG | Métricas de Streaming en Vivo">
+  <meta property="twitter:description" content="Comparativas y audiencia minuto a minuto de los principales canales de streaming de Argentina.">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gifshot/0.3.2/gifshot.min.js"></script>
@@ -1059,11 +1080,11 @@ const HTML_APP = `<!DOCTYPE html>
 </head>
 <body class="min-h-screen flex flex-col bg-[#050811] text-slate-100 antialiased selection:bg-[#00ff66] selection:text-black">
 
-  <!-- HEADER COMPACTO RESPONSIVE (BETA SIEMPRE VISIBLE) -->
+  <!-- HEADER COMPACTO RESPONSIVE -->
   <header class="sticky top-0 z-40 bg-[#050811]/95 backdrop-blur-md border-b border-[#162238]">
     <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-20 flex items-center justify-between gap-1.5 sm:gap-2">
       
-      <!-- Marca + Badges (Siempre juntos y proporcionados) -->
+      <!-- Marca + Badges -->
       <div class="flex items-center space-x-1.5 sm:space-x-3 min-w-0">
         <div class="relative flex items-center justify-center w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-black border border-matrix/50 shadow-matrixSoft flex-shrink-0">
           <span class="absolute w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 rounded-full bg-matrix animate-ping opacity-75"></span>
@@ -1072,14 +1093,13 @@ const HTML_APP = `<!DOCTYPE html>
         <div class="min-w-0 flex items-center space-x-1 sm:space-x-1.5">
           <span class="text-[13px] sm:text-xl font-black tracking-wider text-white">STREAMRANK</span>
           <span class="text-[8px] sm:text-xs px-1 py-0.5 tech-badge bg-matrix/20 text-matrix border border-matrix/40 shrink-0">ARG</span>
-          <!-- BETA siempre visible: compacto en mobile y normal en desktop -->
           <span class="inline-flex items-center text-[8px] sm:text-[9px] px-1 py-0.5 tech-badge bg-cyan-400/10 text-cyan-300 border border-cyan-400/40 shrink-0">BETA</span>
         </div>
       </div>
 
-      <!-- Píldora de Telemetría (compacta y con espacio libre en mobile) -->
+      <!-- Píldora de Telemetría (Siempre visible en Mobile y Desktop con Fecha y Hora) -->
       <div class="flex items-center space-x-1.5 sm:space-x-2 flex-shrink-0">
-        <div class="flex items-center bg-[#0b1120] border border-[#162238] rounded-lg sm:rounded-xl px-2 sm:px-4 py-1 sm:py-2 space-x-1.5 sm:space-x-4">
+        <div class="flex items-center bg-[#0b1120] border border-[#162238] rounded-lg sm:rounded-xl px-2 sm:px-3.5 py-1 sm:py-2 space-x-1.5 sm:space-x-3">
           <div class="flex items-center space-x-1 sm:space-x-1.5">
             <span class="inline-block w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-matrix shadow-matrix"></span>
             <span class="text-[10px] sm:text-xs font-semibold text-slate-300"><span id="stat-live-count" class="text-matrix font-bold">0</span> <span class="hidden sm:inline">En Vivo</span></span>
@@ -1088,8 +1108,11 @@ const HTML_APP = `<!DOCTYPE html>
           <div class="text-[10px] sm:text-xs text-slate-400">
             <span class="hidden md:inline">Audiencia: </span><span id="stat-total-viewers" class="text-white font-mono font-bold">0</span>
           </div>
-          <div class="hidden lg:block w-px h-4 bg-slate-700"></div>
-          <div class="hidden lg:block text-[11px] font-mono text-slate-400" id="sync-clock">Sinc: --:--:--</div>
+          <div class="w-px h-3 sm:h-4 bg-slate-700"></div>
+          <!-- FECHA Y HORA ADAPTABLE -->
+          <div class="text-[9px] sm:text-[11px] font-mono text-slate-300" id="sync-clock">
+            Sinc: --/-- --:--
+          </div>
         </div>
       </div>
 
@@ -1366,7 +1389,7 @@ const HTML_APP = `<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- MODAL DUELO 1 VS 1 (TOTALMENTE RESPONSIVE) -->
+  <!-- MODAL DUELO 1 VS 1 -->
   <div id="modal-duel" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md hidden p-2 sm:p-4 overflow-y-auto">
     <div class="bg-[#0b1120] border border-[#162238] rounded-2xl max-w-xl sm:max-w-2xl w-full p-3 sm:p-5 shadow-2xl relative my-auto">
       
@@ -1489,27 +1512,34 @@ const HTML_APP = `<!DOCTYPE html>
 
       </div>
 
-      <!-- BOTONES DE EXPORTACIÓN -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2.5 border-t border-[#162238]">
-        <button onclick="cerrarModalDuelo()" class="w-full py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-colors border border-slate-800 sm:border-transparent order-3 sm:order-1">
+      <!-- BOTONES DE EXPORTACIÓN Y COMPARTIR EN X -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2.5 border-t border-[#162238]">
+        <button onclick="cerrarModalDuelo()" class="py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-colors border border-slate-800">
           Cerrar
         </button>
         
-        <button id="btn-export-png" onclick="descargarDueloPNG()" class="w-full py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-[#0b1120] text-matrix border border-matrix/50 hover:bg-matrix hover:text-black transition-all shadow-matrixSoft flex items-center justify-center space-x-1.5 order-1 sm:order-2">
+        <button id="btn-export-png" onclick="descargarDueloPNG()" class="py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-[#0b1120] text-matrix border border-matrix/50 hover:bg-matrix hover:text-black transition-all shadow-matrixSoft flex items-center justify-center space-x-1">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-          <span>Descargar PNG</span>
+          <span>PNG</span>
         </button>
 
-        <button id="btn-export-gif" onclick="descargarDueloGIF()" class="w-full py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-amber-400 text-black hover:bg-amber-300 transition-all font-black flex items-center justify-center space-x-1.5 order-2 sm:order-3">
+        <button id="btn-export-gif" onclick="descargarDueloGIF()" class="py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-amber-400 text-black hover:bg-amber-300 transition-all flex items-center justify-center space-x-1">
           <span>✨</span>
-          <span>Descargar GIF</span>
+          <span>GIF</span>
+        </button>
+
+        <button id="btn-share-x" onclick="compartirEnX()" class="py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-black text-white hover:bg-neutral-900 border border-neutral-700 transition-all flex items-center justify-center space-x-1.5 shadow-md">
+          <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+          </svg>
+          <span>Postear</span>
         </button>
       </div>
 
     </div>
   </div>
 
-  <!-- SVG -->
+  <!-- SVG ICONOS -->
   <div class="hidden">
     <svg id="svg-yt" viewBox="0 0 24 24" fill="currentColor">
       <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
@@ -1522,7 +1552,7 @@ const HTML_APP = `<!DOCTYPE html>
     </svg>
   </div>
 
-  <!-- FOOTER SUTIL CON ESPACIO SEGURO PARA PANTALLAS TÁCTILES -->
+  <!-- FOOTER -->
   <footer class="border-t border-[#162238] bg-[#050811] px-4 py-6 sm:py-8 mb-6 sm:mb-0 text-center text-[11px] sm:text-xs text-slate-500 font-mono space-y-2">
     <div class="max-w-md mx-auto truncate">StreamRank ARG • Monitor en Tiempo Real de Streaming</div>
     <div>
@@ -1546,14 +1576,13 @@ const HTML_APP = `<!DOCTYPE html>
       return formatNum(num);
     };
 
-    function getFechaConDiaSemana() {
+    function getFechaFormateadaCompleta() {
       const now = new Date();
       const options = { 
         timeZone: 'America/Argentina/Buenos_Aires',
         weekday: 'short', 
         day: '2-digit', 
         month: '2-digit', 
-        year: 'numeric', 
         hour: '2-digit', 
         minute: '2-digit', 
         second: '2-digit',
@@ -1639,15 +1668,11 @@ const HTML_APP = `<!DOCTYPE html>
         document.getElementById('stat-live-count').innerText = json.liveChannels || 0;
         document.getElementById('stat-total-viewers').innerText = formatNum(json.totalAudience);
 
-        const fechaArg = new Intl.DateTimeFormat('es-AR', {
-          timeZone: 'America/Argentina/Buenos_Aires',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        }).format(new Date());
-
+        // FECHA Y HORA COMPACTA Y COMPLETA EN HEADER
         const clockEl = document.getElementById('sync-clock');
-        if (clockEl) clockEl.innerText = 'Sinc: ' + fechaArg + ' ART';
+        if (clockEl) {
+          clockEl.innerText = 'Sinc: ' + getFechaFormateadaCompleta();
+        }
 
         renderizarGrilla();
         poblarSelectoresDuelo();
@@ -2063,7 +2088,26 @@ const HTML_APP = `<!DOCTYPE html>
         trophyB.classList.remove('hidden');
       }
 
-      document.getElementById('duel-timestamp').innerText = 'CAPTURA: ' + getFechaConDiaSemana();
+      document.getElementById('duel-timestamp').innerText = 'CAPTURA: ' + getFechaFormateadaCompleta();
+    };
+
+    // ========================================================================
+    // COMPARTIR EN X
+    // ========================================================================
+    const compartirEnX = () => {
+      const nameA = document.getElementById('duel-a-name').innerText;
+      const nameB = document.getElementById('duel-b-name').innerText;
+      const viewersA = document.getElementById('duel-a-viewers').innerText;
+      const viewersB = document.getElementById('duel-b-viewers').innerText;
+      const pctA = document.getElementById('duel-pct-a').innerText;
+      const pctB = document.getElementById('duel-pct-b').innerText;
+
+      const texto = '⚡ DUELO EN VIVO | ' + nameA + ' (' + viewersA + ' viewers - ' + pctA + ') vs ' + nameB + ' (' + viewersB + ' viewers - ' + pctB + ')\n\nSeguí las métricas oficiales en tiempo real acá 👇\n';
+      const urlWeb = 'https://streamrank.modoia.online';
+      const hashtags = 'StreamRankARG,StreamingArgentina';
+
+      const twitterUrl = 'https://x.com/intent/tweet?text=' + encodeURIComponent(texto) + '&url=' + encodeURIComponent(urlWeb) + '&hashtags=' + hashtags;
+      window.open(twitterUrl, '_blank', 'width=600,height=450');
     };
 
     // ========================================================================
@@ -2344,7 +2388,7 @@ const HTML_APP = `<!DOCTYPE html>
       ctx.fillStyle = '#FFFFFF';
       ctx.font = '600 20px monospace';
       ctx.textAlign = 'left';
-      ctx.fillText('CAPTURA: ' + getFechaConDiaSemana(), colAX + 30, 870);
+      ctx.fillText('CAPTURA: ' + getFechaFormateadaCompleta(), colAX + 30, 870);
 
       ctx.fillStyle = '#64748B';
       ctx.font = '600 17px monospace';
@@ -2432,7 +2476,7 @@ app.get('/', (req, res) => {
 // AUTO-PING INTERNO
 // ============================================================================
 const PING_INTERVAL = 10 * 60 * 1000;
-const APP_URL = 'https://streamrank.onrender.com/';
+const APP_URL = 'https://streamrank.modoia.online/';
 
 setInterval(() => {
   https.get(APP_URL, (res) => {
