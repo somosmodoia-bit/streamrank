@@ -868,15 +868,36 @@ actualizarTelemetria();
 setInterval(actualizarTelemetria, 25000);
 
 // ============================================================================
-// VERIFICACIÓN SEARCH CONSOLE POR ARCHIVO
+// VERIFICACIÓN SEARCH CONSOLE & SITEMAPS
 // ============================================================================
 app.get('/googleed9832fd2dd8faf4.html', (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send('google-site-verification: googleed9832fd2dd8faf4.html');
 });
 
+app.get('/sitemap.xml', (req, res) => {
+  const hoy = new Date().toISOString().split('T')[0];
+  const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://streamrank.modoia.online/</loc>
+    <lastmod>${hoy}</lastmod>
+    <changefreq>always</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>`;
+  res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+  res.send(sitemapXml);
+});
+
+app.get('/robots.txt', (req, res) => {
+  const robotsTxt = `User-agent: *\nAllow: /\n\nSitemap: https://streamrank.modoia.online/sitemap.xml`;
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.send(robotsTxt);
+});
+
 // ============================================================================
-// ENDPOINTS
+// ENDPOINTS API
 // ============================================================================
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
@@ -1006,7 +1027,7 @@ const HTML_APP = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>StreamRank ARG | Monitor Oficial de Audiencia y Streaming en Vivo</title>
 
-  <!-- Google Search Console Verification -->
+  <!-- Google Search Console -->
   <meta name="google-site-verification" content="googleed9832fd2dd8faf4">
 
   <meta name="description" content="StreamRank ARG: Monitor oficial en tiempo real de telemetría, audiencia simultánea y métricas de streaming en Argentina (YouTube Live, Twitch, Kick).">
@@ -1014,16 +1035,6 @@ const HTML_APP = `<!DOCTYPE html>
   <meta name="author" content="Modo IA">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://streamrank.modoia.online">
-
-  <!-- Open Graph / X Cards -->
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://streamrank.modoia.online">
-  <meta property="og:title" content="StreamRank ARG | Monitor de Audiencia en Vivo">
-  <meta property="og:description" content="Telemetría en tiempo real y métricas oficiales de streaming en Argentina. Minuto a minuto.">
-  <meta property="twitter:card" content="summary_large_image">
-  <meta property="twitter:url" content="https://streamrank.modoia.online">
-  <meta property="twitter:title" content="StreamRank ARG | Métricas de Streaming en Vivo">
-  <meta property="twitter:description" content="Comparativas y audiencia minuto a minuto de los principales canales de streaming de Argentina.">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gifshot/0.3.2/gifshot.min.js"></script>
@@ -1080,7 +1091,7 @@ const HTML_APP = `<!DOCTYPE html>
 </head>
 <body class="min-h-screen flex flex-col bg-[#050811] text-slate-100 antialiased selection:bg-[#00ff66] selection:text-black">
 
-  <!-- HEADER COMPACTO RESPONSIVE -->
+  <!-- HEADER -->
   <header class="sticky top-0 z-40 bg-[#050811]/95 backdrop-blur-md border-b border-[#162238]">
     <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-20 flex items-center justify-between gap-1.5 sm:gap-2">
       
@@ -1109,9 +1120,8 @@ const HTML_APP = `<!DOCTYPE html>
             <span class="hidden md:inline">Audiencia: </span><span id="stat-total-viewers" class="text-white font-mono font-bold">0</span>
           </div>
           <div class="w-px h-3 sm:h-4 bg-slate-700"></div>
-          <!-- FECHA Y HORA ADAPTABLE -->
           <div class="text-[9px] sm:text-[11px] font-mono text-slate-300" id="sync-clock">
-            Sinc: --/-- --:--
+            Sinc: --:--:--
           </div>
         </div>
       </div>
@@ -1417,14 +1427,12 @@ const HTML_APP = `<!DOCTYPE html>
       <!-- PLACA DE PREVIEW -->
       <div id="duel-capture-card" style="background-color: #050811; border: 1px solid #162238;" class="w-full max-w-[500px] mx-auto flex flex-col justify-between p-3.5 sm:p-5 relative overflow-hidden rounded-xl sm:rounded-2xl my-1.5">
         
-        <!-- Header Técnico -->
         <div class="text-center z-10 mb-3 sm:mb-4">
           <span class="tech-badge bg-[#0b1120] text-matrix px-3 py-1 border border-matrix/40 text-[9px] sm:text-[11px] tracking-wider inline-block">
             STREAMRANK ARG • DUELO EN DIRECTO
           </span>
         </div>
 
-        <!-- Contenedor 1 vs 1 -->
         <div class="grid grid-cols-2 gap-2 sm:gap-3.5 items-stretch z-10 relative my-auto">
           
           <!-- Canal A -->
@@ -1576,24 +1584,18 @@ const HTML_APP = `<!DOCTYPE html>
       return formatNum(num);
     };
 
-    function getFechaFormateadaCompleta() {
+    function getFechaFormateada() {
       const now = new Date();
-      const options = { 
-        timeZone: 'America/Argentina/Buenos_Aires',
-        weekday: 'short', 
-        day: '2-digit', 
-        month: '2-digit', 
-        hour: '2-digit', 
-        minute: '2-digit', 
-        second: '2-digit',
-        hour12: false
-      };
-      const formatted = new Intl.DateTimeFormat('es-AR', options).format(now);
-      return formatted.charAt(0).toUpperCase() + formatted.slice(1) + ' ART';
+      const dia = String(now.getDate()).padStart(2, '0');
+      const mes = String(now.getMonth() + 1).padStart(2, '0');
+      const hora = String(now.getHours()).padStart(2, '0');
+      const min = String(now.getMinutes()).padStart(2, '0');
+      const seg = String(now.getSeconds()).padStart(2, '0');
+      return dia + '/' + mes + ' ' + hora + ':' + min + ':' + seg + ' ART';
     }
 
     function getFallbackAvatar(name) {
-      const initials = (name || 'SR')
+      const iniciales = (name || 'SR')
         .replace(/[^a-zA-Z0-9 ]/g, '')
         .split(' ')
         .filter(Boolean)
@@ -1602,12 +1604,12 @@ const HTML_APP = `<!DOCTYPE html>
         .join('')
         .toUpperCase() || 'SR';
 
-      const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">' +
-        '<rect width="64" height="64" rx="32" fill="#0b1120" stroke="#00ff66" stroke-width="2"/>' +
-        '<text x="50%" y="54%" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="20" fill="#00ff66" dominant-baseline="middle" text-anchor="middle">' + initials + '</text>' +
-        '</svg>';
+      return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(iniciales) + '&background=0b1120&color=00ff66&bold=true';
+    }
 
-      return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    function fallbackImg(imgEl) {
+      imgEl.onerror = null;
+      imgEl.src = 'https://ui-avatars.com/api/?name=SR&background=0b1120&color=00ff66&bold=true';
     }
 
     const filtrarPorBusqueda = (texto) => {
@@ -1668,10 +1670,9 @@ const HTML_APP = `<!DOCTYPE html>
         document.getElementById('stat-live-count').innerText = json.liveChannels || 0;
         document.getElementById('stat-total-viewers').innerText = formatNum(json.totalAudience);
 
-        // FECHA Y HORA COMPACTA Y COMPLETA EN HEADER
         const clockEl = document.getElementById('sync-clock');
         if (clockEl) {
-          clockEl.innerText = 'Sinc: ' + getFechaFormateadaCompleta();
+          clockEl.innerText = 'Sinc: ' + getFechaFormateada();
         }
 
         renderizarGrilla();
@@ -1750,7 +1751,7 @@ const HTML_APP = `<!DOCTYPE html>
 
         html += '<div class="flex items-center justify-between gap-2 mb-2">';
         html += '<div class="flex items-center space-x-2.5 min-w-0 flex-1">';
-        html += '<img crossorigin="anonymous" onerror="this.onerror=null; this.src=getFallbackAvatar(\\'' + c.name.replace(/'/g, "\\\\'") + '\\')" src="' + c.avatar + '" class="w-11 h-11 rounded-full ' + (esTopVisible ? 'border-2 border-amber-400' : (isLive ? 'border-2 border-matrix' : 'border border-slate-700 opacity-80')) + ' object-cover shrink-0">';
+        html += '<img crossorigin="anonymous" onerror="fallbackImg(this)" src="' + (c.avatar || '') + '" class="w-11 h-11 rounded-full ' + (esTopVisible ? 'border-2 border-amber-400' : (isLive ? 'border-2 border-matrix' : 'border border-slate-700 opacity-80')) + ' object-cover shrink-0">';
         html += '<div class="min-w-0 flex-1">';
         html += '<h3 class="text-sm font-bold text-white truncate leading-tight">' + c.name + '</h3>';
         html += '<span class="text-[10px] text-slate-400 font-semibold block truncate">' + c.category + '</span>';
@@ -1789,7 +1790,7 @@ const HTML_APP = `<!DOCTYPE html>
         html += '<span class="text-base sm:text-lg font-black font-mono leading-none ' + (tieneBotShield ? 'text-amber-400' : (isLive ? 'text-matrix matrix-glow' : 'text-slate-500')) + '">' + formatNum(c.totalViewers) + '</span>';
         html += '</div>';
 
-        html += '<button onclick="abrirDueloCon(\\'' + c.id + '\\')" class="px-3 py-1 rounded-lg bg-black/80 hover:bg-matrix hover:text-black transition-all text-matrix font-black text-xs border border-matrix/50 shrink-0" title="Duelo Versus">';
+        html += '<button onclick="abrirDueloCon(\'' + c.id + '\')" class="px-3 py-1 rounded-lg bg-black/80 hover:bg-matrix hover:text-black transition-all text-matrix font-black text-xs border border-matrix/50 shrink-0" title="Duelo Versus">';
         html += 'VS';
         html += '</button>';
         html += '</div>';
@@ -2035,21 +2036,15 @@ const HTML_APP = `<!DOCTYPE html>
 
       document.getElementById('duel-a-program').innerText = sanitizarTitulo(progA);
       document.getElementById('duel-a-name').innerText = canalA.name;
-      document.getElementById('duel-a-avatar').src = canalA.avatar;
-      document.getElementById('duel-a-avatar').onerror = function () {
-        this.onerror = null;
-        this.src = getFallbackAvatar(canalA.name);
-      };
+      document.getElementById('duel-a-avatar').src = canalA.avatar || '';
+      document.getElementById('duel-a-avatar').onerror = function () { fallbackImg(this); };
       document.getElementById('duel-a-status').innerText = canalA.isLive ? '🔴 EN VIVO' : '⚫ OFFLINE';
       document.getElementById('duel-a-viewers').innerText = formatNum(canalA.totalViewers);
 
       document.getElementById('duel-b-program').innerText = sanitizarTitulo(progB);
       document.getElementById('duel-b-name').innerText = canalB.name;
-      document.getElementById('duel-b-avatar').src = canalB.avatar;
-      document.getElementById('duel-b-avatar').onerror = function () {
-        this.onerror = null;
-        this.src = getFallbackAvatar(canalB.name);
-      };
+      document.getElementById('duel-b-avatar').src = canalB.avatar || '';
+      document.getElementById('duel-b-avatar').onerror = function () { fallbackImg(this); };
       document.getElementById('duel-b-status').innerText = canalB.isLive ? '🔴 EN VIVO' : '⚫ OFFLINE';
       document.getElementById('duel-b-viewers').innerText = formatNum(canalB.totalViewers);
 
@@ -2088,7 +2083,7 @@ const HTML_APP = `<!DOCTYPE html>
         trophyB.classList.remove('hidden');
       }
 
-      document.getElementById('duel-timestamp').innerText = 'CAPTURA: ' + getFechaFormateadaCompleta();
+      document.getElementById('duel-timestamp').innerText = 'CAPTURA: ' + getFechaFormateada();
     };
 
     // ========================================================================
@@ -2388,7 +2383,7 @@ const HTML_APP = `<!DOCTYPE html>
       ctx.fillStyle = '#FFFFFF';
       ctx.font = '600 20px monospace';
       ctx.textAlign = 'left';
-      ctx.fillText('CAPTURA: ' + getFechaFormateadaCompleta(), colAX + 30, 870);
+      ctx.fillText('CAPTURA: ' + getFechaFormateada(), colAX + 30, 870);
 
       ctx.fillStyle = '#64748B';
       ctx.font = '600 17px monospace';
