@@ -12,10 +12,9 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Configuración de middlewares base
+// Configuración de middlewares base (sin express.static para evitar colisiones con '/')
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
 
 // ============================================================================
 // 1. HEALTH CHECK ANTI-SLEEP
