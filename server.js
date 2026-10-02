@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
 import { createClient } from '@libsql/client';
-import PDFDocument from 'pdfkit';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -12,7 +11,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Configuración de middlewares base (sin express.static para evitar colisiones con '/')
+// Configuración de middlewares base
 app.use(cors());
 app.use(express.json());
 
@@ -490,63 +489,6 @@ app.get('/api/dataset-ai', (req, res) => {
   });
 });
 
-app.get('/api/reporte-pdf', (req, res) => {
-  try {
-    const doc = new PDFDocument({ margin: 40, size: 'A4' });
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'attachment; filename="StreamRank_ARG_Reporte_Oficial.pdf"');
-    doc.pipe(res);
-
-    // Cabecera institucional
-    doc.rect(40, 40, 515, 60).fill('#0f172a');
-    doc.fontSize(22).fillColor('#00ff66').font('Helvetica-Bold').text('STREAMRANK ARGENTINA', 55, 52);
-    doc.fontSize(9).fillColor('#94a3b8').font('Helvetica').text(`AUDITORÍA OFICIAL DE TELEMETRÍA | ${new Date().toLocaleString('es-AR')}`, 55, 78);
-
-    doc.moveDown(3);
-
-    const totalViewers = telemetriaState.reduce((acc, c) => acc + (c.viewers || 0), 0);
-    const liveCount = telemetriaState.filter((c) => c.is_live).length;
-
-    doc.fontSize(12).fillColor('#0f172a').font('Helvetica-Bold').text('RESUMEN DE AUDIENCIA DIGITAL', { underline: true });
-    doc.moveDown(0.5);
-    doc.fontSize(10).font('Helvetica').fillColor('#334155')
-      .text(`- Canales Auditados en la Matriz: ${CANALES.length}`)
-      .text(`- Emisiones Simultáneas en Vivo: ${liveCount}`)
-      .text(`- Audiencia Concurrente Total (CCV): ${totalViewers.toLocaleString('es-AR')} espectadores.`);
-
-    doc.moveDown(1.5);
-    doc.fontSize(12).fillColor('#0f172a').font('Helvetica-Bold').text('LÍDERES POR CATEGORÍA', { underline: true });
-    doc.moveDown(0.5);
-
-    CATEGORIAS_ORDEN.forEach((catKey) => {
-      const canales = telemetriaState.filter((c) => c.categoria === catKey).sort((a, b) => b.viewers - a.viewers);
-      const lider = canales.length > 0 && canales[0].viewers > 0 ? canales[0] : null;
-
-      doc.fontSize(10).font('Helvetica-Bold').fillColor('#1e293b').text(`${CATEGORIAS_CONFIG[catKey].nombre.toUpperCase()}:`);
-      if (lider) {
-        doc.font('Helvetica').fillColor('#166534').text(`   👑 [LÍDER] ${lider.nombre} (${lider.plataforma.toUpperCase()}): ${lider.viewers.toLocaleString('es-AR')} espectadores en directo.`);
-      } else {
-        doc.font('Helvetica').fillColor('#64748b').text('   • Sin transmisiones activas al momento de este reporte.');
-      }
-      doc.moveDown(0.3);
-    });
-
-    doc.moveDown(2);
-    // Bloque comercial
-    doc.rect(40, doc.y, 515, 90).fill('#f8fafc');
-    doc.fillColor('#0f172a').fontSize(10).font('Helvetica-Bold').text('CONTRATACIÓN DE PAUTA & REPORTES HISTÓRICOS B2B', 50, doc.y - 80);
-    doc.font('Helvetica').fontSize(8.5).fillColor('#475569').text(
-      'StreamRank provee data transparente sin sesgo para agencias de medios, marcas y productoras. Si requiere certificaciones de rating, picos de audiencia o acceso a la API cruda, contáctenos:',
-      50, doc.y + 4, { width: 495 }
-    );
-    doc.fontSize(9).fillColor('#0284c7').font('Helvetica-Bold').text('Contacto Comercial: info@modoia.online  |  Web: streamrank.ar', 50, doc.y + 6);
-
-    doc.end();
-  } catch (err) {
-    res.status(500).send('Error generando PDF');
-  }
-});
-
 // ============================================================================
 // 5. FRONTEND EMBEBIDO EN GET '/'
 // ============================================================================
@@ -621,11 +563,6 @@ app.get('/', (req, res) => {
         </div>
       </div>
       <div class="flex items-center space-x-2 sm:space-x-3">
-        <a href="/api/reporte-pdf" class="bg-[#0b1120] hover:bg-slate-800 text-slate-200 text-xs px-3 py-1.5 rounded-xl border border-slate-700 flex items-center space-x-1.5 transition">
-          <span>📄</span>
-          <span class="hidden sm:inline">Exportar Auditoría</span>
-          <span class="sm:hidden font-bold">PDF</span>
-        </a>
         <a href="/api/dataset-ai" target="_blank" class="bg-matrix/10 hover:bg-matrix/20 text-matrix text-xs px-3 py-1.5 rounded-xl border border-matrix/30 font-mono transition">
           Dataset IA
         </a>
