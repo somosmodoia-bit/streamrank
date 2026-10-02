@@ -14,14 +14,10 @@ const PORT = process.env.PORT || 10000;
 app.use(cors());
 app.use(express.json());
 
-// ============================================================================
-// 1. HEALTH CHECK ANTI-SLEEP (HEAD & GET)
-// ============================================================================
+// 1. HEALTH CHECK
 app.all('/health', (req, res) => res.status(200).send('OK'));
 
-// ============================================================================
-// BASE DE DATOS (Turso Cloud con fallback a SQLite local)
-// ============================================================================
+// BASE DE DATOS
 let db = null;
 const tursoUrl = process.env.TURSO_DATABASE_URL ? process.env.TURSO_DATABASE_URL.trim() : null;
 const tursoAuthToken = process.env.TURSO_AUTH_TOKEN ? process.env.TURSO_AUTH_TOKEN.trim() : null;
@@ -32,10 +28,8 @@ try {
       url: tursoUrl.startsWith('http') ? tursoUrl.replace(/^http:\/\//, 'https://') : tursoUrl,
       authToken: tursoAuthToken,
     });
-    console.log('[DB] Conectado a Turso Cloud.');
   } else {
     db = createClient({ url: 'file:streamrank_local.db' });
-    console.log('[DB] Modo local SQLite activo.');
   }
 } catch (err) {
   console.error('[DB ERROR]:', err.message);
@@ -63,9 +57,7 @@ async function initDB() {
 }
 initDB();
 
-// ============================================================================
-// 2. MATRIZ OFICIAL DE CANALES (5 Categorías Estrictas)
-// ============================================================================
+// 2. MATRIZ OFICIAL DE CANALES (5 Categorías)
 const CANALES = [
   // 1. ENTRETENIMIENTO & CANALES
   { id: 'luzutv', nombre: 'LUZU TV', yt: 'luzutv', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
@@ -192,9 +184,7 @@ let telemetriaState = CANALES.map((c) => ({
   viewers_breakdown: { yt: 0, tw: 0, ki: 0 }
 }));
 
-// ============================================================================
 // 3. SCRAPERS
-// ============================================================================
 async function scrapeYouTubeLive(handle) {
   if (!handle) return { is_live: false, viewers: 0, title: 'Fuera de línea' };
   try {
@@ -245,9 +235,7 @@ async function scrapeTwitchLive(login) {
       'https://gql.twitch.tv/gql',
       {
         query: `query GetStreamInfo($login: String!) {
-          user(login: $login) {
-            stream { viewersCount title }
-          }
+          user(login: $login) { stream { viewersCount title } }
         }`,
         variables: { login }
       },
@@ -299,7 +287,6 @@ async function procesarCanal(c) {
   const totalViewers = (ytRes.viewers || 0) + (twRes.viewers || 0) + (kiRes.viewers || 0);
   const isLive = ytRes.is_live || twRes.is_live || kiRes.is_live;
   const activeTitle = (ytRes.is_live && ytRes.title) || (twRes.is_live && twRes.title) || (kiRes.is_live && kiRes.title) || 'Canal fuera de línea';
-
   const horaActual = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
   const idx = telemetriaState.findIndex((item) => item.id === c.id);
@@ -336,9 +323,7 @@ async function cicloTelemetria() {
 setInterval(cicloTelemetria, 30000);
 setTimeout(cicloTelemetria, 1000);
 
-// ============================================================================
 // 4. API ENDPOINTS
-// ============================================================================
 app.get('/api/ranking-categorias', (req, res) => {
   const categorias = CATEGORIAS_ORDEN.map((catKey) => {
     const meta = CATEGORIAS_CONFIG[catKey];
@@ -395,28 +380,12 @@ app.get('/api/dataset-ai', (req, res) => {
   });
 });
 
-// ============================================================================
-// 5. FRONTEND EMBEBIDO EN GET '/'
-// ============================================================================
+// 5. RUTA PRINCIPAL: Sirve el archivo HTML externo
 app.get('/', (req, res) => {
-  res.send(`
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
-
-  
-  
-  StreamRank ARG | Monitor Oficial de Audiencia en Vivo
-  OFICIAL
-AUDITORÍA DE STREAMING B2B: Métricas en directo para marcas y agencias.
-
-info@modoia.online
-
-AR
-
-STREAMRANK
-ARG
-
-Sincronizando...
-
-Dataset IA
-
-TELEMETRÍA EN DIRECTO CADA 30 SEGUNDOS
+// ARRANQUE DEL SERVIDOR
+app.listen(PORT, () => {
+  console.log(`[StreamRank ARG] Servidor activo en puerto ${PORT}`);
+});
