@@ -309,10 +309,4 @@ app.get('*', (req, res) => {
 // INICIAR SERVIDOR
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`[StreamRank ARG] Servidor activo en puerto ${PORT}`);
-
-  // Iniciar telemetría suave tras 8 segundos de arranque
-  setTimeout(() => {
-    cicloScraperSuave();
-    setInterval(cicloScraperSuave, 180000); // Re-escanea cada 3 minutos
-  }, 8000);
 });
