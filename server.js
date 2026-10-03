@@ -14,9 +14,11 @@ app.use(cors());
 app.use(express.json());
 
 // 1. Healthcheck inmediato
-app.get('/health', (req, res) => res.status(200).send('OK'));
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
 
-// 2. Canales completos
+// 2. Canales completos de la plataforma
 const CANALES = [
   // ENTRETENIMIENTO
   { id: 'luzutv', nombre: 'LUZU TV', yt: 'luzutv', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
@@ -113,13 +115,13 @@ let telemetriaState = CANALES.map((c) => ({
   viewers_breakdown: { yt: 0, tw: 0, ki: 0 }
 }));
 
-// Scrapers con timeout estricto de 2.5s para no trabar jamás el servidor
+// Scrapers
 async function scrapeYouTubeLive(handle) {
   if (!handle) return { is_live: false, viewers: 0, title: 'Señal en espera' };
   try {
     const res = await axios.get(`https://www.youtube.com/@${handle}/live`, {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
-      timeout: 2500
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+      timeout: 3000
     });
     const html = res.data;
     if (html.includes('"status":"UPCOMING"')) return { is_live: false, viewers: 0, title: 'Transmisión programada' };
@@ -152,7 +154,7 @@ async function scrapeTwitchLive(login) {
         query: `query GetStreamInfo(\(login: String!) { user(login:\)login) { stream { viewersCount title } } }`,
         variables: { login }
       },
-      { headers: { 'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko' }, timeout: 2500 }
+      { headers: { 'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko' }, timeout: 3000 }
     );
     const stream = res.data?.data?.user?.stream;
     if (stream && (stream.viewersCount || 0) > 3) {
@@ -169,7 +171,7 @@ async function scrapeKickLive(slug) {
   try {
     const res = await axios.get(`https://kick.com/api/v2/channels/${slug}`, {
       headers: { 'User-Agent': 'Mozilla/5.0' },
-      timeout: 2500
+      timeout: 3000
     });
     if (res.data?.livestream?.is_live && res.data.livestream.viewer_count > 3) {
       return { is_live: true, viewers: res.data.livestream.viewer_count, title: res.data.livestream.session_title || 'En vivo en Kick' };
@@ -180,12 +182,10 @@ async function scrapeKickLive(slug) {
   }
 }
 
-// Scrapea de a 1 canal por vez para mantener la CPU en 1%
-let scrapeandoActualmente = false;
-async function cicloTelemetriaUltraSeguro() {
-  if (scrapeandoActualmente) return;
-  scrapeandoActualmente = true;
-
+let enEjecucion = false;
+async function cicloScraper() {
+  if (enEjecucion) return;
+  enEjecucion = true;
   for (let i = 0; i < CANALES.length; i++) {
     const c = CANALES[i];
     try {
@@ -211,11 +211,9 @@ async function cicloTelemetriaUltraSeguro() {
         viewers_breakdown: { yt: yt.viewers, tw: tw.viewers, ki: ki.viewers }
       };
     } catch (e) {}
-
-    // Pausa entre canales para que Express respire siempre
-    await new Promise((r) => setTimeout(r, 600));
+    await new Promise((r) => setTimeout(r, 500));
   }
-  scrapeandoActualmente = false;
+  enEjecucion = false;
 }
 
 // Rutas de API
@@ -247,26 +245,36 @@ app.get('/api/ranking-categorias', (req, res) => {
 });
 
 app.get('/api/dataset-ai', (req, res) => {
-  res.json({ status: 'ok', channels: telemetriaState.length });
+  res.json({ status: 'ok', total_canales: telemetriaState.length });
 });
 
 app.get('/api/descargar-analytics', (req, res) => {
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.send('Canal,Estado\nLuzu,OK');
+  res.send('Canal,Estado\nLuzu,Activo');
 });
 
-// Frontend
-app.use(express.static(path.join(__dirname, 'public')));
+// 3. Servir Frontend estático con resolución segura de ruta
+const publicPath = path.resolve(__dirname, 'public');
+app.use(express.static(publicPath));
+
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  const indexPath = path.join(publicPath, 'index.html');
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      res.status(500).send('Error cargando index.html: ' + err.message);
+    }
+  });
 });
 
-// Inicio del servidor
-app.listen(PORT, '0.0.0.0', () => {
+// 4. Iniciar Servidor con Timeouts ajustados para Render
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`[StreamRank ARG] Servidor activo en puerto ${PORT}`);
-  // Comienza a scrapear recién 10 segundos después del arranque
   setTimeout(() => {
-    cicloTelemetriaUltraSeguro();
-    setInterval(cicloTelemetriaUltraSeguro, 60000);
-  }, 10000);
+    cicloScraper();
+    setInterval(cicloScraper, 45000);
+  }, 5000);
 });
+
+// Evita que el reverse proxy de Render cierre o congele las conexiones en espera
+server.keepAliveTimeout = 120000;
+server.headersTimeout = 120000;
