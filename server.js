@@ -3,7 +3,6 @@ import cors from 'cors';
 import axios from 'axios';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createClient } from '@libsql/client';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,29 +14,37 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// 1. HEALTH CHECK PARA UPTIMEROBOT
 app.all('/health', (req, res) => res.status(200).send('OK'));
 
-let db = null;
-const tursoUrl = process.env.TURSO_DATABASE_URL ? process.env.TURSO_DATABASE_URL.trim() : null;
-const tursoAuthToken = process.env.TURSO_AUTH_TOKEN ? process.env.TURSO_AUTH_TOKEN.trim() : null;
+// 2. CONEXIÓN TURSO VÍA HTTP FETCH (CERO DEPENDENCIAS NATIVAS QUE CUELGUEN EL SERVER)
+const rawTursoUrl = (process.env.TURSO_DATABASE_URL || '').trim();
+const tursoHttpUrl = rawTursoUrl.replace(/^libsql:\/\//, 'https://').replace(/\/$/, '');
+const tursoToken = (process.env.TURSO_AUTH_TOKEN || '').trim();
 
-try {
-  if (tursoUrl && tursoAuthToken) {
-    db = createClient({
-      url: tursoUrl.startsWith('http') ? tursoUrl.replace(/^http:\/\//, 'https://') : tursoUrl,
-      authToken: tursoAuthToken,
+async function executeTurso(sql, args = []) {
+  if (!tursoHttpUrl || !tursoToken) return null;
+  try {
+    const namedArgs = args.map(arg => {
+      if (arg === null || arg === undefined) return { type: 'null' };
+      if (typeof arg === 'number') return Number.isInteger(arg) ? { type: 'integer', value: String(arg) } : { type: 'float', value: arg };
+      return { type: 'text', value: String(arg) };
     });
-  } else {
-    db = createClient({ url: 'file:streamrank_local.db' });
+
+    const res = await fetch(`${tursoHttpUrl}/v2/pipeline`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tursoToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests: [{ type: 'execute', stmt: { sql, args: namedArgs } }, { type: 'close' }] })
+    });
+    return await res.json();
+  } catch (err) {
+    return null;
   }
-} catch (err) {
-  console.error('[DB Error]:', err.message);
 }
 
 async function initDB() {
-  if (!db) return;
-  try {
-    await db.execute(`
+  if (tursoHttpUrl && tursoToken) {
+    await executeTurso(`
       CREATE TABLE IF NOT EXISTS telemetria (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         channel_id TEXT NOT NULL,
@@ -50,12 +57,13 @@ async function initDB() {
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `);
-  } catch (err) {}
+  }
 }
 initDB();
 
+// 3. CANALES CONFIGURADOS
 const CANALES = [
-  // 1. ENTRETENIMIENTO
+  // ENTRETENIMIENTO
   { id: 'luzutv', nombre: 'LUZU TV', yt: 'luzutv', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
   { id: 'olga', nombre: 'OLGA', yt: 'olgaenvivo_', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
   { id: 'blender', nombre: 'Blender', yt: 'somosblender', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
@@ -71,7 +79,7 @@ const CANALES = [
   { id: 'eltrece', nombre: 'eltrece', yt: 'eltrece', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
   { id: 'americatv', nombre: 'América TV', yt: 'americaenvivo', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
 
-  // 2. DEPORTES
+  // DEPORTES
   { id: 'programa412', nombre: '412 Fútbol (Davoo & La Cobra)', yt: 'programa412', tw: null, ki: null, categoria: 'deportes', plataforma: 'youtube' },
   { id: 'azzstream', nombre: 'AZZ Stream (Flavio Azzaro)', yt: 'FlavioAzzaroOK', tw: null, ki: null, categoria: 'deportes', plataforma: 'youtube' },
   { id: 'picadotv', nombre: 'Picado TV', yt: 'picadotv', tw: null, ki: null, categoria: 'deportes', plataforma: 'youtube' },
@@ -82,7 +90,7 @@ const CANALES = [
   { id: 'dsports', nombre: 'DSports / DGO', yt: 'DIRECTVSports', tw: null, ki: null, categoria: 'deportes', plataforma: 'youtube' },
   { id: 'carrozza', nombre: 'Pablo Carrozza', yt: 'PabloCarrozza', tw: null, ki: null, categoria: 'deportes', plataforma: 'youtube' },
 
-  // 3. STREAMERS
+  // STREAMERS
   { id: 'martincirio', nombre: 'Martín Cirio (La Faraona)', yt: 'MartinCirio', tw: null, ki: null, categoria: 'streamers', plataforma: 'youtube' },
   { id: 'davoo', nombre: 'Davoo Xeneize', yt: null, tw: null, ki: 'davoo_xeneize', categoria: 'streamers', plataforma: 'kick' },
   { id: 'lacobra', nombre: 'La Cobra', yt: null, tw: null, ki: 'lacobra', categoria: 'streamers', plataforma: 'kick' },
@@ -106,7 +114,7 @@ const CANALES = [
   { id: 'benitosdr', nombre: 'Benito SDR', yt: null, tw: null, ki: 'benitosdr', categoria: 'streamers', plataforma: 'kick' },
   { id: 'laagusneta', nombre: 'LaAgusneta', yt: null, tw: null, ki: 'laagusneta', categoria: 'streamers', plataforma: 'kick' },
 
-  // 4. FINANZAS
+  // FINANZAS
   { id: 'neura', nombre: 'Neura Media / Troncal', yt: 'neuramedia', tw: null, ki: null, categoria: 'finanzas', plataforma: 'youtube' },
   { id: 'canale', nombre: 'Canal E (Económico)', yt: 'canaleperfil', tw: null, ki: null, categoria: 'finanzas', plataforma: 'youtube' },
   { id: 'elcronista', nombre: 'El Cronista TV', yt: 'CronistaComercial', tw: null, ki: null, categoria: 'finanzas', plataforma: 'youtube' },
@@ -114,7 +122,7 @@ const CANALES = [
   { id: 'bullmarket', nombre: 'Bull Market Brokers', yt: 'bullmarketbrokers', tw: null, ki: null, categoria: 'finanzas', plataforma: 'youtube' },
   { id: 'joveninversor', nombre: 'Joven Inversor', yt: 'JovenInversor', tw: null, ki: null, categoria: 'finanzas', plataforma: 'youtube' },
 
-  // 5. NOTICIAS
+  // NOTICIAS
   { id: 'tn', nombre: 'TN (Todo Noticias)', yt: 'todonoticias', tw: null, ki: null, categoria: 'noticias', plataforma: 'youtube' },
   { id: 'c5n', nombre: 'C5N', yt: 'c5n', tw: null, ki: null, categoria: 'noticias', plataforma: 'youtube' },
   { id: 'lanacionmas', nombre: 'La Nación +', yt: 'lanacionmas', tw: null, ki: null, categoria: 'noticias', plataforma: 'youtube' },
@@ -130,9 +138,9 @@ const CANALES = [
 ];
 
 const CATEGORIAS_CONFIG = {
-  entretenimiento: { nombre: 'Entretenimiento & Canales', icono: '🎭', banner: 'PAUTA PREMIUM ENTRETENIMIENTO: Audiencias jóvenes masivas en directo • info@modoia.online', bannerColor: 'from-purple-950/80 via-slate-900 to-indigo-950/80', borderColor: 'border-purple-500/30' },
-  deportes: { nombre: 'Deportes & Charlas', icono: '⚽', banner: 'ESPACIO PUBLICITARIO DEPORTES: La pasión futbolera en vivo minuto a minuto • info@modoia.online', bannerColor: 'from-emerald-950/80 via-slate-900 to-green-950/80', borderColor: 'border-emerald-500/30' },
-  streamers: { nombre: 'Streamers & Creadores', icono: '🎮', banner: 'SPONSOR CREATIVO: Conectá con las comunidades líderes de Twitch, Kick y YouTube • info@modoia.online', bannerColor: 'from-cyan-950/80 via-slate-900 to-blue-950/80', borderColor: 'border-cyan-500/30' },
+  entretenimiento: { nombre: 'Entretenimiento', icono: '🎭', banner: 'PAUTA PREMIUM ENTRETENIMIENTO: Audiencias jóvenes masivas en directo • info@modoia.online', bannerColor: 'from-purple-950/80 via-slate-900 to-indigo-950/80', borderColor: 'border-purple-500/30' },
+  deportes: { nombre: 'Deportes', icono: '⚽', banner: 'ESPACIO PUBLICITARIO DEPORTES: La pasión futbolera en vivo minuto a minuto • info@modoia.online', bannerColor: 'from-emerald-950/80 via-slate-900 to-green-950/80', borderColor: 'border-emerald-500/30' },
+  streamers: { nombre: 'Streamers', icono: '🎮', banner: 'SPONSOR CREATIVO: Conectá con las comunidades líderes de Twitch, Kick y YouTube • info@modoia.online', bannerColor: 'from-cyan-950/80 via-slate-900 to-blue-950/80', borderColor: 'border-cyan-500/30' },
   finanzas: { nombre: 'Economía & Finanzas', icono: '📈', banner: 'PAUTA FINANCIERA & BROKERS: El segmento ABC1 y decisiones de inversión en directo • info@modoia.online', bannerColor: 'from-amber-950/80 via-slate-900 to-yellow-950/80', borderColor: 'border-amber-500/30' },
   noticias: { nombre: 'Noticias & Actualidad', icono: '🏛️', banner: 'MEDIOS & NOTICIAS: Cobertura de la coyuntura política y social argentina • info@modoia.online', bannerColor: 'from-rose-950/80 via-slate-900 to-red-950/80', borderColor: 'border-rose-500/30' }
 };
@@ -184,13 +192,9 @@ async function scrapeYouTubeLive(handle) {
     let title = '';
     const metaTitle = html.match(/([^<]*)<\/title>/);
 
-    if (metaTitle && metaTitle[1]) {
-      title = metaTitle[1].trim();
-    } else if (runsTitle && runsTitle[1]) {
-      title = runsTitle[1].trim();
-    } else if (titleTagMatch && titleTagMatch[1]) {
-      title = titleTagMatch[1].replace(' - YouTube', '').trim();
-    }
+    if (metaTitle && metaTitle[1]) title = metaTitle[1].trim();
+    else if (runsTitle && runsTitle[1]) title = runsTitle[1].trim();
+    else if (titleTagMatch && titleTagMatch[1]) title = titleTagMatch[1].replace(' - YouTube', '').trim();
 
     if (!title || title.toLowerCase().includes('canal fuera de l') || title === handle) {
       title = 'Transmisión en directo';
@@ -274,12 +278,11 @@ async function procesarCanal(c) {
     };
   }
 
-  if (isLive && totalViewers > 0 && db) {
-    db.execute({
-      sql: `INSERT INTO telemetria (channel_id, channel_name, category, platform, viewers, is_live, title) 
-            VALUES (?, ?, ?, ?, ?, ?, ?);`,
-      args: [c.id, c.nombre, c.categoria, c.plataforma, totalViewers, 1, activeTitle]
-    }).catch(() => {});
+  if (isLive && totalViewers > 0 && tursoHttpUrl && tursoToken) {
+    executeTurso(
+      `INSERT INTO telemetria (channel_id, channel_name, category, platform, viewers, is_live, title) VALUES (?, ?, ?, ?, ?, ?, ?);`,
+      [c.id, c.nombre, c.categoria, c.plataforma, totalViewers, 1, activeTitle]
+    ).catch(() => {});
   }
 }
 
@@ -368,10 +371,12 @@ app.get('/api/descargar-analytics', (req, res) => {
   res.send(csvContent);
 });
 
+// SERVIR EL FRONTEND OBLIGATORIAMENTE EN CUALQUIER RUTA
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
+// ABRIR EL PUERTO SIN BLOQUEOS
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`[StreamRank ARG] Servidor activo en puerto ${PORT}`);
 });
