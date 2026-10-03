@@ -13,97 +13,130 @@ const PORT = process.env.PORT || 10000;
 app.use(cors());
 app.use(express.json());
 
-// 1. Healthcheck inmediato
+// ==========================================
+// 1. HEALTHCHECK ULTRA RÁPIDO (UPTIMEROBOT)
+// ==========================================
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
-// 2. Canales completos de la plataforma
-const CANALES = [
-  // ENTRETENIMIENTO
-  { id: 'luzutv', nombre: 'LUZU TV', yt: 'luzutv', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
-  { id: 'olga', nombre: 'OLGA', yt: 'olgaenvivo_', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
-  { id: 'blender', nombre: 'Blender', yt: 'somosblender', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
-  { id: 'gelatina', nombre: 'Gelatina', yt: 'somosgelatina', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
-  { id: 'vorterix', nombre: 'Vorterix', yt: 'VorterixOficial', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
-  { id: 'bondilive', nombre: 'Bondi Live', yt: 'bondi_liveok', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
-  { id: 'lacasastreaming', nombre: 'La Casa Streaming', yt: 'somoslacasa', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
-  { id: 'unpocoderuido', nombre: 'Un Poco de Ruido', yt: 'unpocoderuido', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
-  { id: 'loftstream', nombre: 'Loft Stream', yt: 'loftstream', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
-  { id: 'republicaz', nombre: 'República Z', yt: 'RepublicaZ', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
-  { id: 'posdata', nombre: 'Posdata', yt: 'posdatastream', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
-  { id: 'telefe', nombre: 'Telefe Streams (Oficial)', yt: 'telefe', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
-  { id: 'eltrece', nombre: 'eltrece', yt: 'eltrece', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
-  { id: 'americatv', nombre: 'América TV', yt: 'americaenvivo', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
-
-  // DEPORTES
-  { id: 'programa412', nombre: '412 Fútbol (Davoo & La Cobra)', yt: 'programa412', tw: null, ki: null, categoria: 'deportes', plataforma: 'youtube' },
-  { id: 'azzstream', nombre: 'AZZ Stream (Flavio Azzaro)', yt: 'FlavioAzzaroOK', tw: null, ki: null, categoria: 'deportes', plataforma: 'youtube' },
-  { id: 'picadotv', nombre: 'Picado TV', yt: 'picadotv', tw: null, ki: null, categoria: 'deportes', plataforma: 'youtube' },
-  { id: 'tycsports', nombre: 'TyC Sports', yt: 'TyCSportsOficial', tw: null, ki: null, categoria: 'deportes', plataforma: 'youtube' },
-  { id: 'espnarg', nombre: 'ESPN Argentina', yt: 'espnargentina', tw: null, ki: null, categoria: 'deportes', plataforma: 'youtube' },
-  { id: 'foxsportsarg', nombre: 'Fox Sports Argentina', yt: 'FoxSportsArg', tw: null, ki: null, categoria: 'deportes', plataforma: 'youtube' },
-  { id: 'tntsportsarg', nombre: 'TNT Sports Argentina', yt: 'TNTSportsAR', tw: null, ki: null, categoria: 'deportes', plataforma: 'youtube' },
-  { id: 'dsports', nombre: 'DSports / DGO', yt: 'DIRECTVSports', tw: null, ki: null, categoria: 'deportes', plataforma: 'youtube' },
-  { id: 'carrozza', nombre: 'Pablo Carrozza', yt: 'PabloCarrozza', tw: null, ki: null, categoria: 'deportes', plataforma: 'youtube' },
-
-  // STREAMERS
-  { id: 'martincirio', nombre: 'Martín Cirio (La Faraona)', yt: 'MartinCirio', tw: null, ki: null, categoria: 'streamers', plataforma: 'youtube' },
-  { id: 'davoo', nombre: 'Davoo Xeneize', yt: null, tw: null, ki: 'davoo_xeneize', categoria: 'streamers', plataforma: 'kick' },
-  { id: 'lacobra', nombre: 'La Cobra', yt: null, tw: null, ki: 'lacobra', categoria: 'streamers', plataforma: 'kick' },
-  { id: 'spreen', nombre: 'Spreen', yt: null, tw: null, ki: 'spreen', categoria: 'streamers', plataforma: 'kick' },
-  { id: 'luquitas', nombre: 'Luquitas Rodríguez', yt: null, tw: 'luquitasrodriguez', ki: null, categoria: 'streamers', plataforma: 'twitch' },
-  { id: 'coscu', nombre: 'Coscu', yt: null, tw: null, ki: 'coscu', categoria: 'streamers', plataforma: 'kick' },
-  { id: 'kunaguero', nombre: 'Sergio Kun Agüero', yt: null, tw: 'slakun10', ki: null, categoria: 'streamers', plataforma: 'twitch' },
-  { id: 'momo', nombre: 'Momo (Gerónimo Benavides)', yt: null, tw: null, ki: 'momoladinastia', categoria: 'streamers', plataforma: 'kick' },
-  { id: 'brunenger', nombre: 'Brunenger', yt: null, tw: null, ki: 'brunenger', categoria: 'streamers', plataforma: 'kick' },
-  { id: 'goncho', nombre: 'Goncho Banzas', yt: null, tw: 'goncho', ki: null, categoria: 'streamers', plataforma: 'twitch' },
-  { id: 'robergalati', nombre: 'Rober Galati', yt: null, tw: 'robergalati', ki: null, categoria: 'streamers', plataforma: 'twitch' },
-  { id: 'santutu', nombre: 'Santutu', yt: null, tw: 'santutu', ki: null, categoria: 'streamers', plataforma: 'twitch' },
-  { id: 'bananirou', nombre: 'Bananirou', yt: null, tw: 'bananirou', ki: null, categoria: 'streamers', plataforma: 'twitch' },
-  { id: 'boffegp', nombre: 'Boffe GP', yt: 'BoffeGP', tw: null, ki: null, categoria: 'streamers', plataforma: 'youtube' },
-  { id: 'litkillah', nombre: 'Lit Killah', yt: null, tw: 'litkillah', ki: null, categoria: 'streamers', plataforma: 'twitch' },
-  { id: 'frankkaster', nombre: 'Frankkaster', yt: null, tw: 'frankkaster', ki: null, categoria: 'streamers', plataforma: 'twitch' },
-  { id: 'markitonavaja', nombre: 'Markito Navaja', yt: null, tw: 'markitonavaja', ki: null, categoria: 'streamers', plataforma: 'twitch' },
-  { id: 'joacolopez', nombre: 'Joaco López', yt: null, tw: 'joacolopez', ki: null, categoria: 'streamers', plataforma: 'twitch' },
-  { id: 'pimpeano', nombre: 'Pimpeano', yt: null, tw: 'pimpeano', ki: null, categoria: 'streamers', plataforma: 'twitch' },
-  { id: 'teodelia', nombre: "Teo D'Elía", yt: null, tw: 'teodelia', ki: null, categoria: 'streamers', plataforma: 'twitch' },
-  { id: 'benitosdr', nombre: 'Benito SDR', yt: null, tw: null, ki: 'benitosdr', categoria: 'streamers', plataforma: 'kick' },
-  { id: 'laagusneta', nombre: 'LaAgusneta', yt: null, tw: null, ki: 'laagusneta', categoria: 'streamers', plataforma: 'kick' },
-
-  // FINANZAS
-  { id: 'neura', nombre: 'Neura Media / Troncal', yt: 'neuramedia', tw: null, ki: null, categoria: 'finanzas', plataforma: 'youtube' },
-  { id: 'canale', nombre: 'Canal E (Económico)', yt: 'canaleperfil', tw: null, ki: null, categoria: 'finanzas', plataforma: 'youtube' },
-  { id: 'elcronista', nombre: 'El Cronista TV', yt: 'CronistaComercial', tw: null, ki: null, categoria: 'finanzas', plataforma: 'youtube' },
-  { id: 'ambitofinanciero', nombre: 'Ámbito Financiero', yt: 'AmbitoFinanciero', tw: null, ki: null, categoria: 'finanzas', plataforma: 'youtube' },
-  { id: 'bullmarket', nombre: 'Bull Market Brokers', yt: 'bullmarketbrokers', tw: null, ki: null, categoria: 'finanzas', plataforma: 'youtube' },
-  { id: 'joveninversor', nombre: 'Joven Inversor', yt: 'JovenInversor', tw: null, ki: null, categoria: 'finanzas', plataforma: 'youtube' },
-
-  // NOTICIAS
-  { id: 'tn', nombre: 'TN (Todo Noticias)', yt: 'todonoticias', tw: null, ki: null, categoria: 'noticias', plataforma: 'youtube' },
-  { id: 'c5n', nombre: 'C5N', yt: 'c5n', tw: null, ki: null, categoria: 'noticias', plataforma: 'youtube' },
-  { id: 'lanacionmas', nombre: 'La Nación +', yt: 'lanacionmas', tw: null, ki: null, categoria: 'noticias', plataforma: 'youtube' },
-  { id: 'carajostream', nombre: 'Carajo Stream', yt: 'carajostream', tw: null, ki: null, categoria: 'noticias', plataforma: 'youtube' },
-  { id: 'eldestape', nombre: 'El Destape', yt: 'eldestapeweb', tw: null, ki: null, categoria: 'noticias', plataforma: 'youtube' },
-  { id: 'a24', nombre: 'A24', yt: 'A24com', tw: null, ki: null, categoria: 'noticias', plataforma: 'youtube' },
-  { id: 'infobae', nombre: 'Infobae en Vivo', yt: 'infobae', tw: null, ki: null, categoria: 'noticias', plataforma: 'youtube' },
-  { id: 'elobservador', nombre: 'El Observador 107.9', yt: 'elobservador1079', tw: null, ki: null, categoria: 'noticias', plataforma: 'youtube' },
-  { id: 'radiomitre', nombre: 'Radio Mitre', yt: 'radiomitre', tw: null, ki: null, categoria: 'noticias', plataforma: 'youtube' },
-  { id: 'urbanaplay', nombre: 'Urbana Play 104.3', yt: 'UrbanaPlayFM', tw: null, ki: null, categoria: 'noticias', plataforma: 'youtube' },
-  { id: 'la100', nombre: 'La 100', yt: 'La100FM', tw: null, ki: null, categoria: 'noticias', plataforma: 'youtube' },
-  { id: 'futurock', nombre: 'Futurock', yt: 'futurockfm', tw: null, ki: null, categoria: 'noticias', plataforma: 'youtube' }
-];
-
+// ==========================================
+// 2. CONFIGURACIÓN DE CATEGORÍAS
+// ==========================================
 const CATEGORIAS_CONFIG = {
-  entretenimiento: { nombre: 'Entretenimiento', banner: 'PAUTA PREMIUM ENTRETENIMIENTO • info@modoia.online', bannerColor: 'from-purple-950/80 via-slate-900 to-indigo-950/80', borderColor: 'border-purple-500/30' },
-  deportes: { nombre: 'Deportes', banner: 'ESPACIO PUBLICITARIO DEPORTES • info@modoia.online', bannerColor: 'from-emerald-950/80 via-slate-900 to-green-950/80', borderColor: 'border-emerald-500/30' },
-  streamers: { nombre: 'Streamers', banner: 'SPONSOR CREATIVO • info@modoia.online', bannerColor: 'from-cyan-950/80 via-slate-900 to-blue-950/80', borderColor: 'border-cyan-500/30' },
-  finanzas: { nombre: 'Economía & Finanzas', banner: 'PAUTA FINANCIERA & BROKERS • info@modoia.online', bannerColor: 'from-amber-950/80 via-slate-900 to-yellow-950/80', borderColor: 'border-amber-500/30' },
-  noticias: { nombre: 'Noticias & Actualidad', banner: 'MEDIOS & NOTICIAS • info@modoia.online', bannerColor: 'from-rose-950/80 via-slate-900 to-red-950/80', borderColor: 'border-rose-500/30' }
+  entretenimiento: {
+    nombre: 'Entretenimiento',
+    banner: 'PAUTA PREMIUM ENTRETENIMIENTO • info@modoia.online',
+    bannerColor: 'from-purple-950/80 via-slate-900 to-indigo-950/80',
+    borderColor: 'border-purple-500/30'
+  },
+  deportes: {
+    nombre: 'Deportes',
+    banner: 'ESPACIO PUBLICITARIO DEPORTES • info@modoia.online',
+    bannerColor: 'from-emerald-950/80 via-slate-900 to-green-950/80',
+    borderColor: 'border-emerald-500/30'
+  },
+  streamers: {
+    nombre: 'Streamers',
+    banner: 'SPONSOR CREATIVO • info@modoia.online',
+    bannerColor: 'from-cyan-950/80 via-slate-900 to-blue-950/80',
+    borderColor: 'border-cyan-500/30'
+  },
+  finanzas: {
+    nombre: 'Economía & Finanzas',
+    banner: 'PAUTA FINANCIERA & BROKERS • info@modoia.online',
+    bannerColor: 'from-amber-950/80 via-slate-900 to-yellow-950/80',
+    borderColor: 'border-amber-500/30'
+  },
+  noticias: {
+    nombre: 'Noticias & Actualidad',
+    banner: 'MEDIOS & NOTICIAS • info@modoia.online',
+    bannerColor: 'from-rose-950/80 via-slate-900 to-red-950/80',
+    borderColor: 'border-rose-500/30'
+  }
 };
 
 const CATEGORIAS_ORDEN = ['entretenimiento', 'deportes', 'streamers', 'finanzas', 'noticias'];
 
+// ==========================================
+// 3. BASE DE DATOS DE CANALES OFICIALES
+// ==========================================
+const CANALES = [
+  // --- ENTRETENIMIENTO ---
+  { id: 'luzutv', nombre: 'LUZU TV', yt: 'luzutv', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'olga', nombre: 'OLGA', yt: 'olgaenvivo_', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'blender', nombre: 'Blender', yt: 'somosblender', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'gelatina', nombre: 'Gelatina', yt: 'somosgelatina', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'vorterix', nombre: 'Vorterix', yt: 'VorterixOficial', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'bondilive', nombre: 'Bondi Live', yt: 'bondi_liveok', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'lacasastreaming', nombre: 'La Casa Streaming', yt: 'somoslacasa', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'unpocoderuido', nombre: 'Un Poco de Ruido', yt: 'unpocoderuido', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'loftstream', nombre: 'Loft Stream', yt: 'loftstream', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'republicaz', nombre: 'República Z', yt: 'RepublicaZ', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'posdata', nombre: 'Posdata', yt: 'posdatastream', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'telefe', nombre: 'Telefe Streams (Oficial)', yt: 'telefe', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'eltrece', nombre: 'eltrece', yt: 'eltrece', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'americatv', nombre: 'América TV', yt: 'americaenvivo', tw: null, ki: null, categoria: 'entretenimiento' },
+
+  // --- DEPORTES ---
+  { id: 'programa412', nombre: '412 Fútbol (Davoo & La Cobra)', yt: 'programa412', tw: null, ki: null, categoria: 'deportes' },
+  { id: 'azzstream', nombre: 'AZZ Stream (Flavio Azzaro)', yt: 'FlavioAzzaroOK', tw: null, ki: null, categoria: 'deportes' },
+  { id: 'picadotv', nombre: 'Picado TV', yt: 'picadotv', tw: null, ki: null, categoria: 'deportes' },
+  { id: 'tycsports', nombre: 'TyC Sports', yt: 'TyCSportsOficial', tw: null, ki: null, categoria: 'deportes' },
+  { id: 'espnarg', nombre: 'ESPN Argentina', yt: 'espnargentina', tw: null, ki: null, categoria: 'deportes' },
+  { id: 'foxsportsarg', nombre: 'Fox Sports Argentina', yt: 'FoxSportsArg', tw: null, ki: null, categoria: 'deportes' },
+  { id: 'tntsportsarg', nombre: 'TNT Sports Argentina', yt: 'TNTSportsAR', tw: null, ki: null, categoria: 'deportes' },
+  { id: 'dsports', nombre: 'DSports / DGO', yt: 'DIRECTVSports', tw: null, ki: null, categoria: 'deportes' },
+  { id: 'carrozza', nombre: 'Pablo Carrozza', yt: 'PabloCarrozza', tw: null, ki: null, categoria: 'deportes' },
+
+  // --- STREAMERS ---
+  { id: 'martincirio', nombre: 'Martín Cirio (La Faraona)', yt: 'MartinCirio', tw: null, ki: null, categoria: 'streamers' },
+  { id: 'davoo', nombre: 'Davoo Xeneize', yt: null, tw: null, ki: 'davoo_xeneize', categoria: 'streamers' },
+  { id: 'lacobra', nombre: 'La Cobra', yt: null, tw: null, ki: 'lacobra', categoria: 'streamers' },
+  { id: 'spreen', nombre: 'Spreen', yt: null, tw: null, ki: 'spreen', categoria: 'streamers' },
+  { id: 'luquitas', nombre: 'Luquitas Rodríguez', yt: null, tw: 'luquitasrodriguez', ki: null, categoria: 'streamers' },
+  { id: 'coscu', nombre: 'Coscu', yt: null, tw: null, ki: 'coscu', categoria: 'streamers' },
+  { id: 'kunaguero', nombre: 'Sergio Kun Agüero', yt: null, tw: 'slakun10', ki: null, categoria: 'streamers' },
+  { id: 'momo', nombre: 'Momo (Gerónimo Benavides)', yt: null, tw: null, ki: 'momoladinastia', categoria: 'streamers' },
+  { id: 'brunenger', nombre: 'Brunenger', yt: null, tw: null, ki: 'brunenger', categoria: 'streamers' },
+  { id: 'goncho', nombre: 'Goncho Banzas', yt: null, tw: 'goncho', ki: null, categoria: 'streamers' },
+  { id: 'robergalati', nombre: 'Rober Galati', yt: null, tw: 'robergalati', ki: null, categoria: 'streamers' },
+  { id: 'santutu', nombre: 'Santutu', yt: null, tw: 'santutu', ki: null, categoria: 'streamers' },
+  { id: 'bananirou', nombre: 'Bananirou', yt: null, tw: 'bananirou', ki: null, categoria: 'streamers' },
+  { id: 'boffegp', nombre: 'Boffe GP', yt: 'BoffeGP', tw: null, ki: null, categoria: 'streamers' },
+  { id: 'litkillah', nombre: 'Lit Killah', yt: null, tw: 'litkillah', ki: null, categoria: 'streamers' },
+  { id: 'frankkaster', nombre: 'Frankkaster', yt: null, tw: 'frankkaster', ki: null, categoria: 'streamers' },
+  { id: 'markitonavaja', nombre: 'Markito Navaja', yt: null, tw: 'markitonavaja', ki: null, categoria: 'streamers' },
+  { id: 'joacolopez', nombre: 'Joaco López', yt: null, tw: 'joacolopez', ki: null, categoria: 'streamers' },
+  { id: 'pimpeano', nombre: 'Pimpeano', yt: null, tw: 'pimpeano', ki: null, categoria: 'streamers' },
+  { id: 'teodelia', nombre: "Teo D'Elía", yt: null, tw: 'teodelia', ki: null, categoria: 'streamers' },
+  { id: 'benitosdr', nombre: 'Benito SDR', yt: null, tw: null, ki: 'benitosdr', categoria: 'streamers' },
+  { id: 'laagusneta', nombre: 'LaAgusneta', yt: null, tw: null, ki: 'laagusneta', categoria: 'streamers' },
+
+  // --- FINANZAS ---
+  { id: 'neura', nombre: 'Neura Media / Troncal', yt: 'neuramedia', tw: null, ki: null, categoria: 'finanzas' },
+  { id: 'canale', nombre: 'Canal E (Económico)', yt: 'canaleperfil', tw: null, ki: null, categoria: 'finanzas' },
+  { id: 'elcronista', nombre: 'El Cronista TV', yt: 'CronistaComercial', tw: null, ki: null, categoria: 'finanzas' },
+  { id: 'ambitofinanciero', nombre: 'Ámbito Financiero', yt: 'AmbitoFinanciero', tw: null, ki: null, categoria: 'finanzas' },
+  { id: 'bullmarket', nombre: 'Bull Market Brokers', yt: 'bullmarketbrokers', tw: null, ki: null, categoria: 'finanzas' },
+  { id: 'joveninversor', nombre: 'Joven Inversor', yt: 'JovenInversor', tw: null, ki: null, categoria: 'finanzas' },
+
+  // --- NOTICIAS ---
+  { id: 'tn', nombre: 'TN (Todo Noticias)', yt: 'todonoticias', tw: null, ki: null, categoria: 'noticias' },
+  { id: 'c5n', nombre: 'C5N', yt: 'c5n', tw: null, ki: null, categoria: 'noticias' },
+  { id: 'lanacionmas', nombre: 'La Nación +', yt: 'lanacionmas', tw: null, ki: null, categoria: 'noticias' },
+  { id: 'carajostream', nombre: 'Carajo Stream', yt: 'carajostream', tw: null, ki: null, categoria: 'noticias' },
+  { id: 'eldestape', nombre: 'El Destape', yt: 'eldestapeweb', tw: null, ki: null, categoria: 'noticias' },
+  { id: 'a24', nombre: 'A24', yt: 'A24com', tw: null, ki: null, categoria: 'noticias' },
+  { id: 'infobae', nombre: 'Infobae en Vivo', yt: 'infobae', tw: null, ki: null, categoria: 'noticias' },
+  { id: 'elobservador', nombre: 'El Observador 107.9', yt: 'elobservador1079', tw: null, ki: null, categoria: 'noticias' },
+  { id: 'radiomitre', nombre: 'Radio Mitre', yt: 'radiomitre', tw: null, ki: null, categoria: 'noticias' },
+  { id: 'urbanaplay', nombre: 'Urbana Play 104.3', yt: 'UrbanaPlayFM', tw: null, ki: null, categoria: 'noticias' },
+  { id: 'la100', nombre: 'La 100', yt: 'La100FM', tw: null, ki: null, categoria: 'noticias' },
+  { id: 'futurock', nombre: 'Futurock', yt: 'futurockfm', tw: null, ki: null, categoria: 'noticias' }
+];
+
+// Estado en memoria de la telemetría
 let telemetriaState = CANALES.map((c) => ({
   ...c,
   handle: c.yt || c.tw || c.ki,
@@ -115,13 +148,15 @@ let telemetriaState = CANALES.map((c) => ({
   viewers_breakdown: { yt: 0, tw: 0, ki: 0 }
 }));
 
-// Scrapers
+// ==========================================
+// 4. SCRAPERS EN TIEMPO REAL
+// ==========================================
 async function scrapeYouTubeLive(handle) {
   if (!handle) return { is_live: false, viewers: 0, title: 'Señal en espera' };
   try {
     const res = await axios.get(`https://www.youtube.com/@${handle}/live`, {
       headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-      timeout: 3000
+      timeout: 3500
     });
     const html = res.data;
     if (html.includes('"status":"UPCOMING"')) return { is_live: false, viewers: 0, title: 'Transmisión programada' };
@@ -137,7 +172,7 @@ async function scrapeYouTubeLive(handle) {
     let title = '';
     const tm = html.match(/([^<]*)<\/title>/);
     if (tm && tm[1]) title = tm[1].replace(' - YouTube', '').trim();
-    if (!title || title.toLowerCase().includes('canal fuera de l')) title = 'Transmisión en directo';
+    if (!title || title.toLowerCase().includes('canal fuera')) title = 'Transmisión en directo';
 
     return { is_live: true, viewers, title };
   } catch (err) {
@@ -154,7 +189,7 @@ async function scrapeTwitchLive(login) {
         query: `query GetStreamInfo(\(login: String!) { user(login:\)login) { stream { viewersCount title } } }`,
         variables: { login }
       },
-      { headers: { 'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko' }, timeout: 3000 }
+      { headers: { 'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko' }, timeout: 3500 }
     );
     const stream = res.data?.data?.user?.stream;
     if (stream && (stream.viewersCount || 0) > 3) {
@@ -171,7 +206,7 @@ async function scrapeKickLive(slug) {
   try {
     const res = await axios.get(`https://kick.com/api/v2/channels/${slug}`, {
       headers: { 'User-Agent': 'Mozilla/5.0' },
-      timeout: 3000
+      timeout: 3500
     });
     if (res.data?.livestream?.is_live && res.data.livestream.viewer_count > 3) {
       return { is_live: true, viewers: res.data.livestream.viewer_count, title: res.data.livestream.session_title || 'En vivo en Kick' };
@@ -182,10 +217,12 @@ async function scrapeKickLive(slug) {
   }
 }
 
-let enEjecucion = false;
+// Bucle suave de telemetría: canal por canal con pausa de 1.2s para proteger la CPU
+let scrapingActivo = false;
 async function cicloScraper() {
-  if (enEjecucion) return;
-  enEjecucion = true;
+  if (scrapingActivo) return;
+  scrapingActivo = true;
+
   for (let i = 0; i < CANALES.length; i++) {
     const c = CANALES[i];
     try {
@@ -211,12 +248,16 @@ async function cicloScraper() {
         viewers_breakdown: { yt: yt.viewers, tw: tw.viewers, ki: ki.viewers }
       };
     } catch (e) {}
-    await new Promise((r) => setTimeout(r, 500));
+
+    await new Promise((r) => setTimeout(r, 1200));
   }
-  enEjecucion = false;
+
+  scrapingActivo = false;
 }
 
-// Rutas de API
+// ==========================================
+// 5. RUTAS DE LA API
+// ==========================================
 app.get('/api/ranking-categorias', (req, res) => {
   const categorias = CATEGORIAS_ORDEN.map((catKey) => {
     const meta = CATEGORIAS_CONFIG[catKey];
@@ -224,13 +265,16 @@ app.get('/api/ranking-categorias', (req, res) => {
       .filter((c) => c.categoria === catKey)
       .sort((a, b) => b.viewers - a.viewers);
 
+    // Si nadie está transmitiendo, toma el primer canal de la lista para mostrar la tarjeta líder
+    const lider = canales.find((c) => c.is_live && c.viewers > 0) || canales[0] || null;
+
     return {
       id: catKey,
       nombre: meta.nombre,
       banner: meta.banner,
       bannerColor: meta.bannerColor,
       borderColor: meta.borderColor,
-      lider: canales.length > 0 && canales[0].viewers > 0 ? canales[0] : null,
+      lider,
       total_canales: canales.length,
       canales
     };
@@ -245,28 +289,48 @@ app.get('/api/ranking-categorias', (req, res) => {
 });
 
 app.get('/api/dataset-ai', (req, res) => {
-  res.json({ status: 'ok', total_canales: telemetriaState.length });
+  res.json({
+    status: 'ok',
+    total_canales: telemetriaState.length,
+    timestamp: new Date().toISOString(),
+    canales: telemetriaState
+  });
 });
 
 app.get('/api/descargar-analytics', (req, res) => {
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.send('Canal,Estado\nLuzu,Activo');
+  res.setHeader('Content-Disposition', 'attachment; filename="streamrank_analytics.csv"');
+  let csv = 'Canal,Categoria,Handle,Viewers_Total,YouTube,Twitch,Kick,Estado,Titulo,Ultima_Actualizacion\n';
+  telemetriaState.forEach((c) => {
+    csv += `"\({c.nombre}","\){c.categoria}","@\({c.handle}",\){c.viewers},\({c.viewers_breakdown.yt},\){c.viewers_breakdown.tw},\({c.viewers_breakdown.ki},"\){c.is_live ? 'EN VIVO' : 'OFFLINE'}","\({c.title.replace(/"/g, '""')}","\){c.hora_actualizacion}"\n`;
+  });
+  res.send(csv);
 });
 
-// 3. Servir Frontend estático con resolución segura de ruta
+// ==========================================
+// 6. SERVIR EL FRONTEND ESTÁTICO
+// ==========================================
 const publicPath = path.resolve(__dirname, 'public');
 app.use(express.static(publicPath));
 
 app.get('*', (req, res) => {
-  const indexPath = path.join(publicPath, 'index.html');
-  res.sendFile(indexPath, (err) => {
-    if (err) {
-      res.status(500).send('Error cargando index.html: ' + err.message);
-    }
-  });
+  res.sendFile(path.join(publicPath, 'index.html'));
 });
 
-// 4. Iniciar Servidor con Timeouts ajustados para Render
-const server = app.listen(PORT, '0.0.0.0', () => {
+// ==========================================
+// 7. INICIAR SERVIDOR & KEEP-ALIVE
+// ==========================================
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`[StreamRank ARG] Servidor activo en puerto ${PORT}`);
+
+  // Iniciar telemetría suave tras 5 segundos de arranque
+  setTimeout(() => {
+    cicloScraper();
+    setInterval(cicloScraper, 60000);
+  }, 5000);
+
+  // AUTO-PING INTERNO CADA 10 MINUTOS (Mantiene viva la instancia en Render)
+  setInterval(() => {
+    axios.get(`http://localhost:${PORT}/health`).catch(() => {});
+  }, 10 * 60 * 1000);
 });
