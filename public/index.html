@@ -138,56 +138,6 @@
     let datosGlobales = [];
     const expandedCategories = {};
 
-    const LOGOS_ESTATICOS = {
-      luzutv: 'https://unavatar.io/youtube/luzutv',
-      olga: 'https://unavatar.io/youtube/olgaenvivo_',
-      blender: 'https://unavatar.io/youtube/somosblender',
-      gelatina: 'https://unavatar.io/youtube/somosgelatina',
-      vorterix: 'https://unavatar.io/youtube/VorterixOficial',
-      bondilive: 'https://unavatar.io/youtube/bondi_liveok',
-      lacasastreaming: 'https://unavatar.io/youtube/somoslacasa',
-      unpocoderuido: 'https://unavatar.io/youtube/unpocoderuido',
-      loftstream: 'https://unavatar.io/youtube/loftstream',
-      republicaz: 'https://unavatar.io/youtube/RepublicaZ',
-      posdata: 'https://unavatar.io/youtube/posdatastream',
-      telefe: 'https://unavatar.io/youtube/telefe',
-      eltrece: 'https://unavatar.io/youtube/eltrece',
-      americatv: 'https://unavatar.io/youtube/americaenvivo',
-      programa412: 'https://unavatar.io/youtube/programa412',
-      azzstream: 'https://unavatar.io/youtube/FlavioAzzaroOK',
-      picadotv: 'https://unavatar.io/youtube/picadotv',
-      tycsports: 'https://unavatar.io/youtube/TyCSportsOficial',
-      espnarg: 'https://unavatar.io/youtube/espnargentina',
-      foxsportsarg: 'https://unavatar.io/youtube/FoxSportsArg',
-      tntsportsarg: 'https://unavatar.io/youtube/TNTSportsAR',
-      dsports: 'https://unavatar.io/youtube/DIRECTVSports',
-      carrozza: 'https://unavatar.io/youtube/PabloCarrozza',
-      davoo: 'https://files.kick.com/images/user/332155/profile_image/conversion/300x300.webp',
-      lacobra: 'https://files.kick.com/images/user/337190/profile_image/conversion/300x300.webp',
-      spreen: 'https://files.kick.com/images/user/292850/profile_image/conversion/300x300.webp',
-      luquitas: 'https://static-cdn.jtvnw.net/jtv_user_pictures/0150937a-42c2-401f-bdf7-9759da0eeec7-profile_image-300x300.png',
-      martincirio: 'https://unavatar.io/youtube/MartinCirio',
-      coscu: 'https://files.kick.com/images/user/338290/profile_image/conversion/300x300.webp',
-      kunaguero: 'https://static-cdn.jtvnw.net/jtv_user_pictures/48e9a667-bb91-4e92-95f7-660c1d636db2-profile_image-300x300.png',
-      momo: 'https://files.kick.com/images/user/342110/profile_image/conversion/300x300.webp',
-      brunenger: 'https://files.kick.com/images/user/339180/profile_image/conversion/300x300.webp',
-      goncho: 'https://static-cdn.jtvnw.net/jtv_user_pictures/f5a91438-6b8f-4318-8f83-e282d56a3e5e-profile_image-300x300.png',
-      bullmarket: 'https://unavatar.io/youtube/bullmarketbrokers',
-      joveninversor: 'https://unavatar.io/youtube/JovenInversor',
-      elcronista: 'https://unavatar.io/youtube/CronistaComercial',
-      ambitofinanciero: 'https://unavatar.io/youtube/AmbitoFinanciero',
-      canale: 'https://unavatar.io/youtube/canaleperfil',
-      neura: 'https://unavatar.io/youtube/neuramedia',
-      tn: 'https://unavatar.io/youtube/todonoticias',
-      c5n: 'https://unavatar.io/youtube/c5n',
-      lanacionmas: 'https://unavatar.io/youtube/lanacionmas',
-      carajostream: 'https://unavatar.io/youtube/carajostream',
-      eldestape: 'https://unavatar.io/youtube/eldestapeweb',
-      a24: 'https://unavatar.io/youtube/A24com',
-      infobae: 'https://unavatar.io/youtube/infobae',
-      elobservador: 'https://unavatar.io/youtube/elobservador1079'
-    };
-
     async function cargarCatalogo() {
       try {
         const res = await fetch('/api/ranking-categorias');
@@ -205,13 +155,40 @@
       renderizarCatalogo();
     }
 
+    function getAvatarUrl(c) {
+      // CDNs oficiales y directos sin intermediarios
+      const AVATARES_DIRECTOS = {
+        // Streamers Kick / Twitch (CDNs oficiales)
+        davoo: 'https://files.kick.com/images/user/332155/profile_image/conversion/300x300.webp',
+        lacobra: 'https://files.kick.com/images/user/337190/profile_image/conversion/300x300.webp',
+        spreen: 'https://files.kick.com/images/user/292850/profile_image/conversion/300x300.webp',
+        coscu: 'https://files.kick.com/images/user/338290/profile_image/conversion/300x300.webp',
+        momo: 'https://files.kick.com/images/user/342110/profile_image/conversion/300x300.webp',
+        brunenger: 'https://files.kick.com/images/user/339180/profile_image/conversion/300x300.webp',
+        luquitas: 'https://static-cdn.jtvnw.net/jtv_user_pictures/0150937a-42c2-401f-bdf7-9759da0eeec7-profile_image-300x300.png',
+        kunaguero: 'https://static-cdn.jtvnw.net/jtv_user_pictures/48e9a667-bb91-4e92-95f7-660c1d636db2-profile_image-300x300.png',
+        goncho: 'https://static-cdn.jtvnw.net/jtv_user_pictures/f5a91438-6b8f-4318-8f83-e282d56a3e5e-profile_image-300x300.png'
+      };
+
+      if (AVATARES_DIRECTOS[c.id]) {
+        return AVATARES_DIRECTOS[c.id];
+      }
+
+      // Para canales de YouTube usamos el servicio público de Google directo sin intermediarios
+      const ytHandle = (c.yt || c.handle || '').replace('@', '');
+      if (ytHandle) {
+        return `https://www.youtube.com/@${ytHandle}/avatar`;
+      }
+
+      return '';
+    }
+
     function renderCard(c, esLider, puesto) {
       const badgeLider = esLider 
         ? `<div class="h-6 flex items-center mb-2"><div class="bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-black text-[9px] font-mono px-2 py-0.5 rounded-md uppercase inline-block">👑 #1 LÍDER CATEGORÍA</div></div>` 
         : `<div class="h-6 flex items-center mb-2"><div class="text-[10px] font-mono font-bold text-slate-500">#${puesto}</div></div>`;
       
       const handleLimpio = (c.yt || c.tw || c.ki || c.handle || '').replace('@', '');
-      const avatarUrl = LOGOS_ESTATICOS[c.id] || `https://unavatar.io/${c.yt ? 'youtube' : (c.tw ? 'twitch' : 'kick')}/${handleLimpio}`;
       const ini = (c.nombre || 'SR').substring(0, 2).toUpperCase();
 
       return `
@@ -222,7 +199,7 @@
             <div class="flex items-center space-x-2.5 min-w-0">
               <div class="relative w-10 h-10 flex-shrink-0 rounded-full border border-slate-700 bg-slate-800 flex items-center justify-center overflow-hidden">
                 <span class="text-[#94a3b8] font-bold text-sm font-sans">${ini}</span>
-                <img src="${avatarUrl}" alt="${c.nombre}" loading="eager" referrerpolicy="no-referrer" onerror="this.style.display='none'" class="absolute inset-0 w-full h-full object-cover"/>
+                <img src="${getAvatarUrl(c)}" alt="${c.nombre}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" class="absolute inset-0 w-full h-full object-cover"/>
               </div>
               <div class="min-w-0">
                 <h3 class="font-bold text-white text-sm truncate leading-tight">${c.nombre}</h3>
