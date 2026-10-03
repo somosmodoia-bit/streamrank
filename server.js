@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -12,12 +13,11 @@ const PORT = process.env.PORT || 10000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
 
-// 1. HEALTH CHECK PARA UPTIMEROBOT
+// 1. HEALTH CHECK ANTI-SLEEP
 app.all('/health', (req, res) => res.status(200).send('OK'));
 
-// 2. CONEXIÓN TURSO VÍA HTTP FETCH (CERO DEPENDENCIAS NATIVAS QUE CUELGUEN EL SERVER)
+// 2. CONEXIÓN TURSO VÍA PIPELINE HTTP DIRECTO
 const rawTursoUrl = (process.env.TURSO_DATABASE_URL || '').trim();
 const tursoHttpUrl = rawTursoUrl.replace(/^libsql:\/\//, 'https://').replace(/\/$/, '');
 const tursoToken = (process.env.TURSO_AUTH_TOKEN || '').trim();
@@ -138,11 +138,11 @@ const CANALES = [
 ];
 
 const CATEGORIAS_CONFIG = {
-  entretenimiento: { nombre: 'Entretenimiento', icono: '🎭', banner: 'PAUTA PREMIUM ENTRETENIMIENTO: Audiencias jóvenes masivas en directo • info@modoia.online', bannerColor: 'from-purple-950/80 via-slate-900 to-indigo-950/80', borderColor: 'border-purple-500/30' },
-  deportes: { nombre: 'Deportes', icono: '⚽', banner: 'ESPACIO PUBLICITARIO DEPORTES: La pasión futbolera en vivo minuto a minuto • info@modoia.online', bannerColor: 'from-emerald-950/80 via-slate-900 to-green-950/80', borderColor: 'border-emerald-500/30' },
-  streamers: { nombre: 'Streamers', icono: '🎮', banner: 'SPONSOR CREATIVO: Conectá con las comunidades líderes de Twitch, Kick y YouTube • info@modoia.online', bannerColor: 'from-cyan-950/80 via-slate-900 to-blue-950/80', borderColor: 'border-cyan-500/30' },
-  finanzas: { nombre: 'Economía & Finanzas', icono: '📈', banner: 'PAUTA FINANCIERA & BROKERS: El segmento ABC1 y decisiones de inversión en directo • info@modoia.online', bannerColor: 'from-amber-950/80 via-slate-900 to-yellow-950/80', borderColor: 'border-amber-500/30' },
-  noticias: { nombre: 'Noticias & Actualidad', icono: '🏛️', banner: 'MEDIOS & NOTICIAS: Cobertura de la coyuntura política y social argentina • info@modoia.online', bannerColor: 'from-rose-950/80 via-slate-900 to-red-950/80', borderColor: 'border-rose-500/30' }
+  entretenimiento: { nombre: 'Entretenimiento', banner: 'PAUTA PREMIUM ENTRETENIMIENTO • info@modoia.online', bannerColor: 'from-purple-950/80 via-slate-900 to-indigo-950/80', borderColor: 'border-purple-500/30' },
+  deportes: { nombre: 'Deportes', banner: 'ESPACIO PUBLICITARIO DEPORTES • info@modoia.online', bannerColor: 'from-emerald-950/80 via-slate-900 to-green-950/80', borderColor: 'border-emerald-500/30' },
+  streamers: { nombre: 'Streamers', banner: 'SPONSOR CREATIVO • info@modoia.online', bannerColor: 'from-cyan-950/80 via-slate-900 to-blue-950/80', borderColor: 'border-cyan-500/30' },
+  finanzas: { nombre: 'Economía & Finanzas', banner: 'PAUTA FINANCIERA & BROKERS • info@modoia.online', bannerColor: 'from-amber-950/80 via-slate-900 to-yellow-950/80', borderColor: 'border-amber-500/30' },
+  noticias: { nombre: 'Noticias & Actualidad', banner: 'MEDIOS & NOTICIAS • info@modoia.online', bannerColor: 'from-rose-950/80 via-slate-900 to-red-950/80', borderColor: 'border-rose-500/30' }
 };
 
 const CATEGORIAS_ORDEN = ['entretenimiento', 'deportes', 'streamers', 'finanzas', 'noticias'];
@@ -167,7 +167,7 @@ async function scrapeYouTubeLive(handle) {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
         'Accept-Language': 'es-419,es;q=0.9,en;q=0.8'
       },
-      timeout: 7000
+      timeout: 5000
     });
 
     const html = res.data;
@@ -192,9 +192,13 @@ async function scrapeYouTubeLive(handle) {
     let title = '';
     const metaTitle = html.match(/([^<]*)<\/title>/);
 
-    if (metaTitle && metaTitle[1]) title = metaTitle[1].trim();
-    else if (runsTitle && runsTitle[1]) title = runsTitle[1].trim();
-    else if (titleTagMatch && titleTagMatch[1]) title = titleTagMatch[1].replace(' - YouTube', '').trim();
+    if (metaTitle && metaTitle[1]) {
+      title = metaTitle[1].trim();
+    } else if (runsTitle && runsTitle[1]) {
+      title = runsTitle[1].trim();
+    } else if (titleTagMatch && titleTagMatch[1]) {
+      title = titleTagMatch[1].replace(' - YouTube', '').trim();
+    }
 
     if (!title || title.toLowerCase().includes('canal fuera de l') || title === handle) {
       title = 'Transmisión en directo';
@@ -217,7 +221,7 @@ async function scrapeTwitchLive(login) {
       },
       {
         headers: { 'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko', 'Content-Type': 'application/json' },
-        timeout: 6000
+        timeout: 5000
       }
     );
     const stream = res.data?.data?.user?.stream;
@@ -238,7 +242,7 @@ async function scrapeKickLive(slug) {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
         Accept: 'application/json'
       },
-      timeout: 6000
+      timeout: 5000
     });
     const isLive = res.data?.livestream?.is_live === true;
     const viewers = res.data?.livestream?.viewer_count || 0;
@@ -287,17 +291,15 @@ async function procesarCanal(c) {
 }
 
 async function cicloTelemetria() {
-  const BATCH_SIZE = 6;
+  const BATCH_SIZE = 5;
   for (let i = 0; i < CANALES.length; i += BATCH_SIZE) {
     const lote = CANALES.slice(i, i + BATCH_SIZE);
     await Promise.all(lote.map(procesarCanal));
-    if (i + BATCH_SIZE < CANALES.length) await new Promise((r) => setTimeout(r, 150));
+    if (i + BATCH_SIZE < CANALES.length) await new Promise((r) => setTimeout(r, 200));
   }
 }
 
-setInterval(cicloTelemetria, 30000);
-setTimeout(cicloTelemetria, 1000);
-
+// ENDPOINTS API
 app.get('/api/ranking-categorias', (req, res) => {
   const categorias = CATEGORIAS_ORDEN.map((catKey) => {
     const meta = CATEGORIAS_CONFIG[catKey];
@@ -310,7 +312,6 @@ app.get('/api/ranking-categorias', (req, res) => {
     return {
       id: catKey,
       nombre: meta.nombre,
-      icono: meta.icono,
       banner: meta.banner,
       bannerColor: meta.bannerColor,
       borderColor: meta.borderColor,
@@ -331,21 +332,11 @@ app.get('/api/ranking-categorias', (req, res) => {
 app.get('/api/dataset-ai', (req, res) => {
   const totalViewers = telemetriaState.reduce((acc, c) => acc + (c.viewers || 0), 0);
   const liveCount = telemetriaState.filter((c) => c.is_live).length;
-
   res.json({
-    _streamrank_ai_core: {
-      version: '3.1.0-ARG',
-      jurisdiction: 'Argentina',
-      metric: 'CCV Real-Time Multiplatform (YT/TW/KI)'
-    },
-    meta: {
-      timestamp: new Date().toISOString(),
-      live_channels: liveCount,
-      total_viewers: totalViewers
-    },
+    _streamrank_ai_core: { version: '3.5.0-ARG', country: 'Argentina' },
+    meta: { timestamp: new Date().toISOString(), live_channels: liveCount, total_viewers: totalViewers },
     categories: CATEGORIAS_ORDEN.map((catKey) => ({
       categoria: catKey,
-      nombre: CATEGORIAS_CONFIG[catKey].nombre,
       canales: telemetriaState.filter((c) => c.categoria === catKey).sort((a, b) => b.viewers - a.viewers)
     }))
   });
@@ -354,29 +345,30 @@ app.get('/api/dataset-ai', (req, res) => {
 app.get('/api/descargar-analytics', (req, res) => {
   const headers = ['Canal', 'Categoria', 'Audiencia_Total', 'Estado', 'YouTube', 'Twitch', 'Kick', 'Ultimo_Titulo', 'Hora'];
   const rows = telemetriaState.map(c => [
-    `"${c.nombre}"`,
-    `"${c.categoria}"`,
-    c.viewers,
-    c.is_live ? 'EN VIVO' : 'OFFLINE',
-    c.viewers_breakdown.yt,
-    c.viewers_breakdown.tw,
-    c.viewers_breakdown.ki,
-    `"${(c.title || '').replace(/"/g, '""')}"`,
-    `"${c.hora_actualizacion}"`
+    `"\({c.nombre}"`, `"\){c.categoria}"`, c.viewers, c.is_live ? 'EN VIVO' : 'OFFLINE',
+    c.viewers_breakdown.yt, c.viewers_breakdown.tw, c.viewers_breakdown.ki,
+    `"\({(c.title || '').replace(/"/g, '""')}"`, `"\){c.hora_actualizacion}"`
   ]);
-
   const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename="streamrank_analytics.csv"');
   res.send(csvContent);
 });
 
-// SERVIR EL FRONTEND OBLIGATORIAMENTE EN CUALQUIER RUTA
+// ENTREGA ROBUSTA DEL INDEX.HTML DESDE DISCO (SIN COLGAR EXPRESS)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  const htmlPath = path.join(__dirname, 'public', 'index.html');
+  if (fs.existsSync(htmlPath)) {
+    const contenido = fs.readFileSync(htmlPath, 'utf8');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.status(200).send(contenido);
+  }
+  return res.status(404).send('public/index.html no encontrado');
 });
 
-// ABRIR EL PUERTO SIN BLOQUEOS
+// INICIAR ESCUCHA
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`[StreamRank ARG] Servidor activo en puerto ${PORT}`);
+  setTimeout(cicloTelemetria, 2000);
+  setInterval(cicloTelemetria, 30000);
 });
