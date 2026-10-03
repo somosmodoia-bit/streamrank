@@ -97,14 +97,16 @@
     }
 
     function renderCard(c, esLider, puesto) {
-      const badgeLider = esLider ? `<div class="bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-black text-[9px] font-mono px-2 py-0.5 rounded-md uppercase mb-2 inline-block">👑 #1 LÍDER CATEGORÍA</div>` : `<div class="text-[10px] font-mono font-bold text-slate-500 mb-2">#${puesto}</div>`;
+      const badgeLider = esLider 
+        ? `<div class="h-6 mb-2 flex items-center"><div class="bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-black text-[9px] font-mono px-2 py-0.5 rounded-md uppercase inline-block">👑 #1 LÍDER CATEGORÍA</div></div>` 
+        : `<div class="h-6 mb-2 flex items-center"><div class="text-[10px] font-mono font-bold text-slate-500">#${puesto}</div></div>`;
+      
       const avatarHandle = c.yt || c.tw || c.ki || c.handle;
       const avatarService = c.yt ? 'youtube' : (c.tw ? 'twitch' : 'kick');
       
       const avatarFinal = c.avatar || `https://unavatar.io/${avatarService}/${avatarHandle}`;
 
       const ini = (c.nombre || 'XX').substring(0,2).toUpperCase();
-      const fallbackSVG = `data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='20' fill='%231e293b'/%3E%3Ctext x='50%25' y='51%25' dominant-baseline='middle' text-anchor='middle' fill='%2394a3b8' font-family='system-ui' font-size='16' font-weight='bold'%3E${ini}%3C/text%3E%3C/svg%3E`;
 
       return `
       <div class="bg-[#0b1120] ${esLider ? 'border-2 glow-gold' : 'border border-slate-800'} rounded-2xl p-4 flex flex-col justify-between shadow-md">
@@ -112,7 +114,10 @@
           ${badgeLider}
           <div class="flex items-start justify-between gap-2">
             <div class="flex items-center space-x-2.5 min-w-0">
-              <img src="${avatarFinal}" onerror="this.onerror=null;this.src='${fallbackSVG}';" class="w-10 h-10 rounded-full border border-slate-700 object-cover flex-shrink-0"/>
+              <div class="relative w-10 h-10 flex-shrink-0 rounded-full border border-slate-700 bg-[#1e293b] flex items-center justify-center overflow-hidden">
+                <span class="text-[#94a3b8] font-bold text-sm font-sans">${ini}</span>
+                <img src="${avatarFinal}" onerror="this.style.display='none'" class="absolute inset-0 w-full h-full object-cover"/>
+              </div>
               <div class="min-w-0">
                 <h3 class="font-bold text-white text-sm truncate leading-tight">${c.nombre}</h3>
                 <span class="text-[11px] text-slate-400 font-mono truncate block">@${avatarHandle}</span>
