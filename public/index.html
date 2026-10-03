@@ -103,7 +103,8 @@
       
       const avatarHandle = c.yt || c.tw || c.ki || c.handle;
       let avatarSrc = c.avatar;
-      if (!avatarSrc) {
+      
+      if (!avatarSrc || avatarSrc.includes('googleusercontent.com')) {
         if (c.yt) {
           avatarSrc = `https://unavatar.io/youtube/${c.yt}`;
         } else if (c.tw) {
@@ -125,7 +126,7 @@
             <div class="flex items-center space-x-2.5 min-w-0">
               <div class="relative w-10 h-10 flex-shrink-0 rounded-full border border-slate-700 bg-[#1e293b] flex items-center justify-center overflow-hidden">
                 <span class="text-[#94a3b8] font-bold text-sm font-sans">${ini}</span>
-                <img src="${avatarSrc}" onerror="this.style.display='none'" class="absolute inset-0 w-full h-full object-cover"/>
+                <img src="${avatarSrc}" alt="${c.nombre}" class="absolute inset-0 w-full h-full object-cover"/>
               </div>
               <div class="min-w-0">
                 <h3 class="font-bold text-white text-sm truncate leading-tight">${c.nombre}</h3>
@@ -225,8 +226,8 @@
           const banner = document.createElement('div');
           banner.className = `bg-gradient-to-r ${cat.bannerColor} border ${cat.borderColor} rounded-xl px-4 py-2.5 text-xs text-slate-200 font-mono flex items-center justify-between shadow my-3`;
           banner.innerHTML = `
-            <span class="truncate pr-3 font-medium text-[11px] sm:text-xs">${cat.banner}</span>
-            <a href="mailto:info@modoia.online" class="bg-black/60 hover:bg-emerald-500 hover:text-black text-emerald-400 px-3 py-1 rounded-lg border border-emerald-500/40 text-[10px] font-bold uppercase transition flex-shrink-0">Anunciar</a>
+            <span class="truncate pr-3 font-medium text-[11px] sm:text-xs">ESPACIO DISPONIBLE PARA MARCAS Y PATROCINIOS</span>
+            <a href="mailto:info@modoia.online?subject=Pauta%20StreamRank%20ARG" class="bg-black/60 hover:bg-emerald-500 hover:text-black text-emerald-400 px-3 py-1 rounded-lg border border-emerald-500/40 text-[10px] font-bold uppercase transition flex-shrink-0">Anunciar</a>
           `;
           section.appendChild(banner);
 
