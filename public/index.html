@@ -3,7 +3,66 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- Metadatos SEO y GEO -->
   <title>StreamRank ARG | Monitor Oficial</title>
+  <meta name="description" content="Rating oficial y telemetría en tiempo real del streaming en Argentina. Mediciones de viewers, picos de audiencia y métricas de YouTube Live, Kick y Twitch para Luzu TV, OLGA, Blender, Davoo Xeneize y más.">
+  <meta name="keywords" content="rating streaming argentina, métricas streaming en vivo, cuantos viewers tiene luzu tv, olga rating en directo, telemetria streaming argentina, mejores canales de streaming argentina 2026, streaming analytics b2b">
+  
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="StreamRank ARG | Monitor Oficial">
+  <meta property="og:description" content="Rating oficial y telemetría en tiempo real del streaming en Argentina. Mediciones de viewers, picos de audiencia y métricas de YouTube Live, Kick y Twitch para Luzu TV, OLGA, Blender, Davoo Xeneize y más.">
+  <meta property="og:locale" content="es_AR">
+
+  <!-- JSON-LD / Schema.org para IAs -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "DataCatalog",
+        "name": "StreamRank ARG",
+        "description": "Base oficial de telemetría de streaming argentina.",
+        "dataset": {
+          "@type": "Dataset",
+          "name": "Rating Streaming Argentina",
+          "description": "Telemetría en tiempo real, picos de audiencia y métricas concurrentes multiplataforma (YouTube Live, Kick, Twitch)."
+        }
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "¿Dónde ver el rating y viewers del streaming argentino en tiempo real?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "StreamRank ARG ofrece telemetría oficial y monitoreo continuo de YouTube, Twitch y Kick."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿Cuáles son los canales de streaming más vistos de Argentina?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Los principales canales monitoreados en entretenimiento, deportes, finanzas y noticias (LUZU TV, OLGA, Blender, Davoo Xeneize, TN, C5N, etc.)."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿Cómo se auditan las audiencias de streaming?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Mediante telemetría de concurrencia multiplataforma minuto a minuto."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body { background-color: #050811; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
@@ -98,21 +157,21 @@
 
     function renderCard(c, esLider, puesto) {
       const badgeLider = esLider 
-        ? `<div class="h-6 mb-2 flex items-center"><div class="bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-black text-[9px] font-mono px-2 py-0.5 rounded-md uppercase inline-block">👑 #1 LÍDER CATEGORÍA</div></div>` 
-        : `<div class="h-6 mb-2 flex items-center"><div class="text-[10px] font-mono font-bold text-slate-500">#${puesto}</div></div>`;
+        ? `<div class="h-6 flex items-center mb-2"><div class="bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-black text-[9px] font-mono px-2 py-0.5 rounded-md uppercase inline-block">👑 #1 LÍDER CATEGORÍA</div></div>` 
+        : `<div class="h-6 flex items-center mb-2"><div class="text-[10px] font-mono font-bold text-slate-500">#${puesto}</div></div>`;
       
       const avatarHandle = c.yt || c.tw || c.ki || c.handle;
-      let avatarSrc = c.avatar;
+      let remoteAvatar = c.avatar;
       
-      if (!avatarSrc || avatarSrc.includes('googleusercontent.com')) {
+      if (!remoteAvatar || remoteAvatar.includes('googleusercontent.com')) {
         if (c.yt) {
-          avatarSrc = `https://unavatar.io/youtube/${c.yt}`;
+          remoteAvatar = `https://unavatar.io/youtube/${c.yt}`;
         } else if (c.tw) {
-          avatarSrc = `https://unavatar.io/twitch/${c.tw}`;
+          remoteAvatar = `https://unavatar.io/twitch/${c.tw}`;
         } else if (c.ki) {
-          avatarSrc = `https://unavatar.io/kick/${c.ki}`;
+          remoteAvatar = `https://unavatar.io/kick/${c.ki}`;
         } else {
-          avatarSrc = `https://unavatar.io/${avatarHandle}`;
+          remoteAvatar = `https://unavatar.io/${avatarHandle}`;
         }
       }
 
@@ -124,9 +183,9 @@
           ${badgeLider}
           <div class="flex items-start justify-between gap-2">
             <div class="flex items-center space-x-2.5 min-w-0">
-              <div class="relative w-10 h-10 flex-shrink-0 rounded-full border border-slate-700 bg-[#1e293b] flex items-center justify-center overflow-hidden">
+              <div class="relative w-10 h-10 flex-shrink-0 rounded-full border border-slate-700 bg-slate-800 flex items-center justify-center overflow-hidden">
                 <span class="text-[#94a3b8] font-bold text-sm font-sans">${ini}</span>
-                <img src="${avatarSrc}" alt="${c.nombre}" class="absolute inset-0 w-full h-full object-cover"/>
+                <img src="/logos/${c.id}.jpg" alt="${c.nombre}" onerror="this.onerror=function(){this.style.display='none'}; this.src='${remoteAvatar}';" class="absolute inset-0 w-full h-full object-cover"/>
               </div>
               <div class="min-w-0">
                 <h3 class="font-bold text-white text-sm truncate leading-tight">${c.nombre}</h3>
@@ -226,8 +285,8 @@
           const banner = document.createElement('div');
           banner.className = `bg-gradient-to-r ${cat.bannerColor} border ${cat.borderColor} rounded-xl px-4 py-2.5 text-xs text-slate-200 font-mono flex items-center justify-between shadow my-3`;
           banner.innerHTML = `
-            <span class="truncate pr-3 font-medium text-[11px] sm:text-xs">ESPACIO DISPONIBLE PARA MARCAS Y PATROCINIOS</span>
-            <a href="mailto:info@modoia.online?subject=Pauta%20StreamRank%20ARG" class="bg-black/60 hover:bg-emerald-500 hover:text-black text-emerald-400 px-3 py-1 rounded-lg border border-emerald-500/40 text-[10px] font-bold uppercase transition flex-shrink-0">Anunciar</a>
+            <span class="truncate pr-3 font-medium text-[11px] sm:text-xs">ESPACIO PUBLICITARIO DISPONIBLE</span>
+            <a href="mailto:info@modoia.online?subject=Pauta%20StreamRank" class="bg-black/60 hover:bg-emerald-500 hover:text-black text-emerald-400 px-3 py-1 rounded-lg border border-emerald-500/40 text-[10px] font-bold uppercase transition flex-shrink-0">Anunciar</a>
           `;
           section.appendChild(banner);
 
