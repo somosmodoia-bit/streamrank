@@ -55,7 +55,7 @@ async function initDB() {
 initDB();
 
 const CANALES = [
-  // ENTRETENIMIENTO
+  // 1. ENTRETENIMIENTO
   { id: 'luzutv', nombre: 'LUZU TV', yt: 'luzutv', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
   { id: 'olga', nombre: 'OLGA', yt: 'olgaenvivo_', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
   { id: 'blender', nombre: 'Blender', yt: 'somosblender', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
@@ -71,7 +71,7 @@ const CANALES = [
   { id: 'eltrece', nombre: 'eltrece', yt: 'eltrece', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
   { id: 'americatv', nombre: 'América TV', yt: 'americaenvivo', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
 
-  // DEPORTES
+  // 2. DEPORTES
   { id: 'programa412', nombre: '412 Fútbol (Davoo & La Cobra)', yt: 'programa412', tw: null, ki: null, categoria: 'deportes', plataforma: 'youtube' },
   { id: 'azzstream', nombre: 'AZZ Stream (Flavio Azzaro)', yt: 'FlavioAzzaroOK', tw: null, ki: null, categoria: 'deportes', plataforma: 'youtube' },
   { id: 'picadotv', nombre: 'Picado TV', yt: 'picadotv', tw: null, ki: null, categoria: 'deportes', plataforma: 'youtube' },
@@ -82,7 +82,7 @@ const CANALES = [
   { id: 'dsports', nombre: 'DSports / DGO', yt: 'DIRECTVSports', tw: null, ki: null, categoria: 'deportes', plataforma: 'youtube' },
   { id: 'carrozza', nombre: 'Pablo Carrozza', yt: 'PabloCarrozza', tw: null, ki: null, categoria: 'deportes', plataforma: 'youtube' },
 
-  // STREAMERS
+  // 3. STREAMERS
   { id: 'martincirio', nombre: 'Martín Cirio (La Faraona)', yt: 'MartinCirio', tw: null, ki: null, categoria: 'streamers', plataforma: 'youtube' },
   { id: 'davoo', nombre: 'Davoo Xeneize', yt: null, tw: null, ki: 'davoo_xeneize', categoria: 'streamers', plataforma: 'kick' },
   { id: 'lacobra', nombre: 'La Cobra', yt: null, tw: null, ki: 'lacobra', categoria: 'streamers', plataforma: 'kick' },
@@ -106,7 +106,7 @@ const CANALES = [
   { id: 'benitosdr', nombre: 'Benito SDR', yt: null, tw: null, ki: 'benitosdr', categoria: 'streamers', plataforma: 'kick' },
   { id: 'laagusneta', nombre: 'LaAgusneta', yt: null, tw: null, ki: 'laagusneta', categoria: 'streamers', plataforma: 'kick' },
 
-  // FINANZAS
+  // 4. FINANZAS
   { id: 'neura', nombre: 'Neura Media / Troncal', yt: 'neuramedia', tw: null, ki: null, categoria: 'finanzas', plataforma: 'youtube' },
   { id: 'canale', nombre: 'Canal E (Económico)', yt: 'canaleperfil', tw: null, ki: null, categoria: 'finanzas', plataforma: 'youtube' },
   { id: 'elcronista', nombre: 'El Cronista TV', yt: 'CronistaComercial', tw: null, ki: null, categoria: 'finanzas', plataforma: 'youtube' },
@@ -114,7 +114,7 @@ const CANALES = [
   { id: 'bullmarket', nombre: 'Bull Market Brokers', yt: 'bullmarketbrokers', tw: null, ki: null, categoria: 'finanzas', plataforma: 'youtube' },
   { id: 'joveninversor', nombre: 'Joven Inversor', yt: 'JovenInversor', tw: null, ki: null, categoria: 'finanzas', plataforma: 'youtube' },
 
-  // NOTICIAS
+  // 5. NOTICIAS
   { id: 'tn', nombre: 'TN (Todo Noticias)', yt: 'todonoticias', tw: null, ki: null, categoria: 'noticias', plataforma: 'youtube' },
   { id: 'c5n', nombre: 'C5N', yt: 'c5n', tw: null, ki: null, categoria: 'noticias', plataforma: 'youtube' },
   { id: 'lanacionmas', nombre: 'La Nación +', yt: 'lanacionmas', tw: null, ki: null, categoria: 'noticias', plataforma: 'youtube' },
@@ -144,14 +144,14 @@ let telemetriaState = CANALES.map((c) => ({
   handle: c.yt || c.tw || c.ki,
   viewers: 0,
   is_live: false,
-  title: 'Canal fuera de línea',
+  title: 'Señal en espera',
   hora_actualizacion: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
   plataformas_live: { yt: false, tw: false, ki: false },
   viewers_breakdown: { yt: 0, tw: 0, ki: 0 }
 }));
 
 async function scrapeYouTubeLive(handle) {
-  if (!handle) return { is_live: false, viewers: 0, title: 'Fuera de línea' };
+  if (!handle) return { is_live: false, viewers: 0, title: 'Señal en espera' };
   try {
     const url = `https://www.youtube.com/@${handle}/live`;
     const res = await axios.get(url, {
@@ -167,12 +167,6 @@ async function scrapeYouTubeLive(handle) {
       return { is_live: false, viewers: 0, title: 'Transmisión programada' };
     }
 
-    let title = 'Transmitiendo en directo';
-    const titleMatch = html.match(/<title>([^<]*)<\/title>/);
-    if (titleMatch && titleMatch[1]) {
-      title = titleMatch[1].replace(' - YouTube', '').trim();
-    }
-
     let viewers = 0;
     const concurrentMatch = html.match(/"concurrentViewers":\s*"(\d+)"/) || html.match(/\\"concurrentViewers\\":\s*\\"(\d+)\\"/);
     const originalViewMatch = html.match(/"originalViewCount":\s*"(\d+)"/) || html.match(/\\"originalViewCount\\":\s*\\"(\d+)\\"/);
@@ -184,22 +178,37 @@ async function scrapeYouTubeLive(handle) {
 
     const hasLiveSignal = viewers > 20 || html.includes('"isLive":true') || html.includes('"isLiveBroadcast":true');
     if (!hasLiveSignal || viewers <= 5) {
-      return { is_live: false, viewers: 0, title: 'Canal fuera de línea' };
+      return { is_live: false, viewers: 0, title: 'Señal en espera' };
+    }
+
+    let title = '';
+    const metaTitle = html.match(/([^<]*)<\/title>/);
+
+    if (metaTitle && metaTitle[1]) {
+      title = metaTitle[1].trim();
+    } else if (runsTitle && runsTitle[1]) {
+      title = runsTitle[1].trim();
+    } else if (titleTagMatch && titleTagMatch[1]) {
+      title = titleTagMatch[1].replace(' - YouTube', '').trim();
+    }
+
+    if (!title || title.toLowerCase().includes('canal fuera de l') || title === handle) {
+      title = 'Transmisión en directo';
     }
 
     return { is_live: true, viewers, title };
   } catch (err) {
-    return { is_live: false, viewers: 0, title: 'Canal fuera de línea' };
+    return { is_live: false, viewers: 0, title: 'Señal en espera' };
   }
 }
 
 async function scrapeTwitchLive(login) {
-  if (!login) return { is_live: false, viewers: 0, title: 'Fuera de línea' };
+  if (!login) return { is_live: false, viewers: 0, title: 'Señal en espera' };
   try {
     const res = await axios.post(
       'https://gql.twitch.tv/gql',
       {
-        query: `query GetStreamInfo($login: String!) { user(login: $login) { stream { viewersCount title } } }`,
+        query: `query GetStreamInfo(\(login: String!) { user(login:\)login) { stream { viewersCount title } } }`,
         variables: { login }
       },
       {
@@ -211,14 +220,14 @@ async function scrapeTwitchLive(login) {
     if (stream && (stream.viewersCount || 0) > 3) {
       return { is_live: true, viewers: stream.viewersCount || 0, title: stream.title || 'En vivo en Twitch' };
     }
-    return { is_live: false, viewers: 0, title: 'Canal fuera de línea' };
+    return { is_live: false, viewers: 0, title: 'Señal en espera' };
   } catch (err) {
-    return { is_live: false, viewers: 0, title: 'Canal fuera de línea' };
+    return { is_live: false, viewers: 0, title: 'Señal en espera' };
   }
 }
 
 async function scrapeKickLive(slug) {
-  if (!slug) return { is_live: false, viewers: 0, title: 'Fuera de línea' };
+  if (!slug) return { is_live: false, viewers: 0, title: 'Señal en espera' };
   try {
     const res = await axios.get(`https://kick.com/api/v2/channels/${slug}`, {
       headers: {
@@ -232,9 +241,9 @@ async function scrapeKickLive(slug) {
     if (isLive && viewers > 3) {
       return { is_live: true, viewers, title: res.data.livestream.session_title || 'En vivo en Kick' };
     }
-    return { is_live: false, viewers: 0, title: 'Canal fuera de línea' };
+    return { is_live: false, viewers: 0, title: 'Señal en espera' };
   } catch (err) {
-    return { is_live: false, viewers: 0, title: 'Canal fuera de línea' };
+    return { is_live: false, viewers: 0, title: 'Señal en espera' };
   }
 }
 
@@ -249,7 +258,7 @@ async function procesarCanal(c) {
 
   const totalViewers = (ytRes.viewers || 0) + (twRes.viewers || 0) + (kiRes.viewers || 0);
   const isLive = ytRes.is_live || twRes.is_live || kiRes.is_live;
-  const activeTitle = (ytRes.is_live && ytRes.title) || (twRes.is_live && twRes.title) || (kiRes.is_live && kiRes.title) || 'Canal fuera de línea';
+  const activeTitle = (ytRes.is_live && ytRes.title) || (twRes.is_live && twRes.title) || (kiRes.is_live && kiRes.title) || 'Señal en espera';
   const horaActual = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
   const idx = telemetriaState.findIndex((item) => item.id === c.id);
