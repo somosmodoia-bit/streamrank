@@ -138,6 +138,56 @@
     let datosGlobales = [];
     const expandedCategories = {};
 
+    const LOGOS_CANALES = {
+      luzutv: 'https://unavatar.io/youtube/luzutv',
+      olga: 'https://unavatar.io/youtube/olgaenvivo_',
+      blender: 'https://unavatar.io/youtube/somosblender',
+      gelatina: 'https://unavatar.io/youtube/somosgelatina',
+      vorterix: 'https://unavatar.io/youtube/VorterixOficial',
+      bondilive: 'https://unavatar.io/youtube/bondi_liveok',
+      lacasastreaming: 'https://unavatar.io/youtube/somoslacasa',
+      unpocoderuido: 'https://unavatar.io/youtube/unpocoderuido',
+      loftstream: 'https://unavatar.io/youtube/loftstream',
+      republicaz: 'https://unavatar.io/youtube/RepublicaZ',
+      posdata: 'https://unavatar.io/youtube/posdatastream',
+      telefe: 'https://unavatar.io/youtube/telefe',
+      eltrece: 'https://unavatar.io/youtube/eltrece',
+      americatv: 'https://unavatar.io/youtube/americaenvivo',
+      programa412: 'https://unavatar.io/youtube/programa412',
+      azzstream: 'https://unavatar.io/youtube/FlavioAzzaroOK',
+      picadotv: 'https://unavatar.io/youtube/picadotv',
+      tycsports: 'https://unavatar.io/youtube/TyCSportsOficial',
+      espnarg: 'https://unavatar.io/youtube/espnargentina',
+      foxsportsarg: 'https://unavatar.io/youtube/FoxSportsArg',
+      tntsportsarg: 'https://unavatar.io/youtube/TNTSportsAR',
+      dsports: 'https://unavatar.io/youtube/DIRECTVSports',
+      carrozza: 'https://unavatar.io/youtube/PabloCarrozza',
+      davoo: 'https://unavatar.io/kick/davoo_xeneize',
+      lacobra: 'https://unavatar.io/kick/lacobra',
+      spreen: 'https://unavatar.io/kick/spreen',
+      luquitas: 'https://unavatar.io/twitch/luquitasrodriguez',
+      martincirio: 'https://unavatar.io/youtube/MartinCirio',
+      coscu: 'https://unavatar.io/kick/coscu',
+      kunaguero: 'https://unavatar.io/twitch/slakun10',
+      momo: 'https://unavatar.io/kick/momoladinastia',
+      brunenger: 'https://unavatar.io/kick/brunenger',
+      goncho: 'https://unavatar.io/twitch/goncho',
+      bullmarket: 'https://unavatar.io/youtube/bullmarketbrokers',
+      joveninversor: 'https://unavatar.io/youtube/JovenInversor',
+      elcronista: 'https://unavatar.io/youtube/CronistaComercial',
+      ambitofinanciero: 'https://unavatar.io/youtube/AmbitoFinanciero',
+      canale: 'https://unavatar.io/youtube/canaleperfil',
+      neura: 'https://unavatar.io/youtube/neuramedia',
+      tn: 'https://unavatar.io/youtube/todonoticias',
+      c5n: 'https://unavatar.io/youtube/c5n',
+      lanacionmas: 'https://unavatar.io/youtube/lanacionmas',
+      carajostream: 'https://unavatar.io/youtube/carajostream',
+      eldestape: 'https://unavatar.io/youtube/eldestapeweb',
+      a24: 'https://unavatar.io/youtube/A24com',
+      infobae: 'https://unavatar.io/youtube/infobae',
+      elobservador: 'https://unavatar.io/youtube/elobservador1079'
+    };
+
     async function cargarCatalogo() {
       try {
         const res = await fetch('/api/ranking-categorias');
@@ -160,22 +210,8 @@
         ? `<div class="h-6 flex items-center mb-2"><div class="bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-black text-[9px] font-mono px-2 py-0.5 rounded-md uppercase inline-block">👑 #1 LÍDER CATEGORÍA</div></div>` 
         : `<div class="h-6 flex items-center mb-2"><div class="text-[10px] font-mono font-bold text-slate-500">#${puesto}</div></div>`;
       
-      const avatarHandle = c.yt || c.tw || c.ki || c.handle;
-      let remoteAvatar = c.avatar;
-      
-      if (!remoteAvatar || remoteAvatar.includes('googleusercontent.com')) {
-        if (c.yt) {
-          remoteAvatar = `https://unavatar.io/youtube/${c.yt}`;
-        } else if (c.tw) {
-          remoteAvatar = `https://unavatar.io/twitch/${c.tw}`;
-        } else if (c.ki) {
-          remoteAvatar = `https://unavatar.io/kick/${c.ki}`;
-        } else {
-          remoteAvatar = `https://unavatar.io/${avatarHandle}`;
-        }
-      }
-
-      const ini = (c.nombre || 'XX').substring(0,2).toUpperCase();
+      const avatarUrl = LOGOS_CANALES[c.id] || `https://unavatar.io/${c.yt ? 'youtube' : (c.tw ? 'twitch' : 'kick')}/${c.yt || c.tw || c.ki || c.handle}`;
+      const ini = (c.nombre || 'XX').substring(0, 2).toUpperCase();
 
       return `
       <div class="bg-[#0b1120] ${esLider ? 'border-2 glow-gold' : 'border border-slate-800'} rounded-2xl p-4 flex flex-col justify-between shadow-md">
@@ -185,11 +221,11 @@
             <div class="flex items-center space-x-2.5 min-w-0">
               <div class="relative w-10 h-10 flex-shrink-0 rounded-full border border-slate-700 bg-slate-800 flex items-center justify-center overflow-hidden">
                 <span class="text-[#94a3b8] font-bold text-sm font-sans">${ini}</span>
-                <img src="/logos/${c.id}.jpg" alt="${c.nombre}" onerror="this.onerror=function(){this.style.display='none'}; this.src='${remoteAvatar}';" class="absolute inset-0 w-full h-full object-cover"/>
+                <img src="${avatarUrl}" alt="${c.nombre}" onerror="this.remove()" class="absolute inset-0 w-full h-full object-cover"/>
               </div>
               <div class="min-w-0">
                 <h3 class="font-bold text-white text-sm truncate leading-tight">${c.nombre}</h3>
-                <span class="text-[11px] text-slate-400 font-mono truncate block">@${avatarHandle}</span>
+                <span class="text-[11px] text-slate-400 font-mono truncate block">@${c.yt || c.tw || c.ki || c.handle}</span>
               </div>
             </div>
             <span class="text-[9px] font-bold font-mono px-2 py-0.5 rounded border ${c.is_live ? 'bg-matrix-10 text-matrix border-matrix-30' : 'bg-slate-800/60 text-slate-500 border-slate-700'} flex-shrink-0">
@@ -283,9 +319,9 @@
 
         if (isExpanded && cat.banner) {
           const banner = document.createElement('div');
-          banner.className = `bg-gradient-to-r ${cat.bannerColor} border ${cat.borderColor} rounded-xl px-4 py-2.5 text-xs text-slate-200 font-mono flex items-center justify-between shadow my-3`;
+          banner.className = `bg-gradient-to-r ${cat.bannerColor} border ${cat.borderColor} rounded-xl px-4 py-2.5 text-xs text-slate-200 font-mono flex flex-col sm:flex-row items-center justify-between gap-2 shadow my-3`;
           banner.innerHTML = `
-            <span class="truncate pr-3 font-medium text-[11px] sm:text-xs">ESPACIO PUBLICITARIO DISPONIBLE</span>
+            <span class="truncate sm:pr-3 font-medium text-[11px] sm:text-xs">ESPACIO PUBLICITARIO DISPONIBLE</span>
             <a href="mailto:info@modoia.online?subject=Pauta%20StreamRank" class="bg-black/60 hover:bg-emerald-500 hover:text-black text-emerald-400 px-3 py-1 rounded-lg border border-emerald-500/40 text-[10px] font-bold uppercase transition flex-shrink-0">Anunciar</a>
           `;
           section.appendChild(banner);
