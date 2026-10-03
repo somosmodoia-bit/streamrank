@@ -160,10 +160,9 @@
         ? `<div class="h-6 flex items-center mb-2"><div class="bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-black text-[9px] font-mono px-2 py-0.5 rounded-md uppercase inline-block">👑 #1 LÍDER CATEGORÍA</div></div>` 
         : `<div class="h-6 flex items-center mb-2"><div class="text-[10px] font-mono font-bold text-slate-500">#${puesto}</div></div>`;
       
-      const localAvatar = c.avatar || `/logos/${c.id}.jpg`;
       const service = c.yt ? 'youtube' : (c.tw ? 'twitch' : 'kick');
       const handleLimpio = (c.yt || c.tw || c.ki || c.handle || '').replace('@', '');
-      const remoteFallback = `https://unavatar.io/${service}/${handleLimpio}`;
+      const avatarUrl = `https://unavatar.io/${service}/${handleLimpio}`;
       const ini = (c.nombre || 'SR').substring(0, 2).toUpperCase();
 
       return `
@@ -174,7 +173,7 @@
             <div class="flex items-center space-x-2.5 min-w-0">
               <div class="relative w-10 h-10 flex-shrink-0 rounded-full border border-slate-700 bg-slate-800 flex items-center justify-center overflow-hidden">
                 <span class="text-[#94a3b8] font-bold text-sm font-sans">${ini}</span>
-                <img src="${localAvatar}" alt="${c.nombre}" referrerpolicy="no-referrer" onerror="this.onerror=function(){this.style.display='none'}; this.src='${remoteFallback}';" class="absolute inset-0 w-full h-full object-cover"/>
+                <img src="${avatarUrl}" alt="${c.nombre}" referrerpolicy="no-referrer" onerror="this.style.display='none'" class="absolute inset-0 w-full h-full object-cover"/>
               </div>
               <div class="min-w-0">
                 <h3 class="font-bold text-white text-sm truncate leading-tight">${c.nombre}</h3>
