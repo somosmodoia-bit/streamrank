@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es-AR" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StreamRank ARG | Monitor Oficial</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background-color: #050811; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+    .glow-gold { box-shadow: 0 0 25px rgba(234, 179, 8, 0.35); border-color: #eab308 !important; }
+    .text-matrix { color: #00ff66; }
+    .bg-matrix-10 { background-color: rgba(0, 255, 102, 0.1); }
+    .border-matrix-30 { border-color: rgba(0, 255, 102, 0.3); }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased">
+  <div class="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 border-b border-slate-800 px-4 py-2 text-center text-xs text-slate-300">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-1 text-[11px] sm:text-xs">
+      <div>
+        <span class="inline-block bg-matrix-10 text-matrix px-2 py-0.5 rounded font-mono font-bold mr-2 text-[10px]">OFICIAL</span>
+        <strong>AUDITORÍA DE STREAMING B2B:</strong> Métricas en directo para marcas y agencias.
+      </div>
+      <a href="mailto:info@modoia.online" class="text-matrix font-bold hover:underline">info@modoia.online</a>
+    </div>
+  </div>
+
+  <header class="border-b border-slate-800/80 bg-[#050811]/90 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 bg-black border border-emerald-500 rounded-lg flex items-center justify-center font-mono font-black text-matrix text-sm">AR</div>
+        <div>
+          <span class="text-base font-extrabold tracking-wider text-white">STREAMRANK</span>
+          <span class="text-[10px] text-matrix font-mono font-bold ml-1">ARG</span>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <span id="relojHeader" class="text-[11px] font-mono text-slate-400 hidden sm:inline">Sincronizando...</span>
+        <a href="/api/descargar-analytics" class="bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-400 text-xs px-3 py-1.5 rounded-lg border border-emerald-500/30 font-mono transition">
+          Descargar Analytics
+        </a>
+        <a href="/api/dataset-ai" target="_blank" class="bg-matrix-10 hover:bg-emerald-950 text-matrix text-xs px-3 py-1.5 rounded-lg border border-matrix-30 font-mono transition">
+          Dataset IA
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <section class="max-w-7xl mx-auto px-4 pt-10 pb-8 w-full text-center">
+    <div class="max-w-3xl mx-auto space-y-3">
+      <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-matrix-10 border border-matrix-30 text-matrix text-[11px] font-mono font-bold">
+        <span>● TELEMETRÍA EN DIRECTO CADA 30 SEGUNDOS</span>
+      </div>
+      <h1 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+        Catálogo y Rating de <span class="text-matrix">Streaming</span> Argentino
+      </h1>
+      <p class="text-slate-400 text-xs sm:text-sm font-normal">
+        Monitoreo simultáneo y transparente de YouTube Live, Twitch y Kick. Ranking oficial categorizado.
+      </p>
+      <div class="pt-4 max-w-xl mx-auto">
+        <input type="text" id="searchInput" oninput="filtrarCanales()" placeholder="Buscar streamer o canal..." class="w-full bg-[#0b1120] border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-400 outline-none shadow-lg"/>
+      </div>
+    </div>
+  </section>
+
+  <main id="catalogContainer" class="max-w-7xl mx-auto px-4 pb-20 w-full space-y-12">
+    <div class="py-20 text-center text-slate-500 font-mono text-xs">Cargando telemetría oficial...</div>
+  </main>
+
+  <footer class="border-t border-slate-900 bg-[#050811] py-8 text-center text-xs text-slate-500 font-mono space-y-1">
+    <p>StreamRank ARG • Monitor de Telemetría en Tiempo Real.</p>
+    <p>Desarrollado por <a href="https://modoia.online" target="_blank" class="text-slate-400 hover:text-matrix underline">Modo IA</a> • Contacto: info@modoia.online</p>
+  </footer>
+
+  <script>
+    let datosGlobales = [];
+    const expandedCategories = {};
+
+    async function cargarCatalogo() {
+      try {
+        const res = await fetch('/api/ranking-categorias');
+        const data = await res.json();
+        datosGlobales = data.categorias;
+        if (data.fecha && data.timestamp) {
+          document.getElementById('relojHeader').innerText = data.fecha + ' • ' + data.timestamp + ' hs';
+        }
+        renderizarCatalogo();
+      } catch (err) {}
+    }
+
+    function toggleCategoria(catId) {
+      expandedCategories[catId] = !expandedCategories[catId];
+      renderizarCatalogo();
+    }
+
+    function renderCard(c, esLider, puesto) {
+      const badgeLider = esLider ? '<div class="bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-black text-[9px] font-mono px-2 py-0.5 rounded-md uppercase mb-2 inline-block">👑 #1 LÍDER CATEGORÍA</div>' : '<div class="text-[10px] font-mono font-bold text-slate-500 mb-2">#' + puesto + '</div>';
+      const avatarHandle = c.yt || c.tw || c.ki || c.handle;
+      const avatarService = c.yt ? 'youtube' : (c.tw ? 'twitch' : 'kick');
+
+      return '<div class="bg-[#0b1120] ' + (esLider ? 'border-2 glow-gold' : 'border border-slate-800') + ' rounded-2xl p-4 flex flex-col justify-between shadow-md">' +
+        '<div>' +
+          badgeLider +
+          '<div class="flex items-start justify-between gap-2">' +
+            '<div class="flex items-center space-x-2.5 min-w-0">' +
+              '<img crossorigin="anonymous" src="https://unavatar.io/' + avatarService + '/' + avatarHandle + '" class="w-10 h-10 rounded-full border border-slate-700 object-cover flex-shrink-0"/>' +
+              '<div class="min-w-0">' +
+                '<h3 class="font-bold text-white text-sm truncate leading-tight">' + c.nombre + '</h3>' +
+                '<span class="text-[11px] text-slate-400 font-mono truncate block">@' + avatarHandle + '</span>' +
+              '</div>' +
+            '</div>' +
+            '<span class="text-[9px] font-bold font-mono px-2 py-0.5 rounded border ' + (c.is_live ? 'bg-matrix-10 text-matrix border-matrix-30' : 'bg-slate-800/60 text-slate-500 border-slate-700') + ' flex-shrink-0">' +
+              (c.is_live ? 'EN VIVO' : 'OFFLINE') +
+            '</span>' +
+          '</div>' +
+          '<p class="text-xs text-slate-400 mt-3 line-clamp-1 italic leading-relaxed">"' + c.title + '"</p>' +
+        '</div>' +
+        '<div class="mt-4 pt-3 border-t border-slate-800/80">' +
+          '<div class="flex items-baseline justify-between mb-2">' +
+            '<div>' +
+              '<span class="text-[9px] text-slate-400 uppercase font-mono block">Total Viewers</span>' +
+              '<span class="text-base sm:text-lg font-black font-mono ' + (c.is_live ? 'text-matrix' : 'text-slate-500') + '">' +
+                c.viewers.toLocaleString('es-AR') +
+              '</span>' +
+            '</div>' +
+            '<span class="text-[10px] text-slate-400 font-mono">' + (c.is_live ? 'Activo' : 'Corte') + ' ' + c.hora_actualizacion + ' hs</span>' +
+          '</div>' +
+          '<div class="grid grid-cols-3 gap-1.5 pt-1">' +
+            '<div class="text-center py-1 px-1 rounded border text-[10px] font-mono font-bold flex items-center justify-center gap-1 ' + (c.plataformas_live.yt ? 'bg-red-950/40 border-red-500/50 text-red-400' : 'bg-slate-900 border-slate-800/80 text-slate-400') + '">' +
+              '<span>▶</span> <span>' + (c.plataformas_live.yt ? c.viewers_breakdown.yt.toLocaleString('es-AR') : 'off') + '</span>' +
+            '</div>' +
+            '<div class="text-center py-1 px-1 rounded border text-[10px] font-mono font-bold flex items-center justify-center gap-1 ' + (c.plataformas_live.tw ? 'bg-purple-950/40 border-purple-500/50 text-purple-300' : 'bg-slate-900 border-slate-800/80 text-slate-400') + '">' +
+              '<span>👾</span> <span>' + (c.plataformas_live.tw ? c.viewers_breakdown.tw.toLocaleString('es-AR') : 'off') + '</span>' +
+            '</div>' +
+            '<div class="text-center py-1 px-1 rounded border text-[10px] font-mono font-bold flex items-center justify-center gap-1 ' + (c.plataformas_live.ki ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300' : 'bg-slate-900 border-slate-800/80 text-slate-400') + '">' +
+              '<span>⚡</span> <span>' + (c.plataformas_live.ki ? c.viewers_breakdown.ki.toLocaleString('es-AR') : 'off') + '</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    function renderizarCatalogo() {
+      const container = document.getElementById('catalogContainer');
+      const query = document.getElementById('searchInput').value.toLowerCase().trim();
+      container.innerHTML = '';
+
+      datosGlobales.forEach((cat) => {
+        const canalesFiltrados = cat.canales.filter(c => 
+          c.nombre.toLowerCase().includes(query) || c.handle.toLowerCase().includes(query) || c.title.toLowerCase().includes(query)
+        );
+
+        if (query && canalesFiltrados.length === 0) return;
+
+        const section = document.createElement('section');
+        section.className = "space-y-4";
+
+        const header = document.createElement('div');
+        header.className = "flex items-center justify-between border-b border-slate-800 pb-3 pt-2";
+        header.innerHTML = '<div class="flex items-center space-x-2">' +
+            '<span class="text-xl">' + cat.icono + '</span>' +
+            '<h2 class="text-lg sm:text-xl font-bold text-white tracking-wide uppercase">' + cat.nombre + '</h2>' +
+          '</div>' +
+          '<span class="text-xs bg-[#0b1120] text-slate-400 font-mono px-3 py-1 rounded-full border border-slate-800">' + canalesFiltrados.length + ' canales</span>';
+        section.appendChild(header);
+
+        const isExpanded = expandedCategories[cat.id] || query.length > 0;
+        const top4 = canalesFiltrados.slice(0, 4);
+        const restantes = canalesFiltrados.slice(4);
+
+        const gridTop = document.createElement('div');
+        gridTop.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4";
+        top4.forEach((c, idx) => {
+          const esLider = cat.lider && cat.lider.id === c.id && c.viewers > 0;
+          gridTop.innerHTML += renderCard(c, esLider, idx + 1);
+        });
+        section.appendChild(gridTop);
+
+        if (isExpanded && cat.banner) {
+          const banner = document.createElement('div');
+          banner.className = "bg-gradient-to-r " + cat.bannerColor + " border " + cat.borderColor + " rounded-xl px-4 py-2.5 text-xs text-slate-200 font-mono flex items-center justify-between shadow my-3";
+          banner.innerHTML = '<span class="truncate pr-3 font-medium text-[11px] sm:text-xs">' + cat.banner + '</span>' +
+            '<a href="mailto:info@modoia.online" class="bg-black/60 hover:bg-emerald-500 hover:text-black text-emerald-400 px-3 py-1 rounded-lg border border-emerald-500/40 text-[10px] font-bold uppercase transition flex-shrink-0">Anunciar</a>';
+          section.appendChild(banner);
+
+          if (restantes.length > 0) {
+            const gridRestantes = document.createElement('div');
+            gridRestantes.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4";
+            restantes.forEach((c, idx) => {
+              gridRestantes.innerHTML += renderCard(c, false, idx + 5);
+            });
+            section.appendChild(gridRestantes);
+          }
+        }
+
+        if (canalesFiltrados.length > 4 && !query) {
+          const toggleWrap = document.createElement('div');
+          toggleWrap.className = "text-center pt-2";
+          toggleWrap.innerHTML = '<button onclick="toggleCategoria(\'' + cat.id + '\')" class="px-5 py-2 rounded-xl bg-[#0b1120] border border-slate-800 hover:border-emerald-500 text-slate-300 hover:text-white text-xs font-mono font-bold transition shadow">' +
+              (isExpanded ? '▲ Ver menos canales' : '▼ Ver todos los canales (' + canalesFiltrados.length + ')') +
+            '</button>';
+          section.appendChild(toggleWrap);
+        }
+
+        container.appendChild(section);
+      });
+    }
+
+    function filtrarCanales() { renderizarCatalogo(); }
+
+    cargarCatalogo();
+    setInterval(cargarCatalogo, 10000);
+  </script>
+</body>
+</html>
