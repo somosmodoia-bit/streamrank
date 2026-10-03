@@ -269,12 +269,4 @@ app.get('*', (req, res) => {
 // 4. Iniciar Servidor con Timeouts ajustados para Render
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`[StreamRank ARG] Servidor activo en puerto ${PORT}`);
-  setTimeout(() => {
-    cicloScraper();
-    setInterval(cicloScraper, 45000);
-  }, 5000);
 });
-
-// Evita que el reverse proxy de Render cierre o congele las conexiones en espera
-server.keepAliveTimeout = 120000;
-server.headersTimeout = 120000;
