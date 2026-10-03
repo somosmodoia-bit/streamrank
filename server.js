@@ -14,7 +14,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.all('/health', (req, res) => res.status(200).send('OK'));
+// HEALTH CHECK INSTANTÁNEO
+app.get('/health', (req, res) => res.status(200).send('OK'));
 
 const CANALES = [
   // ENTRETENIMIENTO
@@ -115,13 +116,12 @@ let telemetriaState = CANALES.map((c) => ({
 async function scrapeYouTubeLive(handle) {
   if (!handle) return { is_live: false, viewers: 0, title: 'Señal en espera' };
   try {
-    const url = `https://www.youtube.com/@${handle}/live`;
-    const res = await axios.get(url, {
+    const res = await axios.get(`https://www.youtube.com/@${handle}/live`, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
         'Accept-Language': 'es-419,es;q=0.9,en;q=0.8'
       },
-      timeout: 5000
+      timeout: 4000
     });
 
     const html = res.data;
@@ -171,7 +171,7 @@ async function scrapeTwitchLive(login) {
       },
       {
         headers: { 'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko', 'Content-Type': 'application/json' },
-        timeout: 5000
+        timeout: 4000
       }
     );
     const stream = res.data?.data?.user?.stream;
@@ -192,7 +192,7 @@ async function scrapeKickLive(slug) {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
         Accept: 'application/json'
       },
-      timeout: 5000
+      timeout: 4000
     });
     const isLive = res.data?.livestream?.is_live === true;
     const viewers = res.data?.livestream?.viewer_count || 0;
@@ -233,19 +233,17 @@ async function procesarCanal(c) {
   }
 }
 
-async function cicloTelemetria() {
-  const BATCH_SIZE = 5;
-  for (let i = 0; i < CANALES.length; i += BATCH_SIZE) {
-    const lote = CANALES.slice(i, i + BATCH_SIZE);
-    await Promise.all(lote.map(procesarCanal));
-    if (i + BATCH_SIZE < CANALES.length) await new Promise((r) => setTimeout(r, 200));
+// Scrapea en serie sin saturar la CPU de Render
+async function cicloTelemetriaSuave() {
+  for (const canal of CANALES) {
+    try {
+      await procesarCanal(canal);
+    } catch (e) {}
+    await new Promise((r) => setTimeout(r, 600));
   }
 }
 
-// Inicia el scraping en segundo plano sin trabar el servidor
-setTimeout(cicloTelemetria, 1000);
-setInterval(cicloTelemetria, 30000);
-
+// API ENDPOINTS
 app.get('/api/ranking-categorias', (req, res) => {
   const categorias = CATEGORIAS_ORDEN.map((catKey) => {
     const meta = CATEGORIAS_CONFIG[catKey];
@@ -301,11 +299,17 @@ app.get('/api/descargar-analytics', (req, res) => {
   res.send(csvContent);
 });
 
-// Responde a cualquier ruta sirviendo el index.html de la carpeta public
+// FRONTEND
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// ARRANQUE LIMPIO
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`[StreamRank ARG] Servidor activo en puerto ${PORT}`);
+  // Inicia la telemetría después de que el servidor ya esté respondiendo pings
+  setTimeout(() => {
+    cicloTelemetriaSuave();
+    setInterval(cicloTelemetriaSuave, 45000);
+  }, 4000);
 });
