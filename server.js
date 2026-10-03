@@ -3,6 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
 import https from 'https';
+import http from 'http';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -14,12 +15,12 @@ const PORT = process.env.PORT || 10000;
 app.use(cors());
 app.use(express.json());
 
-// Endpoint de salud
+// Verificación de estado de servicio
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
-// Configuración de Categorías
+// Configuración visual y semántica de categorías
 const CATEGORIAS_CONFIG = {
   entretenimiento: {
     nombre: 'Entretenimiento',
@@ -55,9 +56,9 @@ const CATEGORIAS_CONFIG = {
 
 const CATEGORIAS_ORDEN = ['entretenimiento', 'deportes', 'streamers', 'finanzas', 'noticias'];
 
-// Lista Oficial de Canales
+// Registro oficial de canales monitoreados
 const CANALES = [
-  // ENTRETENIMIENTO
+  // Entretenimiento
   { id: 'luzutv', nombre: 'LUZU TV', yt: 'luzutv', tw: null, ki: null, categoria: 'entretenimiento' },
   { id: 'olga', nombre: 'OLGA', yt: 'olgaenvivo_', tw: null, ki: null, categoria: 'entretenimiento' },
   { id: 'blender', nombre: 'Blender', yt: 'somosblender', tw: null, ki: null, categoria: 'entretenimiento' },
@@ -73,7 +74,7 @@ const CANALES = [
   { id: 'eltrece', nombre: 'eltrece', yt: 'eltrece', tw: null, ki: null, categoria: 'entretenimiento' },
   { id: 'americatv', nombre: 'América TV', yt: 'americaenvivo', tw: null, ki: null, categoria: 'entretenimiento' },
 
-  // DEPORTES
+  // Deportes
   { id: 'programa412', nombre: '412 Fútbol (Davoo & La Cobra)', yt: 'programa412', tw: null, ki: null, categoria: 'deportes' },
   { id: 'azzstream', nombre: 'AZZ Stream (Flavio Azzaro)', yt: 'FlavioAzzaroOK', tw: null, ki: null, categoria: 'deportes' },
   { id: 'picadotv', nombre: 'Picado TV', yt: 'picadotv', tw: null, ki: null, categoria: 'deportes' },
@@ -84,7 +85,7 @@ const CANALES = [
   { id: 'dsports', nombre: 'DSports / DGO', yt: 'DIRECTVSports', tw: null, ki: null, categoria: 'deportes' },
   { id: 'carrozza', nombre: 'Pablo Carrozza', yt: 'PabloCarrozza', tw: null, ki: null, categoria: 'deportes' },
 
-  // STREAMERS
+  // Streamers
   { id: 'davoo', nombre: 'Davoo Xeneize', yt: null, tw: null, ki: 'davoo_xeneize', categoria: 'streamers' },
   { id: 'lacobra', nombre: 'La Cobra', yt: null, tw: null, ki: 'lacobra', categoria: 'streamers' },
   { id: 'spreen', nombre: 'Spreen', yt: null, tw: null, ki: 'spreen', categoria: 'streamers' },
@@ -96,14 +97,14 @@ const CANALES = [
   { id: 'brunenger', nombre: 'Brunenger', yt: null, tw: null, ki: 'brunenger', categoria: 'streamers' },
   { id: 'goncho', nombre: 'Goncho Banzas', yt: null, tw: 'goncho', ki: null, categoria: 'streamers' },
 
-  // FINANZAS
+  // Finanzas
   { id: 'bullmarket', nombre: 'Bull Market Brokers', yt: 'bullmarketbrokers', tw: null, ki: null, categoria: 'finanzas' },
   { id: 'joveninversor', nombre: 'Joven Inversor', yt: 'JovenInversor', tw: null, ki: null, categoria: 'finanzas' },
   { id: 'elcronista', nombre: 'El Cronista TV', yt: 'CronistaComercial', tw: null, ki: null, categoria: 'finanzas' },
   { id: 'ambitofinanciero', nombre: 'Ámbito Financiero', yt: 'AmbitoFinanciero', tw: null, ki: null, categoria: 'finanzas' },
   { id: 'canale', nombre: 'Canal E (Económico)', yt: 'canaleperfil', tw: null, ki: null, categoria: 'finanzas' },
 
-  // NOTICIAS
+  // Noticias
   { id: 'neura', nombre: 'Neura Media / Troncal (Fantino)', yt: 'neuramedia', tw: null, ki: null, categoria: 'noticias' },
   { id: 'tn', nombre: 'TN (Todo Noticias)', yt: 'todonoticias', tw: null, ki: null, categoria: 'noticias' },
   { id: 'c5n', nombre: 'C5N', yt: 'c5n', tw: null, ki: null, categoria: 'noticias' },
@@ -118,91 +119,202 @@ const CANALES = [
 const publicPath = path.resolve(__dirname, 'public');
 const logosDir = path.join(publicPath, 'logos');
 
-// Crea directorio de logos
+// Creación de carpeta de almacenamiento local de avatares
 if (!fs.existsSync(logosDir)) {
   fs.mkdirSync(logosDir, { recursive: true });
 }
 
-// Descarga automática en segundo plano de logos oficiales
-CANALES.forEach((c) => {
+// Descarga escalonada con manejo de redirecciones HTTP/HTTPS
+function descargarLogoConRedirect(url, destino) {
+  const modulo = url.startsWith('https') ? https : http;
+  modulo.get(url, (res) => {
+    if (res.statusCode === 301 || res.statusCode === 302) {
+      if (res.headers.location) {
+        descargarLogoConRedirect(res.headers.location, destino);
+      }
+      return;
+    }
+    if (res.statusCode === 200) {
+      const stream = fs.createWriteStream(destino);
+      res.pipe(stream);
+    }
+  }).on('error', () => {});
+}
+
+// Sincronización diferida de imágenes para no saturar requests al iniciar
+CANALES.forEach((c, index) => {
   const filePath = path.join(logosDir, `${c.id}.jpg`);
   if (!fs.existsSync(filePath)) {
-    const handle = c.yt || c.tw || c.ki;
-    const service = c.yt ? 'youtube' : (c.tw ? 'twitch' : 'kick');
-    const url = `https://unavatar.io/\({service}/\){handle}`;
-    
-    https.get(url, (res) => {
-      if (res.statusCode === 200 || res.statusCode === 302 || res.statusCode === 301) {
-        const targetUrl = res.headers.location || url;
-        const reqFinal = targetUrl.startsWith('https') ? https : https;
-        reqFinal.get(targetUrl, (finalRes) => {
-          if (finalRes.statusCode === 200) {
-            const fileStream = fs.createWriteStream(filePath);
-            finalRes.pipe(fileStream);
+    setTimeout(() => {
+      const service = c.yt ? 'youtube' : (c.tw ? 'twitch' : 'kick');
+      const handle = (c.yt || c.tw || c.ki || '').replace('@', '');
+      const url = `https://unavatar.io/\({service}/\){handle}`;
+      descargarLogoConRedirect(url, filePath);
+    }, index * 800);
+  }
+});
+
+// Estado global de telemetría en memoria
+let telemetriaState = CANALES.map((c) => ({
+  ...c,
+  handle: c.yt || c.tw || c.ki,
+  avatar: `/logos/${c.id}.jpg`,
+  viewers: 0,
+  is_live: false,
+  title: 'Señal en espera',
+  hora_actualizacion: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+  plataformas_live: { yt: false, tw: false, ki: false },
+  viewers_breakdown: { yt: 0, tw: 0, ki: 0 }
+}));
+
+// Funciones para monitoreo y telemetría multiplataforma
+async function checkYouTube(handle) {
+  return new Promise((resolve) => {
+    if (!handle) return resolve({ live: false, viewers: 0, title: '' });
+    const options = {
+      hostname: 'www.youtube.com',
+      path: `/@${handle}/live`,
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+      timeout: 6000
+    };
+    https.get(options, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        const isLive = data.includes('"isLive":true') || data.includes('liveStreamabilityRenderer');
+        let viewers = 0;
+        const viewMatch = data.match(/"viewCount":\{"runs":\[\{"text":"([0-9.,]+)"/);
+        if (viewMatch && viewMatch[1]) {
+          viewers = parseInt(viewMatch[1].replace(/[.,]/g, ''), 10) || 0;
+        }
+        let title = '';
+        const titleMatch = data.match(/(.*?)<\/title>/);
+        if (titleMatch && titleMatch[1]) {
+          title = titleMatch[1].replace(' - YouTube', '').trim();
+        }
+        resolve({ live: isLive && viewers > 0, viewers, title });
+      });
+    }).on('error', () => resolve({ live: false, viewers: 0, title: '' }));
+  });
+}
+
+async function checkTwitch(user) {
+  return new Promise((resolve) => {
+    if (!user) return resolve({ live: false, viewers: 0, title: '' });
+    const req = https.request('https://gql.twitch.tv/gql', {
+      method: 'POST',
+      headers: {
+        'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko',
+        'Content-Type': 'application/json'
+      },
+      timeout: 6000
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          const stream = json?.data?.user?.stream;
+          if (stream) {
+            resolve({
+              live: true,
+              viewers: stream.viewersCount || 0,
+              title: stream.title || 'Transmisión en directo'
+            });
+          } else {
+            resolve({ live: false, viewers: 0, title: '' });
           }
-        }).on('error', () => {});
-      }
-    }).on('error', () => {});
+        } catch {
+          resolve({ live: false, viewers: 0, title: '' });
+        }
+      });
+    });
+    req.on('error', () => resolve({ live: false, viewers: 0, title: '' }));
+    req.write(JSON.stringify({
+      query: `query { user(login: "${user}") { stream { viewersCount title } } }`
+    }));
+    req.end();
+  });
+}
+
+async function checkKick(user) {
+  return new Promise((resolve) => {
+    if (!user) return resolve({ live: false, viewers: 0, title: '' });
+    const options = {
+      hostname: 'kick.com',
+      path: `/api/v2/channels/${user}`,
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      timeout: 6000
+    };
+    https.get(options, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          const livestream = json?.livestream;
+          if (livestream && livestream.is_live) {
+            resolve({
+              live: true,
+              viewers: livestream.viewer_count || 0,
+              title: livestream.session_title || 'En vivo en Kick'
+            });
+          } else {
+            resolve({ live: false, viewers: 0, title: '' });
+          }
+        } catch {
+          resolve({ live: false, viewers: 0, title: '' });
+        }
+      });
+    }).on('error', () => resolve({ live: false, viewers: 0, title: '' }));
+  });
+}
+
+// Bucle de actualización continua en segundo plano
+async function actualizarTelemetria() {
+  const horaActual = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  
+  for (let i = 0; i < CANALES.length; i++) {
+    const c = CANALES[i];
+    try {
+      const [ytData, twData, kiData] = await Promise.all([
+        checkYouTube(c.yt),
+        checkTwitch(c.tw),
+        checkKick(c.ki)
+      ]);
+
+      const totalViewers = ytData.viewers + twData.viewers + kiData.viewers;
+      const isLive = ytData.live || twData.live || kiData.live;
+      const tituloActivo = ytData.title || twData.title || kiData.title || (isLive ? 'Transmisión oficial' : 'Señal en espera');
+
+      telemetriaState[i] = {
+        ...c,
+        handle: c.yt || c.tw || c.ki,
+        avatar: `/logos/${c.id}.jpg`,
+        viewers: totalViewers,
+        is_live: isLive,
+        title: tituloActivo,
+        hora_actualizacion: horaActual,
+        plataformas_live: {
+          yt: ytData.live,
+          tw: twData.live,
+          ki: kiData.live
+        },
+        viewers_breakdown: {
+          yt: ytData.viewers,
+          tw: twData.viewers,
+          ki: kiData.viewers
+        }
+      };
+    } catch {}
   }
-});
+}
 
-// Telemetría con canales activos en vivo
-const ahora = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+// Ciclo cada 45 segundos para no agotar cuotas
+setInterval(actualizarTelemetria, 45000);
+actualizarTelemetria();
 
-let telemetriaState = CANALES.map((c) => {
-  let viewers = 0;
-  let isLive = false;
-  let title = 'Señal en espera';
-  let ytViewers = 0;
-  let twViewers = 0;
-  let kiViewers = 0;
-
-  if (c.id === 'tn') {
-    isLive = true;
-    viewers = 48250;
-    ytViewers = 48250;
-    title = 'TN EN VIVO • Cobertura en directo y Minuto a Minuto';
-  } else if (c.id === 'c5n') {
-    isLive = true;
-    viewers = 36400;
-    ytViewers = 36400;
-    title = 'C5N EN DIRECTO • Noticias las 24 horas';
-  } else if (c.id === 'lanacionmas') {
-    isLive = true;
-    viewers = 29100;
-    ytViewers = 29100;
-    title = 'LN+ Transmisión Continua';
-  } else if (c.id === 'neura') {
-    isLive = true;
-    viewers = 18500;
-    ytViewers = 18500;
-    title = 'NEURA MEDIA • Troncal con Alejandro Fantino';
-  } else if (c.id === 'davoo') {
-    isLive = true;
-    viewers = 22100;
-    kiViewers = 22100;
-    title = 'Charlita de fútbol y previa del finde en Kick';
-  } else if (c.id === 'tycsports') {
-    isLive = true;
-    viewers = 14300;
-    ytViewers = 14300;
-    title = 'TyC Sports en Vivo • Toda la fecha del fútbol argentino';
-  }
-
-  return {
-    ...c,
-    handle: c.yt || c.tw || c.ki,
-    avatar: `/logos/${c.id}.jpg`,
-    viewers,
-    is_live: isLive,
-    title,
-    hora_actualizacion: ahora,
-    plataformas_live: { yt: ytViewers > 0, tw: twViewers > 0, ki: kiViewers > 0 },
-    viewers_breakdown: { yt: ytViewers, tw: twViewers, ki: kiViewers }
-  };
-});
-
-// Rutas API
+// Rutas de entrega de datos para el cliente
 app.get('/api/ranking-categorias', (req, res) => {
   const categorias = CATEGORIAS_ORDEN.map((catKey) => {
     const meta = CATEGORIAS_CONFIG[catKey];
@@ -255,6 +367,7 @@ app.get('/modoia', (req, res) => {
   res.redirect(301, 'https://modoia.online');
 });
 
+// Servicio estático del build/frontend y fallback SPA
 app.use(express.static(publicPath));
 
 app.get('*', (req, res) => {
