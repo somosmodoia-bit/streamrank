@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
-import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -13,55 +12,10 @@ const PORT = process.env.PORT || 10000;
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
-// 1. HEALTH CHECK ANTI-SLEEP
 app.all('/health', (req, res) => res.status(200).send('OK'));
 
-// 2. CONEXIÓN TURSO VÍA PIPELINE HTTP DIRECTO
-const rawTursoUrl = (process.env.TURSO_DATABASE_URL || '').trim();
-const tursoHttpUrl = rawTursoUrl.replace(/^libsql:\/\//, 'https://').replace(/\/$/, '');
-const tursoToken = (process.env.TURSO_AUTH_TOKEN || '').trim();
-
-async function executeTurso(sql, args = []) {
-  if (!tursoHttpUrl || !tursoToken) return null;
-  try {
-    const namedArgs = args.map(arg => {
-      if (arg === null || arg === undefined) return { type: 'null' };
-      if (typeof arg === 'number') return Number.isInteger(arg) ? { type: 'integer', value: String(arg) } : { type: 'float', value: arg };
-      return { type: 'text', value: String(arg) };
-    });
-
-    const res = await fetch(`${tursoHttpUrl}/v2/pipeline`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${tursoToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ requests: [{ type: 'execute', stmt: { sql, args: namedArgs } }, { type: 'close' }] })
-    });
-    return await res.json();
-  } catch (err) {
-    return null;
-  }
-}
-
-async function initDB() {
-  if (tursoHttpUrl && tursoToken) {
-    await executeTurso(`
-      CREATE TABLE IF NOT EXISTS telemetria (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        channel_id TEXT NOT NULL,
-        channel_name TEXT NOT NULL,
-        category TEXT NOT NULL,
-        platform TEXT NOT NULL,
-        viewers INTEGER DEFAULT 0,
-        is_live INTEGER DEFAULT 0,
-        title TEXT,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-  }
-}
-initDB();
-
-// 3. CANALES CONFIGURADOS
 const CANALES = [
   // ENTRETENIMIENTO
   { id: 'luzutv', nombre: 'LUZU TV', yt: 'luzutv', tw: null, ki: null, categoria: 'entretenimiento', plataforma: 'youtube' },
@@ -192,13 +146,9 @@ async function scrapeYouTubeLive(handle) {
     let title = '';
     const metaTitle = html.match(/([^<]*)<\/title>/);
 
-    if (metaTitle && metaTitle[1]) {
-      title = metaTitle[1].trim();
-    } else if (runsTitle && runsTitle[1]) {
-      title = runsTitle[1].trim();
-    } else if (titleTagMatch && titleTagMatch[1]) {
-      title = titleTagMatch[1].replace(' - YouTube', '').trim();
-    }
+    if (metaTitle && metaTitle[1]) title = metaTitle[1].trim();
+    else if (runsTitle && runsTitle[1]) title = runsTitle[1].trim();
+    else if (titleTagMatch && titleTagMatch[1]) title = titleTagMatch[1].replace(' - YouTube', '').trim();
 
     if (!title || title.toLowerCase().includes('canal fuera de l') || title === handle) {
       title = 'Transmisión en directo';
@@ -281,13 +231,6 @@ async function procesarCanal(c) {
       viewers_breakdown: { yt: ytRes.viewers, tw: twRes.viewers, ki: kiRes.viewers }
     };
   }
-
-  if (isLive && totalViewers > 0 && tursoHttpUrl && tursoToken) {
-    executeTurso(
-      `INSERT INTO telemetria (channel_id, channel_name, category, platform, viewers, is_live, title) VALUES (?, ?, ?, ?, ?, ?, ?);`,
-      [c.id, c.nombre, c.categoria, c.plataforma, totalViewers, 1, activeTitle]
-    ).catch(() => {});
-  }
 }
 
 async function cicloTelemetria() {
@@ -299,7 +242,10 @@ async function cicloTelemetria() {
   }
 }
 
-// ENDPOINTS API
+// Inicia el scraping en segundo plano sin trabar el servidor
+setTimeout(cicloTelemetria, 1000);
+setInterval(cicloTelemetria, 30000);
+
 app.get('/api/ranking-categorias', (req, res) => {
   const categorias = CATEGORIAS_ORDEN.map((catKey) => {
     const meta = CATEGORIAS_CONFIG[catKey];
@@ -355,20 +301,11 @@ app.get('/api/descargar-analytics', (req, res) => {
   res.send(csvContent);
 });
 
-// ENTREGA ROBUSTA DEL INDEX.HTML DESDE DISCO (SIN COLGAR EXPRESS)
+// Responde a cualquier ruta sirviendo el index.html de la carpeta public
 app.get('*', (req, res) => {
-  const htmlPath = path.join(__dirname, 'public', 'index.html');
-  if (fs.existsSync(htmlPath)) {
-    const contenido = fs.readFileSync(htmlPath, 'utf8');
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    return res.status(200).send(contenido);
-  }
-  return res.status(404).send('public/index.html no encontrado');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// INICIAR ESCUCHA
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`[StreamRank ARG] Servidor activo en puerto ${PORT}`);
-  setTimeout(cicloTelemetria, 2000);
-  setInterval(cicloTelemetria, 30000);
 });
