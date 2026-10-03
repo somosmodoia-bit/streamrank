@@ -308,10 +308,4 @@ app.get('*', (req, res) => {
 // Servidor y keep-alive
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`[StreamRank ARG] Servidor activo en puerto ${PORT}`);
-
-  // Inicia el barrido suave a los 10 segundos de arrancar
-  setTimeout(() => {
-    cicloScraperSuave();
-    setInterval(cicloScraperSuave, 180000);
-  }, 10000);
 });
