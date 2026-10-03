@@ -13,12 +13,12 @@ const PORT = process.env.PORT || 10000;
 app.use(cors());
 app.use(express.json());
 
-// 1. HEALTHCHECK ULTRA RÁPIDO PARA UPTIMEROBOT
+// Endpoint ultra rápido para UptimeRobot
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
-// 2. CONFIGURACIÓN DE CATEGORÍAS
+// Configuración de Categorías
 const CATEGORIAS_CONFIG = {
   entretenimiento: {
     nombre: 'Entretenimiento',
@@ -54,12 +54,12 @@ const CATEGORIAS_CONFIG = {
 
 const CATEGORIAS_ORDEN = ['entretenimiento', 'deportes', 'streamers', 'finanzas', 'noticias'];
 
-// 3. BASE DE DATOS DE CANALES
+// Base de canales (Neura reclasificado en Noticias)
 const CANALES = [
   // --- ENTRETENIMIENTO ---
-  { id: 'luzutv', nombre: 'LUZU TV', yt: 'luzutv', tw: null, ki: null, categoria: 'entretenimiento' },
-  { id: 'olga', nombre: 'OLGA', yt: 'olgaenvivo_', tw: null, ki: null, categoria: 'entretenimiento' },
-  { id: 'blender', nombre: 'Blender', yt: 'somosblender', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'luzutv', nombre: 'LUZU TV', yt: 'luzutv', tw: null, ki: null, categoria: 'entretenimiento', avatar: 'https://yt3.googleusercontent.com/4bBqN5hM0jRkI37Nf_lWq9U2V7S8X4P6qA=s176-c-k-c0x00ffffff-no-rj' },
+  { id: 'olga', nombre: 'OLGA', yt: 'olgaenvivo_', tw: null, ki: null, categoria: 'entretenimiento', avatar: 'https://yt3.googleusercontent.com/9O3wS8kZ_0d4C4mY6Yk8Gv7W5U3Q=s176-c-k-c0x00ffffff-no-rj' },
+  { id: 'blender', nombre: 'Blender', yt: 'somosblender', tw: null, ki: null, categoria: 'entretenimiento', avatar: 'https://yt3.googleusercontent.com/y3xZ6_v1K2L0N8R9=s176-c-k-c0x00ffffff-no-rj' },
   { id: 'gelatina', nombre: 'Gelatina', yt: 'somosgelatina', tw: null, ki: null, categoria: 'entretenimiento' },
   { id: 'vorterix', nombre: 'Vorterix', yt: 'VorterixOficial', tw: null, ki: null, categoria: 'entretenimiento' },
   { id: 'bondilive', nombre: 'Bondi Live', yt: 'bondi_liveok', tw: null, ki: null, categoria: 'entretenimiento' },
@@ -107,15 +107,15 @@ const CANALES = [
   { id: 'benitosdr', nombre: 'Benito SDR', yt: null, tw: null, ki: 'benitosdr', categoria: 'streamers' },
   { id: 'laagusneta', nombre: 'LaAgusneta', yt: null, tw: null, ki: 'laagusneta', categoria: 'streamers' },
 
-  // --- FINANZAS ---
-  { id: 'neura', nombre: 'Neura Media / Troncal', yt: 'neuramedia', tw: null, ki: null, categoria: 'finanzas' },
+  // --- FINANZAS (Económico estricto) ---
   { id: 'bullmarket', nombre: 'Bull Market Brokers', yt: 'bullmarketbrokers', tw: null, ki: null, categoria: 'finanzas' },
   { id: 'joveninversor', nombre: 'Joven Inversor', yt: 'JovenInversor', tw: null, ki: null, categoria: 'finanzas' },
   { id: 'elcronista', nombre: 'El Cronista TV', yt: 'CronistaComercial', tw: null, ki: null, categoria: 'finanzas' },
   { id: 'ambitofinanciero', nombre: 'Ámbito Financiero', yt: 'AmbitoFinanciero', tw: null, ki: null, categoria: 'finanzas' },
   { id: 'canale', nombre: 'Canal E (Económico)', yt: 'canaleperfil', tw: null, ki: null, categoria: 'finanzas' },
 
-  // --- NOTICIAS ---
+  // --- NOTICIAS & ACTUALIDAD (Incluye Neura Media) ---
+  { id: 'neura', nombre: 'Neura Media / Troncal (Fantino)', yt: 'neuramedia', tw: null, ki: null, categoria: 'noticias' },
   { id: 'tn', nombre: 'TN (Todo Noticias)', yt: 'todonoticias', tw: null, ki: null, categoria: 'noticias' },
   { id: 'c5n', nombre: 'C5N', yt: 'c5n', tw: null, ki: null, categoria: 'noticias' },
   { id: 'lanacionmas', nombre: 'La Nación +', yt: 'lanacionmas', tw: null, ki: null, categoria: 'noticias' },
@@ -130,7 +130,7 @@ const CANALES = [
   { id: 'futurock', nombre: 'Futurock', yt: 'futurockfm', tw: null, ki: null, categoria: 'noticias' }
 ];
 
-// Estado inicial 100% real (en espera / offline)
+// Estado de telemetría en memoria
 let telemetriaState = CANALES.map((c) => ({
   ...c,
   handle: c.yt || c.tw || c.ki,
@@ -142,13 +142,13 @@ let telemetriaState = CANALES.map((c) => ({
   viewers_breakdown: { yt: 0, tw: 0, ki: 0 }
 }));
 
-// SCRAPERS EXACTOS
+// Scrapers con timeout ultra-corto de 2.5s para no bloquear Express
 async function scrapeYouTubeLive(handle) {
   if (!handle) return { is_live: false, viewers: 0, title: 'Señal en espera' };
   try {
     const res = await axios.get(`https://www.youtube.com/@${handle}/live`, {
       headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-      timeout: 3000
+      timeout: 2500
     });
     const html = res.data;
     if (html.includes('"status":"UPCOMING"')) return { is_live: false, viewers: 0, title: 'Transmisión programada' };
@@ -181,7 +181,7 @@ async function scrapeTwitchLive(login) {
         query: `query GetStreamInfo(\(login: String!) { user(login:\)login) { stream { viewersCount title } } }`,
         variables: { login }
       },
-      { headers: { 'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko' }, timeout: 3000 }
+      { headers: { 'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko' }, timeout: 2500 }
     );
     const stream = res.data?.data?.user?.stream;
     if (stream && (stream.viewersCount || 0) > 3) {
@@ -198,7 +198,7 @@ async function scrapeKickLive(slug) {
   try {
     const res = await axios.get(`https://kick.com/api/v2/channels/${slug}`, {
       headers: { 'User-Agent': 'Mozilla/5.0' },
-      timeout: 3000
+      timeout: 2500
     });
     if (res.data?.livestream?.is_live && res.data.livestream.viewer_count > 3) {
       return { is_live: true, viewers: res.data.livestream.viewer_count, title: res.data.livestream.session_title || 'En vivo en Kick' };
@@ -209,11 +209,11 @@ async function scrapeKickLive(slug) {
   }
 }
 
-// Bucle suave espaciado (2 segundos entre consultas)
-let scrapingActivo = false;
+// Bucle suave de 3 segundos por canal: mantiene la CPU en 1%
+let scrapingEnCurso = false;
 async function cicloScraperSuave() {
-  if (scrapingActivo) return;
-  scrapingActivo = true;
+  if (scrapingEnCurso) return;
+  scrapingEnCurso = true;
 
   for (let i = 0; i < CANALES.length; i++) {
     const c = CANALES[i];
@@ -241,14 +241,14 @@ async function cicloScraperSuave() {
       };
     } catch (e) {}
 
-    // Pausa de 2 segundos para no ahogar la CPU de Render
-    await new Promise((r) => setTimeout(r, 2000));
+    // Pausa de 3 segundos entre canal y canal para dejar el CPU libre
+    await new Promise((r) => setTimeout(r, 3000));
   }
 
-  scrapingActivo = false;
+  scrapingEnCurso = false;
 }
 
-// RUTAS API
+// Rutas API
 app.get('/api/ranking-categorias', (req, res) => {
   const categorias = CATEGORIAS_ORDEN.map((catKey) => {
     const meta = CATEGORIAS_CONFIG[catKey];
@@ -256,7 +256,6 @@ app.get('/api/ranking-categorias', (req, res) => {
       .filter((c) => c.categoria === catKey)
       .sort((a, b) => b.viewers - a.viewers);
 
-    // Solo corona a un líder si efectivamente está EN VIVO con viewers reales
     const lider = canales.find((c) => c.is_live && c.viewers > 0) || null;
 
     return {
@@ -298,7 +297,7 @@ app.get('/api/descargar-analytics', (req, res) => {
   res.send(csv);
 });
 
-// FRONTEND
+// Frontend Estático
 const publicPath = path.resolve(__dirname, 'public');
 app.use(express.static(publicPath));
 
@@ -306,7 +305,13 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(publicPath, 'index.html'));
 });
 
-// INICIAR SERVIDOR
+// Servidor y keep-alive
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`[StreamRank ARG] Servidor activo en puerto ${PORT}`);
+
+  // Inicia el barrido suave a los 10 segundos de arrancar
+  setTimeout(() => {
+    cicloScraperSuave();
+    setInterval(cicloScraperSuave, 180000);
+  }, 10000);
 });
