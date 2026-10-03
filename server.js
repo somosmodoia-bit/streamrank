@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import axios from 'axios';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -53,100 +54,201 @@ const CATEGORIAS_CONFIG = {
 
 const CATEGORIAS_ORDEN = ['entretenimiento', 'deportes', 'streamers', 'finanzas', 'noticias'];
 
-// 3. BASE DE DATOS DE CANALES CON TELEMETRÍA BASE ESTABLE
+// 3. BASE DE DATOS DE CANALES
 const CANALES = [
   // --- ENTRETENIMIENTO ---
-  { id: 'luzutv', nombre: 'LUZU TV', yt: 'luzutv', tw: null, ki: null, categoria: 'entretenimiento', viewers: 42150, is_live: true, title: 'NADIE DICE NADA • EN VIVO' },
-  { id: 'olga', nombre: 'OLGA', yt: 'olgaenvivo_', tw: null, ki: null, categoria: 'entretenimiento', viewers: 36400, is_live: true, title: 'SERÍA INCREÍBLE • EN DIRECTO' },
-  { id: 'blender', nombre: 'Blender', yt: 'somosblender', tw: null, ki: null, categoria: 'entretenimiento', viewers: 11200, is_live: true, title: 'HAY ALGO AHÍ • TRANSMISIÓN OFICIAL' },
-  { id: 'gelatina', nombre: 'Gelatina', yt: 'somosgelatina', tw: null, ki: null, categoria: 'entretenimiento', viewers: 8900, is_live: true, title: 'GELATINA EN DIRECTO' },
-  { id: 'vorterix', nombre: 'Vorterix', yt: 'VorterixOficial', tw: null, ki: null, categoria: 'entretenimiento', viewers: 4500, is_live: false, title: 'Señal en espera' },
-  { id: 'bondilive', nombre: 'Bondi Live', yt: 'bondi_liveok', tw: null, ki: null, categoria: 'entretenimiento', viewers: 3200, is_live: false, title: 'Señal en espera' },
-  { id: 'lacasastreaming', nombre: 'La Casa Streaming', yt: 'somoslacasa', tw: null, ki: null, categoria: 'entretenimiento', viewers: 2100, is_live: false, title: 'Señal en espera' },
-  { id: 'unpocoderuido', nombre: 'Un Poco de Ruido', yt: 'unpocoderuido', tw: null, ki: null, categoria: 'entretenimiento', viewers: 18500, is_live: false, title: 'Señal en espera' },
-  { id: 'loftstream', nombre: 'Loft Stream', yt: 'loftstream', tw: null, ki: null, categoria: 'entretenimiento', viewers: 1200, is_live: false, title: 'Señal en espera' },
-  { id: 'republicaz', nombre: 'República Z', yt: 'RepublicaZ', tw: null, ki: null, categoria: 'entretenimiento', viewers: 1900, is_live: false, title: 'Señal en espera' },
-  { id: 'posdata', nombre: 'Posdata', yt: 'posdatastream', tw: null, ki: null, categoria: 'entretenimiento', viewers: 850, is_live: false, title: 'Señal en espera' },
-  { id: 'telefe', nombre: 'Telefe Streams (Oficial)', yt: 'telefe', tw: null, ki: null, categoria: 'entretenimiento', viewers: 9400, is_live: true, title: 'STREAMING OFICIAL TELEFE' },
-  { id: 'eltrece', nombre: 'eltrece', yt: 'eltrece', tw: null, ki: null, categoria: 'entretenimiento', viewers: 3100, is_live: false, title: 'Señal en espera' },
-  { id: 'americatv', nombre: 'América TV', yt: 'americaenvivo', tw: null, ki: null, categoria: 'entretenimiento', viewers: 2600, is_live: false, title: 'Señal en espera' },
+  { id: 'luzutv', nombre: 'LUZU TV', yt: 'luzutv', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'olga', nombre: 'OLGA', yt: 'olgaenvivo_', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'blender', nombre: 'Blender', yt: 'somosblender', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'gelatina', nombre: 'Gelatina', yt: 'somosgelatina', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'vorterix', nombre: 'Vorterix', yt: 'VorterixOficial', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'bondilive', nombre: 'Bondi Live', yt: 'bondi_liveok', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'lacasastreaming', nombre: 'La Casa Streaming', yt: 'somoslacasa', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'unpocoderuido', nombre: 'Un Poco de Ruido', yt: 'unpocoderuido', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'loftstream', nombre: 'Loft Stream', yt: 'loftstream', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'republicaz', nombre: 'República Z', yt: 'RepublicaZ', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'posdata', nombre: 'Posdata', yt: 'posdatastream', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'telefe', nombre: 'Telefe Streams (Oficial)', yt: 'telefe', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'eltrece', nombre: 'eltrece', yt: 'eltrece', tw: null, ki: null, categoria: 'entretenimiento' },
+  { id: 'americatv', nombre: 'América TV', yt: 'americaenvivo', tw: null, ki: null, categoria: 'entretenimiento' },
 
   // --- DEPORTES ---
-  { id: 'azzstream', nombre: 'AZZ Stream (Flavio Azzaro)', yt: 'FlavioAzzaroOK', tw: null, ki: null, categoria: 'deportes', viewers: 28400, is_live: true, title: 'EL LOCO Y EL CUERDO EN DIRECTO' },
-  { id: 'programa412', nombre: '412 Fútbol (Davoo & La Cobra)', yt: 'programa412', tw: null, ki: null, categoria: 'deportes', viewers: 22100, is_live: true, title: 'DEBATE FUTBOLERO OFICIAL' },
-  { id: 'picadotv', nombre: 'Picado TV', yt: 'picadotv', tw: null, ki: null, categoria: 'deportes', viewers: 5100, is_live: false, title: 'Señal en espera' },
-  { id: 'tycsports', nombre: 'TyC Sports', yt: 'TyCSportsOficial', tw: null, ki: null, categoria: 'deportes', viewers: 14200, is_live: true, title: 'LÍBERO / TYC SPORTS EN VIVO' },
-  { id: 'espnarg', nombre: 'ESPN Argentina', yt: 'espnargentina', tw: null, ki: null, categoria: 'deportes', viewers: 16800, is_live: true, title: 'F90 ESPN EN DIRECTO' },
-  { id: 'foxsportsarg', nombre: 'Fox Sports Argentina', yt: 'FoxSportsArg', tw: null, ki: null, categoria: 'deportes', viewers: 3400, is_live: false, title: 'Señal en espera' },
-  { id: 'tntsportsarg', nombre: 'TNT Sports Argentina', yt: 'TNTSportsAR', tw: null, ki: null, categoria: 'deportes', viewers: 2900, is_live: false, title: 'Señal en espera' },
-  { id: 'dsports', nombre: 'DSports / DGO', yt: 'DIRECTVSports', tw: null, ki: null, categoria: 'deportes', viewers: 4100, is_live: false, title: 'Señal en espera' },
-  { id: 'carrozza', nombre: 'Pablo Carrozza', yt: 'PabloCarrozza', tw: null, ki: null, categoria: 'deportes', viewers: 9700, is_live: true, title: 'REACCIÓN EN VIVO CARROZZA' },
+  { id: 'programa412', nombre: '412 Fútbol (Davoo & La Cobra)', yt: 'programa412', tw: null, ki: null, categoria: 'deportes' },
+  { id: 'azzstream', nombre: 'AZZ Stream (Flavio Azzaro)', yt: 'FlavioAzzaroOK', tw: null, ki: null, categoria: 'deportes' },
+  { id: 'picadotv', nombre: 'Picado TV', yt: 'picadotv', tw: null, ki: null, categoria: 'deportes' },
+  { id: 'tycsports', nombre: 'TyC Sports', yt: 'TyCSportsOficial', tw: null, ki: null, categoria: 'deportes' },
+  { id: 'espnarg', nombre: 'ESPN Argentina', yt: 'espnargentina', tw: null, ki: null, categoria: 'deportes' },
+  { id: 'foxsportsarg', nombre: 'Fox Sports Argentina', yt: 'FoxSportsArg', tw: null, ki: null, categoria: 'deportes' },
+  { id: 'tntsportsarg', nombre: 'TNT Sports Argentina', yt: 'TNTSportsAR', tw: null, ki: null, categoria: 'deportes' },
+  { id: 'dsports', nombre: 'DSports / DGO', yt: 'DIRECTVSports', tw: null, ki: null, categoria: 'deportes' },
+  { id: 'carrozza', nombre: 'Pablo Carrozza', yt: 'PabloCarrozza', tw: null, ki: null, categoria: 'deportes' },
 
   // --- STREAMERS ---
-  { id: 'davoo', nombre: 'Davoo Xeneize', yt: null, tw: null, ki: 'davoo_xeneize', categoria: 'streamers', viewers: 31500, is_live: true, title: 'ANALIZANDO EL FÚTBOL ARGENTINO' },
-  { id: 'lacobra', nombre: 'La Cobra', yt: null, tw: null, ki: 'lacobra', categoria: 'streamers', viewers: 24300, is_live: true, title: 'STREAM EN KICK • PRENDIDO' },
-  { id: 'spreen', nombre: 'Spreen', yt: null, tw: null, ki: 'spreen', categoria: 'streamers', viewers: 19800, is_live: true, title: 'EN VIVO SPREEN' },
-  { id: 'luquitas', nombre: 'Luquitas Rodríguez', yt: null, tw: 'luquitasrodriguez', ki: null, categoria: 'streamers', viewers: 14200, is_live: true, title: 'PRENDIDO EN TWITCH' },
-  { id: 'martincirio', nombre: 'Martín Cirio (La Faraona)', yt: 'MartinCirio', tw: null, ki: null, categoria: 'streamers', viewers: 18100, is_live: true, title: 'STREAM OFICIAL LA FARAONA' },
-  { id: 'coscu', nombre: 'Coscu', yt: null, tw: null, ki: 'coscu', categoria: 'streamers', viewers: 8700, is_live: false, title: 'Señal en espera' },
-  { id: 'kunaguero', nombre: 'Sergio Kun Agüero', yt: null, tw: 'slakun10', ki: null, categoria: 'streamers', viewers: 6200, is_live: false, title: 'Señal en espera' },
-  { id: 'momo', nombre: 'Momo (Gerónimo Benavides)', yt: null, tw: null, ki: 'momoladinastia', categoria: 'streamers', viewers: 4800, is_live: false, title: 'Señal en espera' },
-  { id: 'brunenger', nombre: 'Brunenger', yt: null, tw: null, ki: 'brunenger', categoria: 'streamers', viewers: 3900, is_live: false, title: 'Señal en espera' },
-  { id: 'goncho', nombre: 'Goncho Banzas', yt: null, tw: 'goncho', ki: null, categoria: 'streamers', viewers: 2700, is_live: false, title: 'Señal en espera' },
-  { id: 'robergalati', nombre: 'Rober Galati', yt: null, tw: 'robergalati', ki: null, categoria: 'streamers', viewers: 2100, is_live: false, title: 'Señal en espera' },
-  { id: 'santutu', nombre: 'Santutu', yt: null, tw: 'santutu', ki: null, categoria: 'streamers', viewers: 1800, is_live: false, title: 'Señal en espera' },
-  { id: 'bananirou', nombre: 'Bananirou', yt: null, tw: 'bananirou', ki: null, categoria: 'streamers', viewers: 5400, is_live: true, title: 'SPEEDRUN EN VIVO' },
-  { id: 'boffegp', nombre: 'Boffe GP', yt: 'BoffeGP', tw: null, ki: null, categoria: 'streamers', viewers: 3100, is_live: false, title: 'Señal en espera' },
-  { id: 'litkillah', nombre: 'Lit Killah', yt: null, tw: 'litkillah', ki: null, categoria: 'streamers', viewers: 1500, is_live: false, title: 'Señal en espera' },
-  { id: 'frankkaster', nombre: 'Frankkaster', yt: null, tw: 'frankkaster', ki: null, categoria: 'streamers', viewers: 1200, is_live: false, title: 'Señal en espera' },
-  { id: 'markitonavaja', nombre: 'Markito Navaja', yt: null, tw: 'markitonavaja', ki: null, categoria: 'streamers', viewers: 950, is_live: false, title: 'Señal en espera' },
-  { id: 'joacolopez', nombre: 'Joaco López', yt: null, tw: 'joacolopez', ki: null, categoria: 'streamers', viewers: 800, is_live: false, title: 'Señal en espera' },
-  { id: 'pimpeano', nombre: 'Pimpeano', yt: null, tw: 'pimpeano', ki: null, categoria: 'streamers', viewers: 750, is_live: false, title: 'Señal en espera' },
-  { id: 'teodelia', nombre: "Teo D'Elía", yt: null, tw: 'teodelia', ki: null, categoria: 'streamers', viewers: 600, is_live: false, title: 'Señal en espera' },
-  { id: 'benitosdr', nombre: 'Benito SDR', yt: null, tw: null, ki: 'benitosdr', categoria: 'streamers', viewers: 500, is_live: false, title: 'Señal en espera' },
-  { id: 'laagusneta', nombre: 'LaAgusneta', yt: null, tw: null, ki: 'laagusneta', categoria: 'streamers', viewers: 450, is_live: false, title: 'Señal en espera' },
+  { id: 'davoo', nombre: 'Davoo Xeneize', yt: null, tw: null, ki: 'davoo_xeneize', categoria: 'streamers' },
+  { id: 'lacobra', nombre: 'La Cobra', yt: null, tw: null, ki: 'lacobra', categoria: 'streamers' },
+  { id: 'spreen', nombre: 'Spreen', yt: null, tw: null, ki: 'spreen', categoria: 'streamers' },
+  { id: 'luquitas', nombre: 'Luquitas Rodríguez', yt: null, tw: 'luquitasrodriguez', ki: null, categoria: 'streamers' },
+  { id: 'martincirio', nombre: 'Martín Cirio (La Faraona)', yt: 'MartinCirio', tw: null, ki: null, categoria: 'streamers' },
+  { id: 'coscu', nombre: 'Coscu', yt: null, tw: null, ki: 'coscu', categoria: 'streamers' },
+  { id: 'kunaguero', nombre: 'Sergio Kun Agüero', yt: null, tw: 'slakun10', ki: null, categoria: 'streamers' },
+  { id: 'momo', nombre: 'Momo (Gerónimo Benavides)', yt: null, tw: null, ki: 'momoladinastia', categoria: 'streamers' },
+  { id: 'brunenger', nombre: 'Brunenger', yt: null, tw: null, ki: 'brunenger', categoria: 'streamers' },
+  { id: 'goncho', nombre: 'Goncho Banzas', yt: null, tw: 'goncho', ki: null, categoria: 'streamers' },
+  { id: 'robergalati', nombre: 'Rober Galati', yt: null, tw: 'robergalati', ki: null, categoria: 'streamers' },
+  { id: 'santutu', nombre: 'Santutu', yt: null, tw: 'santutu', ki: null, categoria: 'streamers' },
+  { id: 'bananirou', nombre: 'Bananirou', yt: null, tw: 'bananirou', ki: null, categoria: 'streamers' },
+  { id: 'boffegp', nombre: 'Boffe GP', yt: 'BoffeGP', tw: null, ki: null, categoria: 'streamers' },
+  { id: 'litkillah', nombre: 'Lit Killah', yt: null, tw: 'litkillah', ki: null, categoria: 'streamers' },
+  { id: 'frankkaster', nombre: 'Frankkaster', yt: null, tw: 'frankkaster', ki: null, categoria: 'streamers' },
+  { id: 'markitonavaja', nombre: 'Markito Navaja', yt: null, tw: 'markitonavaja', ki: null, categoria: 'streamers' },
+  { id: 'joacolopez', nombre: 'Joaco López', yt: null, tw: 'joacolopez', ki: null, categoria: 'streamers' },
+  { id: 'pimpeano', nombre: 'Pimpeano', yt: null, tw: 'pimpeano', ki: null, categoria: 'streamers' },
+  { id: 'teodelia', nombre: "Teo D'Elía", yt: null, tw: 'teodelia', ki: null, categoria: 'streamers' },
+  { id: 'benitosdr', nombre: 'Benito SDR', yt: null, tw: null, ki: 'benitosdr', categoria: 'streamers' },
+  { id: 'laagusneta', nombre: 'LaAgusneta', yt: null, tw: null, ki: 'laagusneta', categoria: 'streamers' },
 
   // --- FINANZAS ---
-  { id: 'neura', nombre: 'Neura Media / Troncal', yt: 'neuramedia', tw: null, ki: null, categoria: 'finanzas', viewers: 27500, is_live: true, title: 'NEURA STREAM • ACTUALIDAD' },
-  { id: 'bullmarket', nombre: 'Bull Market Brokers', yt: 'bullmarketbrokers', tw: null, ki: null, categoria: 'finanzas', viewers: 8300, is_live: true, title: 'CIERRE DE MERCADOS EN DIRECTO' },
-  { id: 'joveninversor', nombre: 'Joven Inversor', yt: 'JovenInversor', tw: null, ki: null, categoria: 'finanzas', viewers: 6100, is_live: false, title: 'Señal en espera' },
-  { id: 'elcronista', nombre: 'El Cronista TV', yt: 'CronistaComercial', tw: null, ki: null, categoria: 'finanzas', viewers: 2300, is_live: false, title: 'Señal en espera' },
-  { id: 'ambitofinanciero', nombre: 'Ámbito Financiero', yt: 'AmbitoFinanciero', tw: null, ki: null, categoria: 'finanzas', viewers: 1800, is_live: false, title: 'Señal en espera' },
-  { id: 'canale', nombre: 'Canal E (Económico)', yt: 'canaleperfil', tw: null, ki: null, categoria: 'finanzas', viewers: 1200, is_live: false, title: 'Señal en espera' },
+  { id: 'neura', nombre: 'Neura Media / Troncal', yt: 'neuramedia', tw: null, ki: null, categoria: 'finanzas' },
+  { id: 'bullmarket', nombre: 'Bull Market Brokers', yt: 'bullmarketbrokers', tw: null, ki: null, categoria: 'finanzas' },
+  { id: 'joveninversor', nombre: 'Joven Inversor', yt: 'JovenInversor', tw: null, ki: null, categoria: 'finanzas' },
+  { id: 'elcronista', nombre: 'El Cronista TV', yt: 'CronistaComercial', tw: null, ki: null, categoria: 'finanzas' },
+  { id: 'ambitofinanciero', nombre: 'Ámbito Financiero', yt: 'AmbitoFinanciero', tw: null, ki: null, categoria: 'finanzas' },
+  { id: 'canale', nombre: 'Canal E (Económico)', yt: 'canaleperfil', tw: null, ki: null, categoria: 'finanzas' },
 
   // --- NOTICIAS ---
-  { id: 'tn', nombre: 'TN (Todo Noticias)', yt: 'todonoticias', tw: null, ki: null, categoria: 'noticias', viewers: 48900, is_live: true, title: 'TN EN VIVO 24HS' },
-  { id: 'c5n', nombre: 'C5N', yt: 'c5n', tw: null, ki: null, categoria: 'noticias', viewers: 41200, is_live: true, title: 'C5N EN DIRECTO' },
-  { id: 'lanacionmas', nombre: 'La Nación +', yt: 'lanacionmas', tw: null, ki: null, categoria: 'noticias', viewers: 33400, is_live: true, title: 'LN+ EN VIVO' },
-  { id: 'carajostream', nombre: 'Carajo Stream', yt: 'carajostream', tw: null, ki: null, categoria: 'noticias', viewers: 19100, is_live: true, title: 'CARAJO STREAM OFICIAL' },
-  { id: 'eldestape', nombre: 'El Destape', yt: 'eldestapeweb', tw: null, ki: null, categoria: 'noticias', viewers: 12400, is_live: true, title: 'EL DESTAPE RADIO / TV' },
-  { id: 'a24', nombre: 'A24', yt: 'A24com', tw: null, ki: null, categoria: 'noticias', viewers: 7800, is_live: false, title: 'Señal en espera' },
-  { id: 'infobae', nombre: 'Infobae en Vivo', yt: 'infobae', tw: null, ki: null, categoria: 'noticias', viewers: 4500, is_live: false, title: 'Señal en espera' },
-  { id: 'elobservador', nombre: 'El Observador 107.9', yt: 'elobservador1079', tw: null, ki: null, categoria: 'noticias', viewers: 5600, is_live: true, title: 'EL OBSERVADOR EN DIRECTO' },
-  { id: 'radiomitre', nombre: 'Radio Mitre', yt: 'radiomitre', tw: null, ki: null, categoria: 'noticias', viewers: 9100, is_live: true, title: 'MITRE HD EN VIVO' },
-  { id: 'urbanaplay', nombre: 'Urbana Play 104.3', yt: 'UrbanaPlayFM', tw: null, ki: null, categoria: 'noticias', viewers: 8400, is_live: true, title: 'URBANA PLAY STREAM' },
-  { id: 'la100', nombre: 'La 100', yt: 'La100FM', tw: null, ki: null, categoria: 'noticias', viewers: 3900, is_live: false, title: 'Señal en espera' },
-  { id: 'futurock', nombre: 'Futurock', yt: 'futurockfm', tw: null, ki: null, categoria: 'noticias', viewers: 2200, is_live: false, title: 'Señal en espera' }
+  { id: 'tn', nombre: 'TN (Todo Noticias)', yt: 'todonoticias', tw: null, ki: null, categoria: 'noticias' },
+  { id: 'c5n', nombre: 'C5N', yt: 'c5n', tw: null, ki: null, categoria: 'noticias' },
+  { id: 'lanacionmas', nombre: 'La Nación +', yt: 'lanacionmas', tw: null, ki: null, categoria: 'noticias' },
+  { id: 'carajostream', nombre: 'Carajo Stream', yt: 'carajostream', tw: null, ki: null, categoria: 'noticias' },
+  { id: 'eldestape', nombre: 'El Destape', yt: 'eldestapeweb', tw: null, ki: null, categoria: 'noticias' },
+  { id: 'a24', nombre: 'A24', yt: 'A24com', tw: null, ki: null, categoria: 'noticias' },
+  { id: 'infobae', nombre: 'Infobae en Vivo', yt: 'infobae', tw: null, ki: null, categoria: 'noticias' },
+  { id: 'elobservador', nombre: 'El Observador 107.9', yt: 'elobservador1079', tw: null, ki: null, categoria: 'noticias' },
+  { id: 'radiomitre', nombre: 'Radio Mitre', yt: 'radiomitre', tw: null, ki: null, categoria: 'noticias' },
+  { id: 'urbanaplay', nombre: 'Urbana Play 104.3', yt: 'UrbanaPlayFM', tw: null, ki: null, categoria: 'noticias' },
+  { id: 'la100', nombre: 'La 100', yt: 'La100FM', tw: null, ki: null, categoria: 'noticias' },
+  { id: 'futurock', nombre: 'Futurock', yt: 'futurockfm', tw: null, ki: null, categoria: 'noticias' }
 ];
 
-// Estructura de estado en memoria
-const telemetriaState = CANALES.map((c) => ({
+// Estado inicial 100% real (en espera / offline)
+let telemetriaState = CANALES.map((c) => ({
   ...c,
   handle: c.yt || c.tw || c.ki,
+  viewers: 0,
+  is_live: false,
+  title: 'Señal en espera',
   hora_actualizacion: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
-  plataformas_live: {
-    yt: Boolean(c.yt && c.is_live),
-    tw: Boolean(c.tw && c.is_live),
-    ki: Boolean(c.ki && c.is_live)
-  },
-  viewers_breakdown: {
-    yt: c.yt && c.is_live ? c.viewers : 0,
-    tw: c.tw && c.is_live ? c.viewers : 0,
-    ki: c.ki && c.is_live ? c.viewers : 0
-  }
+  plataformas_live: { yt: false, tw: false, ki: false },
+  viewers_breakdown: { yt: 0, tw: 0, ki: 0 }
 }));
 
-// 4. RUTAS DE LA API
+// SCRAPERS EXACTOS
+async function scrapeYouTubeLive(handle) {
+  if (!handle) return { is_live: false, viewers: 0, title: 'Señal en espera' };
+  try {
+    const res = await axios.get(`https://www.youtube.com/@${handle}/live`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+      timeout: 3000
+    });
+    const html = res.data;
+    if (html.includes('"status":"UPCOMING"')) return { is_live: false, viewers: 0, title: 'Transmisión programada' };
+
+    let viewers = 0;
+    const m = html.match(/"concurrentViewers":\s*"(\d+)"/) || html.match(/\\"concurrentViewers\\":\s*\\"(\d+)\\"/);
+    if (m) viewers = parseInt(m[1], 10) || 0;
+
+    if (viewers <= 5 && !html.includes('"isLive":true')) {
+      return { is_live: false, viewers: 0, title: 'Señal en espera' };
+    }
+
+    let title = '';
+    const tm = html.match(/([^<]*)<\/title>/);
+    if (tm && tm[1]) title = tm[1].replace(' - YouTube', '').trim();
+    if (!title || title.toLowerCase().includes('canal fuera')) title = 'Transmisión en directo';
+
+    return { is_live: true, viewers, title };
+  } catch (err) {
+    return { is_live: false, viewers: 0, title: 'Señal en espera' };
+  }
+}
+
+async function scrapeTwitchLive(login) {
+  if (!login) return { is_live: false, viewers: 0, title: 'Señal en espera' };
+  try {
+    const res = await axios.post(
+      'https://gql.twitch.tv/gql',
+      {
+        query: `query GetStreamInfo(\(login: String!) { user(login:\)login) { stream { viewersCount title } } }`,
+        variables: { login }
+      },
+      { headers: { 'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko' }, timeout: 3000 }
+    );
+    const stream = res.data?.data?.user?.stream;
+    if (stream && (stream.viewersCount || 0) > 3) {
+      return { is_live: true, viewers: stream.viewersCount, title: stream.title || 'En vivo en Twitch' };
+    }
+    return { is_live: false, viewers: 0, title: 'Señal en espera' };
+  } catch (err) {
+    return { is_live: false, viewers: 0, title: 'Señal en espera' };
+  }
+}
+
+async function scrapeKickLive(slug) {
+  if (!slug) return { is_live: false, viewers: 0, title: 'Señal en espera' };
+  try {
+    const res = await axios.get(`https://kick.com/api/v2/channels/${slug}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      timeout: 3000
+    });
+    if (res.data?.livestream?.is_live && res.data.livestream.viewer_count > 3) {
+      return { is_live: true, viewers: res.data.livestream.viewer_count, title: res.data.livestream.session_title || 'En vivo en Kick' };
+    }
+    return { is_live: false, viewers: 0, title: 'Señal en espera' };
+  } catch (err) {
+    return { is_live: false, viewers: 0, title: 'Señal en espera' };
+  }
+}
+
+// Bucle suave espaciado (2 segundos entre consultas)
+let scrapingActivo = false;
+async function cicloScraperSuave() {
+  if (scrapingActivo) return;
+  scrapingActivo = true;
+
+  for (let i = 0; i < CANALES.length; i++) {
+    const c = CANALES[i];
+    try {
+      let yt = { is_live: false, viewers: 0, title: '' };
+      let tw = { is_live: false, viewers: 0, title: '' };
+      let ki = { is_live: false, viewers: 0, title: '' };
+
+      if (c.yt) yt = await scrapeYouTubeLive(c.yt);
+      if (c.tw) tw = await scrapeTwitchLive(c.tw);
+      if (c.ki) ki = await scrapeKickLive(c.ki);
+
+      const total = (yt.viewers || 0) + (tw.viewers || 0) + (ki.viewers || 0);
+      const isLive = yt.is_live || tw.is_live || ki.is_live;
+      const title = (yt.is_live && yt.title) || (tw.is_live && tw.title) || (ki.is_live && ki.title) || 'Señal en espera';
+
+      telemetriaState[i] = {
+        ...telemetriaState[i],
+        viewers: total,
+        is_live: isLive,
+        title: title,
+        hora_actualizacion: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+        plataformas_live: { yt: yt.is_live, tw: tw.is_live, ki: ki.is_live },
+        viewers_breakdown: { yt: yt.viewers, tw: tw.viewers, ki: ki.viewers }
+      };
+    } catch (e) {}
+
+    // Pausa de 2 segundos para no ahogar la CPU de Render
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+
+  scrapingActivo = false;
+}
+
+// RUTAS API
 app.get('/api/ranking-categorias', (req, res) => {
   const categorias = CATEGORIAS_ORDEN.map((catKey) => {
     const meta = CATEGORIAS_CONFIG[catKey];
@@ -154,7 +256,8 @@ app.get('/api/ranking-categorias', (req, res) => {
       .filter((c) => c.categoria === catKey)
       .sort((a, b) => b.viewers - a.viewers);
 
-    const lider = canales.find((c) => c.is_live && c.viewers > 0) || canales[0] || null;
+    // Solo corona a un líder si efectivamente está EN VIVO con viewers reales
+    const lider = canales.find((c) => c.is_live && c.viewers > 0) || null;
 
     return {
       id: catKey,
@@ -195,7 +298,7 @@ app.get('/api/descargar-analytics', (req, res) => {
   res.send(csv);
 });
 
-// 5. SERVIR EL FRONTEND ESTÁTICO
+// FRONTEND
 const publicPath = path.resolve(__dirname, 'public');
 app.use(express.static(publicPath));
 
@@ -203,7 +306,13 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(publicPath, 'index.html'));
 });
 
-// 6. INICIAR SERVIDOR
+// INICIAR SERVIDOR
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`[StreamRank ARG] Servidor activo en puerto ${PORT}`);
+
+  // Iniciar telemetría suave tras 8 segundos de arranque
+  setTimeout(() => {
+    cicloScraperSuave();
+    setInterval(cicloScraperSuave, 180000); // Re-escanea cada 3 minutos
+  }, 8000);
 });
