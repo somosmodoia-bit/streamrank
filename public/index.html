@@ -52,7 +52,7 @@
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00ff66] opacity-75"></span>
           <span class="relative inline-flex rounded-full h-2 w-2 bg-[#00ff66]"></span>
         </span>
-        <span>TELEMETRÍA EN DIRECTO CADA 30 SEGUNDOS</span>
+        <span>TELEMETRÍA EN TIEMPO REAL</span>
       </div>
       <h1 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
         Catálogo y Rating de <span class="text-matrix">Streaming</span> Argentino
@@ -102,9 +102,18 @@
         : `<div class="h-6 mb-2 flex items-center"><div class="text-[10px] font-mono font-bold text-slate-500">#${puesto}</div></div>`;
       
       const avatarHandle = c.yt || c.tw || c.ki || c.handle;
-      const avatarService = c.yt ? 'youtube' : (c.tw ? 'twitch' : 'kick');
-      
-      const avatarFinal = c.avatar || `https://unavatar.io/${avatarService}/${avatarHandle}`;
+      let avatarSrc = c.avatar;
+      if (!avatarSrc) {
+        if (c.yt) {
+          avatarSrc = `https://unavatar.io/youtube/${c.yt}`;
+        } else if (c.tw) {
+          avatarSrc = `https://unavatar.io/twitch/${c.tw}`;
+        } else if (c.ki) {
+          avatarSrc = `https://unavatar.io/kick/${c.ki}`;
+        } else {
+          avatarSrc = `https://unavatar.io/${avatarHandle}`;
+        }
+      }
 
       const ini = (c.nombre || 'XX').substring(0,2).toUpperCase();
 
@@ -116,7 +125,7 @@
             <div class="flex items-center space-x-2.5 min-w-0">
               <div class="relative w-10 h-10 flex-shrink-0 rounded-full border border-slate-700 bg-[#1e293b] flex items-center justify-center overflow-hidden">
                 <span class="text-[#94a3b8] font-bold text-sm font-sans">${ini}</span>
-                <img src="${avatarFinal}" onerror="this.style.display='none'" class="absolute inset-0 w-full h-full object-cover"/>
+                <img src="${avatarSrc}" onerror="this.style.display='none'" class="absolute inset-0 w-full h-full object-cover"/>
               </div>
               <div class="min-w-0">
                 <h3 class="font-bold text-white text-sm truncate leading-tight">${c.nombre}</h3>
