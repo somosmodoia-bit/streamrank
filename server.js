@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Sanitización de la clave oficial
+// Sanitización estricta de la API Key oficial
 const RAW_YT_KEY = process.env.YOUTUBE_API_KEY || '';
 const YOUTUBE_API_KEY = RAW_YT_KEY.trim().replace(/['"\r\n\s]/g, '');
 
@@ -60,7 +60,7 @@ const CATEGORIAS_CONFIG = {
 
 const CATEGORIAS_ORDEN = ['entretenimiento', 'deportes', 'streamers', 'finanzas', 'noticias'];
 
-// Canales configurados con su arroba y nombre
+// Lista completa de canales identificados por @handle y nombre
 const CANALES = [
   // 1. Entretenimiento
   { id: 'luzutv', nombre: 'LUZU TV', categoria: 'entretenimiento', ytHandle: 'luzutv', twitchUser: 'luzutv' },
@@ -174,23 +174,6 @@ function requestJSON(options, postData = null) {
   });
 }
 
-function requestText(options) {
-  return new Promise((resolve) => {
-    try {
-      const req = https.request(options, (res) => {
-        let data = '';
-        res.on('data', chunk => { data += chunk; });
-        res.on('end', () => resolve(data));
-      });
-      req.on('error', () => resolve(''));
-      req.on('timeout', () => { req.destroy(); resolve(''); });
-      req.end();
-    } catch (e) {
-      resolve('');
-    }
-  });
-}
-
 // 1. Kick API
 async function consultarKick(user) {
   if (!user) return { isLive: false, viewers: 0 };
@@ -242,72 +225,69 @@ async function consultarTwitch(user) {
   return { isLive: false, viewers: 0 };
 }
 
-// 3. Resolución en caché de Channel ID por Handle
-const handleToChannelIdCache = {};
+// Memoria caché para Channel IDs nativos
+const channelIdCache = {};
 
+// 3. Resolver Channel ID nativo mediante @handle
 async function resolverChannelId(handle) {
-  if (handleToChannelIdCache[handle]) return handleToChannelIdCache[handle];
+  if (channelIdCache[handle]) return channelIdCache[handle];
   if (!YOUTUBE_API_KEY) return null;
 
   const data = await requestJSON({
     hostname: 'www.googleapis.com',
     path: `/youtube/v3/channels?part=id&forHandle=\({encodeURIComponent(handle)}&key=\){YOUTUBE_API_KEY}`,
     method: 'GET',
-    timeout: 4500
+    timeout: 5000
   });
 
   const cId = data?.items?.[0]?.id;
   if (cId) {
-    handleToChannelIdCache[handle] = cId;
+    channelIdCache[handle] = cId;
     return cId;
   }
   return null;
 }
 
-// 4. Extracción de videos recientes mediante Feed RSS de Google (Sin cuota, sin bloqueos)
-async function obtenerVideosRecientesDeCanal(channelId) {
-  if (!channelId) return [];
-  const xml = await requestText({
-    hostname: 'www.youtube.com',
-    path: `/feeds/videos.xml?channel_id=${channelId}`,
-    method: 'GET',
-    headers: { 'User-Agent': 'Mozilla/5.0' },
-    timeout: 4500
-  });
+// 4. Localizar el video en vivo oficial y extraer concurrentViewers en tiempo real
+async function consultarYouTubeOficial(handle) {
+  if (!YOUTUBE_API_KEY || !handle) return { isLive: false, viewers: 0, title: '' };
 
-  if (!xml) return [];
-  const matches = [...xml.matchAll(/([^<]+)<\/yt:videoId>/g)];
-  return matches.map(m => m[1]).slice(0, 3);
-}
+  try {
+    const channelId = await resolverChannelId(handle);
+    if (!channelId) return { isLive: false, viewers: 0, title: '' };
 
-// 5. Telemetría oficial determinista por Videos.list
-async function consultarMetricasYouTubeBatch(videoIds) {
-  if (!YOUTUBE_API_KEY || videoIds.length === 0) return {};
+    const searchData = await requestJSON({
+      hostname: 'www.googleapis.com',
+      path: `/youtube/v3/search?part=id&channelId=\({channelId}&eventType=live&type=video&key=\){YOUTUBE_API_KEY}&maxResults=1`,
+      method: 'GET',
+      timeout: 5000
+    });
 
-  const ids = [...new Set(videoIds)].join(',');
-  const data = await requestJSON({
-    hostname: 'www.googleapis.com',
-    path: `/youtube/v3/videos?part=snippet,liveStreamingDetails&id=\({ids}&key=\){YOUTUBE_API_KEY}`,
-    method: 'GET',
-    timeout: 5000
-  });
+    const videoId = searchData?.items?.[0]?.id?.videoId;
+    if (!videoId) return { isLive: false, viewers: 0, title: '' };
 
-  const resultados = {};
-  if (data?.items) {
-    for (const item of data.items) {
-      const details = item.liveStreamingDetails;
-      const isLive = item.snippet?.liveBroadcastContent === 'live' || Boolean(details && details.concurrentViewers);
+    const videoData = await requestJSON({
+      hostname: 'www.googleapis.com',
+      path: `/youtube/v3/videos?part=snippet,liveStreamingDetails&id=\({videoId}&key=\){YOUTUBE_API_KEY}`,
+      method: 'GET',
+      timeout: 5000
+    });
 
-      if (isLive && details && details.concurrentViewers) {
-        resultados[item.id] = {
-          isLive: true,
-          viewers: parseInt(details.concurrentViewers, 10),
-          title: item.snippet?.title || 'En vivo'
-        };
-      }
+    const item = videoData?.items?.[0];
+    const liveDetails = item?.liveStreamingDetails;
+
+    if (liveDetails && liveDetails.concurrentViewers) {
+      return {
+        isLive: true,
+        viewers: parseInt(liveDetails.concurrentViewers, 10),
+        title: item.snippet?.title || 'En vivo'
+      };
     }
+
+    return { isLive: false, viewers: 0, title: '' };
+  } catch (err) {
+    return { isLive: false, viewers: 0, title: '' };
   }
-  return resultados;
 }
 
 // Bucle en segundo plano de telemetría completa
@@ -319,64 +299,33 @@ async function sincronizarTelemetria() {
   const horaActual = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
   try {
-    const canalesYT = telemetriaState.filter(c => c.ytHandle);
-    const canalVideosMap = [];
-    const todosLosVideoIds = [];
-
-    // Paso A: Resolver IDs de canal y leer feeds de YouTube
-    await Promise.all(canalesYT.map(async (c) => {
-      const channelId = await resolverChannelId(c.ytHandle);
-      if (channelId) {
-        const vIds = await obtenerVideosRecientesDeCanal(channelId);
-        canalVideosMap.push({ canalId: c.id, videoIds: vIds });
-        todosLosVideoIds.push(...vIds);
-      }
-    }));
-
-    // Paso B: Consultar métricas oficiales a Google en un solo lote
-    const metricasMap = await consultarMetricasYouTubeBatch(todosLosVideoIds);
-
-    // Paso C: Cruzar con Twitch y Kick y actualizar estado
     for (const canal of telemetriaState) {
-      const [tw, ki] = await Promise.all([
-        canal.twitchUser ? consultarTwitch(canal.twitchUser) : Promise.resolve({ isLive: false, viewers: 0 }),
-        canal.kickUser ? consultarKick(canal.kickUser) : Promise.resolve({ isLive: false, viewers: 0 })
-      ]);
+      try {
+        const [yt, tw, ki] = await Promise.all([
+          canal.ytHandle ? consultarYouTubeOficial(canal.ytHandle) : Promise.resolve({ isLive: false, viewers: 0, title: '' }),
+          canal.twitchUser ? consultarTwitch(canal.twitchUser) : Promise.resolve({ isLive: false, viewers: 0 }),
+          canal.kickUser ? consultarKick(canal.kickUser) : Promise.resolve({ isLive: false, viewers: 0 })
+        ]);
 
-      const mapping = canalVideosMap.find(m => m.canalId === canal.id);
-      let ytViewers = 0;
-      let ytLive = false;
-      let ytTitle = '';
+        canal.viewers_breakdown.yt = yt.viewers;
+        canal.viewers_breakdown.tw = tw.viewers;
+        canal.viewers_breakdown.ki = ki.viewers;
 
-      if (mapping && mapping.videoIds) {
-        for (const vid of mapping.videoIds) {
-          if (metricasMap[vid]) {
-            ytViewers = metricasMap[vid].viewers;
-            ytLive = true;
-            ytTitle = metricasMap[vid].title;
-            break;
-          }
+        canal.plataformas_live.yt = yt.isLive;
+        canal.plataformas_live.tw = tw.isLive;
+        canal.plataformas_live.ki = ki.isLive;
+
+        canal.viewers = yt.viewers + tw.viewers + ki.viewers;
+        canal.is_live = canal.viewers > 0;
+
+        if (canal.is_live) {
+          canal.title = yt.title || tw.title || ki.title || 'En vivo';
+        } else {
+          canal.title = 'Señal en espera';
         }
-      }
 
-      canal.viewers_breakdown.yt = ytViewers;
-      canal.viewers_breakdown.tw = tw.viewers;
-      canal.viewers_breakdown.ki = ki.viewers;
-
-      canal.plataformas_live.yt = ytLive;
-      canal.plataformas_live.tw = tw.isLive;
-      canal.plataformas_live.ki = ki.isLive;
-
-      canal.viewers = ytViewers + tw.viewers + ki.viewers;
-      canal.is_live = canal.viewers > 0;
-
-      if (canal.is_live) {
-        canal.title = ytTitle || tw.title || ki.title || 'En vivo';
-      } else {
-        canal.title = 'Señal en espera';
-      }
-
-      canal.hora_actualizacion = horaActual;
+        canal.hora_actualizacion = horaActual;
+      } catch (e) {}
     }
   } catch (err) {
     console.error('Error sincronizando telemetria:', err);
