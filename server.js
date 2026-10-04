@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// API Key oficial limpia
+// Sanitización de la API key
 const RAW_YT_KEY = process.env.YOUTUBE_API_KEY || '';
 const YOUTUBE_API_KEY = RAW_YT_KEY.trim().replace(/['"\r\n\s]/g, '');
 
@@ -60,6 +60,7 @@ const CATEGORIAS_CONFIG = {
 
 const CATEGORIAS_ORDEN = ['entretenimiento', 'deportes', 'streamers', 'finanzas', 'noticias'];
 
+// Lista unificada por arroba (@handle) y nombre
 const CANALES = [
   // 1. Entretenimiento
   { id: 'luzutv', nombre: 'LUZU TV', categoria: 'entretenimiento', ytHandle: 'luzutv', twitchUser: 'luzutv' },
@@ -220,120 +221,155 @@ async function consultarTwitch(user) {
   return { isLive: false, viewers: 0 };
 }
 
-// 3. YouTube API: Cache de Upload Playlists por Handle para no gastar cuota repetida
-const channelPlaylistCache = {};
+// 3. Resolver ID del video en vivo activo por el endpoint canónico de YouTube
+function detectarVideoEnVivo(handle) {
+  return new Promise((resolve) => {
+    const options = {
+      hostname: 'www.youtube.com',
+      path: `/@${handle}/live`,
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+      },
+      timeout: 4500
+    };
 
-async function obtenerUploadsPlaylistId(handle) {
-  if (channelPlaylistCache[handle]) return channelPlaylistCache[handle];
-  if (!YOUTUBE_API_KEY) return null;
+    const req = https.request(options, (res) => {
+      // Si redirige directamente al /watch?v=...
+      const loc = res.headers.location;
+      if (loc && loc.includes('/watch?v=')) {
+        const match = loc.match(/v=([a-zA-Z0-9_-]{11})/);
+        if (match && match[1]) return resolve(match[1]);
+      }
 
-  const res = await requestJSON({
-    hostname: 'www.googleapis.com',
-    path: `/youtube/v3/channels?part=contentDetails&forHandle=\({encodeURIComponent(handle)}&key=\){YOUTUBE_API_KEY}`,
-    method: 'GET',
-    timeout: 4500
+      // Si responde 200, leemos el chunk inicial donde se declara el canonical y el videoId
+      let html = '';
+      res.on('data', (chunk) => {
+        html += chunk;
+        if (html.length > 60000) req.destroy();
+      });
+
+      const finalizar = () => {
+        const matchVideo = html.match(/"videoId":"([a-zA-Z0-9_-]{11})"/);
+        const matchCanonical = html.match(//);
+        const vId = (matchCanonical && matchCanonical[1]) || (matchVideo && matchVideo[1]);
+
+        if (vId && (html.includes('"isLive":true') || html.includes('"isLiveStream":true') || html.includes('liveStreamabilityRenderer'))) {
+          return resolve(vId);
+        }
+        resolve(null);
+      };
+
+      res.on('end', finalizar);
+      res.on('close', finalizar);
+    });
+
+    req.on('error', () => resolve(null));
+    req.on('timeout', () => { req.destroy(); resolve(null); });
+    req.end();
   });
-
-  const uploadsId = res?.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
-  if (uploadsId) {
-    channelPlaylistCache[handle] = uploadsId;
-    return uploadsId;
-  }
-  return null;
 }
 
-// Consulta de transmisiones y métricas en vivo usando la API oficial
-async function consultarYouTubeOficial(handle) {
-  if (!YOUTUBE_API_KEY || !handle) return { isLive: false, viewers: 0, title: '' };
+// 4. Batch de telemetría oficial de YouTube con concurrentViewers determinista
+async function consultarMetricasOficialesYouTube(mapeos) {
+  if (!YOUTUBE_API_KEY || mapeos.length === 0) return {};
 
-  try {
-    const playlistId = await obtenerUploadsPlaylistId(handle);
-    if (!playlistId) return { isLive: false, viewers: 0, title: '' };
+  const ids = mapeos.map(m => m.videoId).filter(Boolean).join(',');
+  if (!ids) return {};
 
-    // 1. Obtener los videos más recientes del canal
-    const itemsRes = await requestJSON({
-      hostname: 'www.googleapis.com',
-      path: `/youtube/v3/playlistItems?part=contentDetails&playlistId=\({playlistId}&maxResults=3&key=\){YOUTUBE_API_KEY}`,
-      method: 'GET',
-      timeout: 4500
-    });
+  const data = await requestJSON({
+    hostname: 'www.googleapis.com',
+    path: `/youtube/v3/videos?part=snippet,liveStreamingDetails&id=\({ids}&key=\){YOUTUBE_API_KEY}`,
+    method: 'GET',
+    timeout: 5000
+  });
 
-    const items = itemsRes?.items || [];
-    if (items.length === 0) return { isLive: false, viewers: 0, title: '' };
+  const resultados = {};
+  if (data?.items) {
+    for (const v of data.items) {
+      const liveDetails = v.liveStreamingDetails;
+      const isLiveNow = v.snippet?.liveBroadcastContent === 'live' || Boolean(liveDetails && liveDetails.concurrentViewers);
 
-    const videoIds = items.map(it => it.contentDetails.videoId).join(',');
-
-    // 2. Consultar concurrentViewers de los videos en vivo
-    const videoData = await requestJSON({
-      hostname: 'www.googleapis.com',
-      path: `/youtube/v3/videos?part=snippet,liveStreamingDetails&id=\({videoIds}&key=\){YOUTUBE_API_KEY}`,
-      method: 'GET',
-      timeout: 4500
-    });
-
-    const videos = videoData?.items || [];
-    for (const v of videos) {
-      const details = v.liveStreamingDetails;
-      if (details && details.concurrentViewers) {
-        return {
+      if (isLiveNow && liveDetails && liveDetails.concurrentViewers) {
+        resultados[v.id] = {
           isLive: true,
-          viewers: parseInt(details.concurrentViewers, 10),
+          viewers: parseInt(liveDetails.concurrentViewers, 10),
           title: v.snippet?.title || 'En vivo'
         };
       }
     }
-
-    return { isLive: false, viewers: 0, title: '' };
-  } catch (err) {
-    return { isLive: false, viewers: 0, title: '' };
   }
+  return resultados;
 }
 
-// Bucle en segundo plano: sincronización periódica
-let sincronizando = false;
-async function sincronizarPipeline() {
-  if (sincronizando) return;
-  sincronizando = true;
+// Bucle en segundo plano: sincronización de toda la grilla
+let ejecutandoSincronizacion = false;
+async function pipelineGeneral() {
+  if (ejecutandoSincronizacion) return;
+  ejecutandoSincronizacion = true;
 
   const horaActual = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
-  for (let i = 0; i < telemetriaState.length; i += 4) {
-    const lote = telemetriaState.slice(i, i + 4);
-    await Promise.all(lote.map(async (canal) => {
-      try {
-        const [yt, tw, ki] = await Promise.all([
-          canal.ytHandle ? consultarYouTubeOficial(canal.ytHandle) : Promise.resolve({ isLive: false, viewers: 0 }),
-          canal.twitchUser ? consultarTwitch(canal.twitchUser) : Promise.resolve({ isLive: false, viewers: 0 }),
-          canal.kickUser ? consultarKick(canal.kickUser) : Promise.resolve({ isLive: false, viewers: 0 })
-        ]);
-
-        canal.viewers_breakdown.yt = yt.viewers;
-        canal.viewers_breakdown.tw = tw.viewers;
-        canal.viewers_breakdown.ki = ki.viewers;
-
-        canal.plataformas_live.yt = yt.isLive;
-        canal.plataformas_live.tw = tw.isLive;
-        canal.plataformas_live.ki = ki.isLive;
-
-        canal.viewers = yt.viewers + tw.viewers + ki.viewers;
-        canal.is_live = canal.viewers > 0;
-
-        if (canal.is_live) {
-          canal.title = yt.title || tw.title || ki.title || 'En vivo';
-        } else {
-          canal.title = 'Señal en espera';
-        }
-
-        canal.hora_actualizacion = horaActual;
-      } catch (e) {}
+  try {
+    // 1. Detectar videos en vivo en YouTube para todos los canales con handle
+    const canalesYT = telemetriaState.filter(c => c.ytHandle);
+    const detecciones = await Promise.all(canalesYT.map(async (c) => {
+      const videoId = await detectarVideoEnVivo(c.ytHandle);
+      return { canalId: c.id, videoId };
     }));
+
+    const vivosDetectados = detecciones.filter(d => d.videoId !== null);
+
+    // 2. Traer métricas oficiales de Google para esos videos
+    const metricasYouTube = await consultarMetricasOficialesYouTube(vivosDetectados);
+
+    // 3. Cruzar Twitch, Kick y YouTube para cada canal
+    for (const canal of telemetriaState) {
+      const [tw, ki] = await Promise.all([
+        canal.twitchUser ? consultarTwitch(canal.twitchUser) : Promise.resolve({ isLive: false, viewers: 0 }),
+        canal.kickUser ? consultarKick(canal.kickUser) : Promise.resolve({ isLive: false, viewers: 0 })
+      ]);
+
+      const vivoInfo = vivosDetectados.find(v => v.canalId === canal.id);
+      let ytViewers = 0;
+      let ytLive = false;
+      let ytTitle = '';
+
+      if (vivoInfo && metricasYouTube[vivoInfo.videoId]) {
+        ytViewers = metricasYouTube[vivoInfo.videoId].viewers;
+        ytLive = true;
+        ytTitle = metricasYouTube[vivoInfo.videoId].title;
+      }
+
+      canal.viewers_breakdown.yt = ytViewers;
+      canal.viewers_breakdown.tw = tw.viewers;
+      canal.viewers_breakdown.ki = ki.viewers;
+
+      canal.plataformas_live.yt = ytLive;
+      canal.plataformas_live.tw = tw.isLive;
+      canal.plataformas_live.ki = ki.isLive;
+
+      canal.viewers = ytViewers + tw.viewers + ki.viewers;
+      canal.is_live = canal.viewers > 0;
+
+      if (canal.is_live) {
+        canal.title = ytTitle || tw.title || ki.title || 'En vivo';
+      } else {
+        canal.title = 'Señal en espera';
+      }
+
+      canal.hora_actualizacion = horaActual;
+    }
+  } catch (err) {
+    console.error('Error en pipeline general:', err);
   }
 
-  sincronizando = false;
+  ejecutandoSincronizacion = false;
 }
 
-setTimeout(sincronizarPipeline, 1000);
-setInterval(sincronizarPipeline, 25000);
+setTimeout(pipelineGeneral, 1000);
+setInterval(pipelineGeneral, 20000);
 
 // Helper autenticación institucional
 function validarToken(req) {
@@ -352,7 +388,7 @@ function validarToken(req) {
   return token ? envTokens.includes(token) : false;
 }
 
-// Endpoints de API
+// Endpoints principales
 app.get('/api/ranking-categorias', (req, res) => {
   try {
     const categorias = CATEGORIAS_ORDEN.map((catKey) => {
