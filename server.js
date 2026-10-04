@@ -3,7 +3,6 @@ import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
 import https from 'https';
-import http from 'http';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -15,7 +14,6 @@ const PORT = process.env.PORT || 10000;
 app.use(cors());
 app.use(express.json());
 
-// Endpoint de salud
 app.get('/health', (req, res) => res.status(200).send('OK'));
 
 const CATEGORIAS_CONFIG = {
@@ -120,33 +118,9 @@ if (!fs.existsSync(logosDir)) {
   fs.mkdirSync(logosDir, { recursive: true });
 }
 
-// Estado inicial en memoria
-const horaBase = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-
+// Inicialización de la telemetría en memoria (arrancan en 0 hasta que el scraper barra)
 const telemetriaState = CANALES.map((c) => {
-  let isLive = false;
-  let viewers = 0;
-  let ytViewers = 0;
-  let twViewers = 0;
-  let kiViewers = 0;
-  let title = 'Señal en espera';
-
-  if (c.id === 'tn') {
-    isLive = true; viewers = 48500; ytViewers = 48500; title = 'TN EN VIVO • Cobertura en directo';
-  } else if (c.id === 'c5n') {
-    isLive = true; viewers = 36200; ytViewers = 36200; title = 'C5N EN DIRECTO • Noticias las 24 horas';
-  } else if (c.id === 'lanacionmas') {
-    isLive = true; viewers = 29300; ytViewers = 29300; title = 'LN+ Transmisión Continua';
-  } else if (c.id === 'neura') {
-    isLive = true; viewers = 18400; ytViewers = 18400; title = 'NEURA MEDIA • Troncal con Fantino';
-  } else if (c.id === 'davoo') {
-    isLive = true; viewers = 22400; kiViewers = 22400; title = 'En vivo por Kick';
-  } else if (c.id === 'tycsports') {
-    isLive = true; viewers = 14100; ytViewers = 14100; title = 'TyC Sports en Vivo';
-  }
-
   const handle = c.ytHandle || (c.twitchUser ? `@\({c.twitchUser}` : '') || (c.kickUser ? `@\){c.kickUser}` : '');
-
   return {
     id: c.id,
     nombre: c.nombre,
@@ -156,19 +130,121 @@ const telemetriaState = CANALES.map((c) => {
     kickUser: c.kickUser,
     handle,
     avatar: `/logos/${c.id}.jpg`,
-    viewers,
-    is_live: isLive,
-    title,
-    hora_actualizacion: horaBase,
-    plataformas_live: { yt: ytViewers > 0, tw: twViewers > 0, ki: kiViewers > 0 },
-    viewers_breakdown: { yt: ytViewers, tw: twViewers, ki: kiViewers }
+    viewers: 0,
+    is_live: false,
+    title: 'Señal en espera',
+    hora_actualizacion: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+    plataformas_live: { yt: false, tw: false, ki: false },
+    viewers_breakdown: { yt: 0, tw: 0, ki: 0 }
   };
 });
 
-// Middleware helper de autenticación multi-token por variable de entorno
+// MOTOR DE TELEMETRÍA EN VIVO (Scraper YouTube Live sin consumo de cuota)
+function fetchYouTubeLiveStatus(ytHandle) {
+  return new Promise((resolve) => {
+    if (!ytHandle) return resolve({ isLive: false, viewers: 0, title: '' });
+
+    const cleanHandle = ytHandle.startsWith('@') ? ytHandle : `@${ytHandle}`;
+    const url = `https://www.youtube.com/${cleanHandle}/live`;
+
+    const req = https.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'es-419,es;q=0.9,en;q=0.8'
+      },
+      timeout: 8000
+    }, (res) => {
+      let html = '';
+      res.on('data', (chunk) => {
+        html += chunk;
+        if (html.length > 500000) { // Cortar buffer si ya vino el bloque principal
+          req.destroy();
+        }
+      });
+
+      res.on('end', () => parseHtml(html));
+      res.on('close', () => parseHtml(html));
+
+      function parseHtml(content) {
+        try {
+          // Detectar si la transmisión está en directo
+          const isLiveNow = content.includes('"isLive":true') || content.includes('"isLiveNow":true');
+          
+          if (!isLiveNow) {
+            return resolve({ isLive: false, viewers: 0, title: 'Señal en espera' });
+          }
+
+          // Extraer espectadores concurrentes
+          let viewers = 0;
+          const matchViewers = content.match(/"viewCount":\{"runs":\[\{"text":"([^"]+)"\}/) || 
+                               content.match(/"originalViewCount":"(\d+)"/);
+
+          if (matchViewers) {
+            const rawText = matchViewers[1].replace(/\./g, '').replace(/,/g, '').replace(/\D/g, '');
+            viewers = parseInt(rawText, 10) || 0;
+          }
+
+          // Extraer título
+          let title = 'En vivo';
+          const matchTitle = content.match(/(.*?)<\/title>/);
+          if (matchTitle && matchTitle[1]) {
+            title = matchTitle[1].replace(' - YouTube', '').trim();
+          }
+
+          resolve({ isLive: true, viewers, title });
+        } catch (e) {
+          resolve({ isLive: false, viewers: 0, title: 'Señal en espera' });
+        }
+      }
+    });
+
+    req.on('error', () => resolve({ isLive: false, viewers: 0, title: 'Señal en espera' }));
+    req.on('timeout', () => {
+      req.destroy();
+      resolve({ isLive: false, viewers: 0, title: 'Señal en espera' });
+    });
+  });
+}
+
+// Bucle en segundo plano: recorre todos los canales cada 30 segundos
+let actualizando = false;
+async function actualizarTelemetria() {
+  if (actualizando) return;
+  actualizando = true;
+
+  const horaActual = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+
+  // Procesamos en lotes de a 5 para no saturar conexiones simultáneas
+  for (let i = 0; i < telemetriaState.length; i += 5) {
+    const lote = telemetriaState.slice(i, i + 5);
+    await Promise.all(lote.map(async (canal) => {
+      if (canal.ytHandle) {
+        const ytData = await fetchYouTubeLiveStatus(canal.ytHandle);
+        canal.is_live = ytData.isLive;
+        canal.viewers_breakdown.yt = ytData.viewers;
+        canal.viewers = ytData.viewers; // Consolidado (ampliable con Twitch)
+        canal.plataformas_live.yt = ytData.isLive && ytData.viewers > 0;
+        if (ytData.isLive) {
+          canal.title = ytData.title;
+        } else {
+          canal.title = 'Señal en espera';
+        }
+        canal.hora_actualizacion = horaActual;
+      }
+    }));
+  }
+
+  actualizando = false;
+}
+
+// Arranca el ciclo en background de inmediato y repite cada 30 segundos
+actualizarTelemetria();
+setInterval(actualizarTelemetria, 30000);
+
+// Helper autenticación para descargas institucionales
 function validarToken(req) {
   const envTokens = (process.env.VALID_TOKENS || '').split(',').map((t) => t.trim()).filter(Boolean);
-  if (envTokens.length === 0) return true; // Si no hay tokens configurados, permite acceso libre
+  if (envTokens.length === 0) return true;
 
   const authHeader = req.headers.authorization;
   let token = null;
@@ -182,7 +258,7 @@ function validarToken(req) {
   return token ? envTokens.includes(token) : false;
 }
 
-// RUTA PRINCIPAL
+// RUTA PRINCIPAL DE LA APP
 app.get('/api/ranking-categorias', (req, res) => {
   try {
     const categorias = CATEGORIAS_ORDEN.map((catKey) => {
@@ -231,7 +307,6 @@ app.get('/api/dataset-ai', (req, res) => {
   });
 });
 
-// ENDPOINT DE ANALYTICS CON VALIDACIÓN Y SOPORTE PARA FILTROS
 app.get('/api/descargar-analytics', (req, res) => {
   if (!validarToken(req)) {
     return res.status(401).json({ error: 'Clave institucional inválida o no provista' });
@@ -256,7 +331,6 @@ app.get('/api/descargar-analytics', (req, res) => {
     return res.send(csv);
   }
 
-  // Entrega JSON lista para arrastrar a ChatGPT / Claude / Gemini
   const exportPayload = {
     metadata: {
       fuente: 'StreamRank Argentina',
@@ -267,7 +341,7 @@ app.get('/api/descargar-analytics', (req, res) => {
     },
     instrucciones_ia: {
       rol: 'Sos un auditor senior de medios y métricas de streaming en Argentina.',
-      tarea: 'Respondé las dudas del usuario basándote exclusivamente en la telemetría adjunta. Si el usuario arrastra otro archivo para comparar, cruzá los datos directamente.'
+      tarea: 'Respondé las dudas del usuario basándote exclusivamente en la telemetría adjunta.'
     },
     canales: datosFiltrados
   };
@@ -281,7 +355,6 @@ app.get('/modoia', (req, res) => {
   res.redirect(301, 'https://modoia.online');
 });
 
-// Servir archivos estáticos del cliente
 app.use(express.static(publicPath));
 
 app.get('*', (req, res) => {
@@ -289,5 +362,5 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[StreamRank ARG] Servidor activo en puerto ${PORT}`);
+  console.log(`[StreamRank ARG] Servidor activo en puerto ${PORT}. Telemetría en vivo inicializada.`);
 });
