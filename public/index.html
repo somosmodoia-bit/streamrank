@@ -75,9 +75,10 @@
   <style>
     body { background-color: #050811; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
     .glow-gold { box-shadow: 0 0 25px rgba(234, 179, 8, 0.35); border-color: #eab308 !important; }
-    .text-matrix { color: #00ff66; }
-    .bg-matrix-10 { background-color: rgba(0, 255, 102, 0.1); }
-    .border-matrix-30 { border-color: rgba(0, 255, 102, 0.3); }
+    .text-matrix { color: #00ff88; }
+    .bg-matrix-10 { background-color: rgba(0, 255, 136, 0.1); }
+    .border-matrix-30 { border-color: rgba(0, 255, 136, 0.3); }
+    .bg-matrix { background-color: #00ff88; }
     /* Clase para transiciones fluidas de altura máxima */
     .faq-content { transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1); max-height: 0; }
   </style>
@@ -93,21 +94,21 @@
   <header class="border-b border-slate-800/80 bg-[#050811]/90 backdrop-blur sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
       <div class="flex items-center space-x-3">
-        <div class="w-8 h-8 bg-black border border-emerald-500 rounded-lg flex items-center justify-center relative">
-          <span class="absolute inline-flex h-3 w-3 rounded-full bg-[#00ff66] opacity-75 animate-ping"></span>
-          <span class="relative inline-flex rounded-full h-2 w-2 bg-[#00ff66]"></span>
+        <div class="w-8 h-8 bg-black border border-[#00ff88] rounded-lg flex items-center justify-center relative">
+          <span class="absolute inline-flex h-3 w-3 rounded-full bg-[#00ff88] opacity-75 animate-ping"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-[#00ff88]"></span>
         </div>
         <div class="flex items-baseline">
           <span class="text-base font-extrabold tracking-wider text-white" style="font-family: 'Outfit', sans-serif;">STREAMRANK</span>
           <span class="text-[10px] text-matrix font-mono font-bold ml-1">ARG</span>
-          <span class="font-mono text-sm font-semibold tracking-wider text-emerald-400 ml-2">BETA</span>
+          <span class="font-mono text-sm font-semibold tracking-wider text-[#00ff88] ml-2">BETA</span>
         </div>
       </div>
       <div class="flex items-center space-x-3">
         <span id="relojHeader" class="text-[11px] font-mono text-slate-400 hidden sm:inline">Sincronizando...</span>
-        <a href="/api/dataset-ai" target="_blank" class="bg-matrix-10 hover:bg-emerald-950 text-matrix text-xs px-3 py-1.5 rounded-lg border border-matrix-30 font-mono transition">
+        <button onclick="abrirModalIA()" class="bg-matrix-10 hover:bg-[#00ff88]/20 text-matrix text-xs px-3 py-1.5 rounded-lg border border-matrix-30 font-mono transition cursor-pointer">
           Dataset IA
-        </a>
+        </button>
       </div>
     </div>
   </header>
@@ -116,8 +117,8 @@
     <div class="max-w-3xl mx-auto space-y-3">
       <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-md bg-matrix-10 border border-matrix-30 text-matrix text-[11px] font-mono font-bold">
         <span class="relative flex h-2 w-2">
-          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00ff66] opacity-75"></span>
-          <span class="relative inline-flex rounded-full h-2 w-2 bg-[#00ff66]"></span>
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00ff88] opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-[#00ff88]"></span>
         </span>
         <span>TELEMETRÍA EN TIEMPO REAL</span>
       </div>
@@ -189,7 +190,7 @@
             <div class="p-5 pt-2 border-t border-slate-800/50 text-xs sm:text-sm text-slate-400 leading-relaxed">
               <p class="mb-4">Toda nuestra data se exporta como un dataset estructurado diseñado específicamente con un "skill analítico" integrado para LLMs (Large Language Models como ChatGPT, Claude o Gemini). Esto permite a agencias y marcas realizar consultas avanzadas en lenguaje natural sobre tendencias, shares de audiencia y comportamientos transmedia.</p>
               <a href="/guia-ia.pdf" target="_blank" class="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 px-4 py-2 rounded-lg text-xs font-mono transition shadow-sm hover:shadow-md">
-                <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <svg class="w-4 h-4 text-[#00ff88]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 Descargar Guía en PDF
               </a>
             </div>
@@ -204,7 +205,53 @@
     <p>Desarrollado por <a href="https://modoia.online" target="_blank" class="text-slate-400 hover:text-matrix underline">Modo IA</a> • Contacto: info@modoia.online</p>
   </footer>
 
-  <!-- Modal de Versus -->
+  <!-- Modal Dataset IA -->
+  <div id="iaModal" class="fixed inset-0 z-[100] hidden bg-black/90 backdrop-blur-sm overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-[#050811] border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl flex flex-col overflow-hidden relative">
+        <!-- Top controls -->
+        <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
+          <div class="flex items-center space-x-2">
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#00ff88] border border-[#00ff88]/30"></span>
+            <h3 class="text-white font-bold tracking-wider" style="font-family: 'Outfit', sans-serif;">DATASET IA</h3>
+          </div>
+          <button onclick="cerrarModalIA()" class="text-slate-400 hover:text-white transition text-lg leading-none">✕</button>
+        </div>
+        <div class="p-6 space-y-6">
+          <div class="text-center space-y-2">
+            <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight" style="font-family: 'Outfit', sans-serif;">Telemetría de Audiencia para Modelos de IA</h2>
+            <p class="text-xs sm:text-sm text-slate-400">Formato optimizado para razonamiento en ChatGPT, Claude y Gemini</p>
+          </div>
+
+          <div class="space-y-4 bg-[#0b1120] p-5 rounded-xl border border-slate-800 shadow-inner">
+            <div>
+              <label class="text-[10px] text-slate-400 font-mono mb-1.5 block uppercase tracking-wider">Token de Acceso / Licencia</label>
+              <input type="password" id="tokenIA" placeholder="Ingresá tu token institucional..." class="w-full bg-[#050811] border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white outline-none focus:border-[#00ff88]/50 transition placeholder-slate-600">
+            </div>
+            <button onclick="descargarDatasetIA(this)" class="w-full bg-[#00ff88]/10 hover:bg-[#00ff88] hover:text-black text-[#00ff88] py-3 rounded-xl border border-[#00ff88]/40 text-sm font-bold uppercase transition shadow-[0_0_15px_rgba(0,255,136,0.15)] flex items-center justify-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+              Descargar Paquete (.json)
+            </button>
+          </div>
+
+          <div class="text-center">
+            <a href="mailto:info@modoia.online?subject=Solicitud%20de%20Token%20Dataset%20IA" class="text-[11px] sm:text-xs text-slate-400 hover:text-[#00ff88] underline transition">¿No tenés token o sos una agencia? Solicitá tu clave de acceso</a>
+          </div>
+
+          <div class="border-t border-slate-800 pt-5">
+            <h4 class="text-[10px] font-mono text-slate-500 font-bold mb-3 uppercase tracking-widest text-center">Instrucciones de uso</h4>
+            <ol class="text-xs text-slate-400 space-y-2.5">
+              <li class="flex items-start gap-2"><span class="text-[#00ff88] font-bold font-mono">1.</span> <span><strong class="text-slate-300 font-medium">Descargá</strong> el paquete de datos.</span></li>
+              <li class="flex items-start gap-2"><span class="text-[#00ff88] font-bold font-mono">2.</span> <span><strong class="text-slate-300 font-medium">Arrastralo</strong> directamente a tu chat de IA favorito.</span></li>
+              <li class="flex items-start gap-2"><span class="text-[#00ff88] font-bold font-mono">3.</span> <span><strong class="text-slate-300 font-medium">Consultá</strong> métricas, share de audiencia o auditoría de pauta de forma conversacional.</span></li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Versus 100% Responsive con escala optimizada -->
   <div id="vsModal" class="fixed inset-0 z-[100] hidden bg-black/90 backdrop-blur-sm overflow-y-auto">
     <div class="flex items-center justify-center min-h-screen p-4">
       <div class="bg-[#050811] border border-slate-700 rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col overflow-hidden relative">
@@ -222,23 +269,23 @@
           <button onclick="cerrarVersus()" class="w-full md:w-auto text-slate-400 hover:text-white px-4 py-2 border border-slate-700 rounded-lg hover:bg-slate-800 transition text-sm">✕ Cerrar</button>
         </div>
 
-        <!-- Área de captura (Placa de Redes) -->
+        <!-- Área de captura (Placa de Redes) - Escala y padding reducidos -->
         <div class="p-4 md:p-5 relative overflow-hidden bg-gradient-to-b from-[#0b1120] to-[#050811]" id="vsCaptureArea">
           <div class="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiMwNTA4MTEiPjwvaGVpZ2h0PjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiMxZTI5M2IiPjwvc3ZnPg==')] opacity-40 pointer-events-none"></div>
           
-          <!-- Encabezado de Placa -->
+          <!-- Encabezado de Placa (STREAM blanco, RANK verde, BETA lado) -->
           <div class="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
             <div>
               <div class="flex items-center space-x-2 mb-1">
-                <span class="inline-block w-2.5 h-2.5 rounded-full bg-matrix border border-matrix-30"></span>
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#00ff88] border border-[#00ff88]/30"></span>
                 <h2 class="flex items-baseline tracking-widest leading-none" style="font-family: 'Outfit', sans-serif;">
                   <span class="text-white font-black text-lg md:text-xl">STREAM</span>
-                  <span class="text-emerald-400 font-black text-lg md:text-xl">RANK</span>
-                  <span class="text-[10px] text-matrix font-mono font-bold ml-1">ARG</span>
-                  <span class="font-mono text-xs font-semibold text-emerald-300 ml-1.5">BETA</span>
+                  <span class="text-[#00ff88] font-black text-lg md:text-xl">RANK</span>
+                  <span class="text-white font-black text-sm md:text-base ml-1.5">ARG</span>
+                  <span class="font-mono text-xs font-semibold text-[#00ff88]/80 ml-1.5">BETA</span>
                 </h2>
               </div>
-              <span class="font-mono text-xs sm:text-sm font-semibold text-emerald-400/90 tracking-widest uppercase" id="vsTimestamp">Batalla de Audiencias Oficial</span>
+              <span class="font-mono text-xs sm:text-sm font-semibold text-[#00ff88] tracking-widest uppercase" id="vsTimestamp">Batalla de Audiencias Oficial</span>
             </div>
             <div id="vsPlaqueBadge">
               <!-- Se completa por JS -->
@@ -251,7 +298,7 @@
             <!-- VS Circle Center -->
             <div class="flex absolute inset-0 items-center justify-center pointer-events-none z-20">
               <div class="w-10 h-10 md:w-14 md:h-14 rounded-full bg-[#050811] border-2 border-slate-700 flex items-center justify-center shadow-[0_0_30px_rgba(0,0,0,0.8)]">
-                <span class="text-emerald-400 font-black italic text-sm md:text-xl tracking-wider">VS</span>
+                <span class="text-[#00ff88] font-black italic text-sm md:text-xl tracking-wider">VS</span>
               </div>
             </div>
             <div id="vsCardB"></div>
@@ -273,7 +320,7 @@
 
         <!-- Pie y Botón Descargar -->
         <div class="p-3 border-t border-slate-800 bg-slate-900/80 flex justify-center">
-          <button onclick="descargarPlaca()" class="bg-matrix-10 hover:bg-emerald-500 hover:text-black text-emerald-400 px-6 py-2.5 rounded-xl border border-emerald-500/40 text-sm font-bold uppercase transition shadow-[0_0_15px_rgba(0,255,102,0.15)] flex items-center gap-2">
+          <button onclick="descargarPlaca()" class="bg-[#00ff88]/10 hover:bg-[#00ff88] hover:text-black text-[#00ff88] px-6 py-2.5 rounded-xl border border-[#00ff88]/40 text-sm font-bold uppercase transition shadow-[0_0_15px_rgba(0,255,136,0.15)] flex items-center gap-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
             Descargar Placa para Redes
           </button>
@@ -286,7 +333,6 @@
     let datosGlobales = [];
     const expandedCategories = {};
 
-    // Determina el estado exacto: EN VIVO, TRANSMITIENDO (Rerun/Bucle) o SEÑAL EN ESPERA
     function getStatus(c) {
       const isLive = c.is_live || false;
       let isRerun = false;
@@ -331,6 +377,53 @@
       }
     }
 
+    function abrirModalIA() {
+      document.getElementById('iaModal').classList.remove('hidden');
+    }
+
+    function cerrarModalIA() {
+      document.getElementById('iaModal').classList.add('hidden');
+      document.getElementById('tokenIA').value = '';
+    }
+
+    async function descargarDatasetIA(btn) {
+      const token = document.getElementById('tokenIA').value.trim();
+      if (!token) {
+        alert("Por favor, ingresá un token de acceso válido.");
+        return;
+      }
+
+      const originalContent = btn.innerHTML;
+      btn.innerHTML = 'Descargando...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/dataset-ai');
+        if (!res.ok) throw new Error('Error al conectar con la API');
+        
+        const data = await res.json();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `streamrank_telemetria_intel_${Date.now()}.json`;
+        
+        document.body.appendChild(a);
+        a.click();
+        
+        window.URL.revokeObjectURL(url);
+        cerrarModalIA();
+      } catch (error) {
+        console.error(error);
+        alert('Hubo un error al generar el dataset. Intentá nuevamente.');
+      } finally {
+        btn.innerHTML = originalContent;
+        btn.disabled = false;
+      }
+    }
+
     function renderCard(c, esLider, puesto) {
       const badgeLider = esLider 
         ? `<div class="h-6 flex items-center mb-2"><div class="bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-black text-[9px] font-mono px-2 py-0.5 rounded-md uppercase inline-block">👑 #1 LÍDER CATEGORÍA</div></div>` 
@@ -343,9 +436,9 @@
       let statusBadge = '';
       if (isLive) {
         if (isRerun) {
-          statusBadge = `<div class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded"><span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span><span class="text-amber-400 font-semibold font-mono text-[9px] tracking-wider uppercase">◈ TRANSMITIENDO</span></div>`;
+          statusBadge = `<div class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded"><span class="w-2 h-2 rounded-full bg-amber-400"></span><span class="text-amber-400 font-semibold font-mono text-[9px] tracking-wider uppercase">TRANSMITIENDO</span></div>`;
         } else {
-          statusBadge = `<div class="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span><span class="text-emerald-400 font-semibold font-mono text-[9px] tracking-wider uppercase">● EN VIVO</span></div>`;
+          statusBadge = `<div class="flex items-center gap-1.5 bg-[#00ff88]/10 border border-[#00ff88]/30 px-2 py-0.5 rounded"><span class="w-2 h-2 rounded-full bg-[#00ff88] animate-pulse"></span><span class="text-[#00ff88] font-semibold font-mono text-[9px] tracking-wider uppercase">EN VIVO</span></div>`;
         }
       } else {
         statusBadge = `<div class="flex items-center gap-1.5 bg-slate-800/60 border border-slate-700 px-2 py-0.5 rounded"><span class="text-slate-500 font-semibold font-mono text-[9px] tracking-wider uppercase">SEÑAL EN ESPERA</span></div>`;
@@ -359,7 +452,7 @@
             <div class="flex items-center space-x-2.5 min-w-0">
               <div class="relative w-10 h-10 flex-shrink-0 rounded-full border border-slate-700 bg-slate-800 flex items-center justify-center overflow-hidden">
                 <span class="text-[#94a3b8] font-bold text-sm font-sans">${ini}</span>
-                <img src="/logos/${c.id}.jpg" alt="${c.nombre || ''}" loading="lazy" referrerpolicy="no-referrer" onerror="if(!this.dataset.step) { this.dataset.step = 1; this.src = '/logos/${c.id}.png'; } else if(this.dataset.step == 1) { this.dataset.step = 2; this.src = '/logos/${c.id}.webp'; } else { this.style.display = 'none'; }" class="absolute inset-0 w-full h-full object-cover"/>
+                <img src="/logos/${c.id}.jpg" alt="${c.nombre || ''}" loading="lazy" crossorigin="anonymous" onerror="if(!this.dataset.step) { this.dataset.step = 1; this.src = '/logos/${c.id}.png'; } else if(this.dataset.step == 1) { this.dataset.step = 2; this.src = '/logos/${c.id}.webp'; } else { this.style.display = 'none'; }" class="absolute inset-0 w-full h-full object-cover"/>
               </div>
               <div class="min-w-0">
                 <h3 class="font-bold text-white text-sm truncate leading-tight" style="font-family: 'Outfit', sans-serif;">${c.nombre || ''}</h3>
@@ -367,7 +460,7 @@
               </div>
             </div>
             <div class="flex items-center gap-1.5 flex-shrink-0">
-              <button onclick="abrirVersus('${c.id}')" class="text-[9px] font-bold font-mono px-2 py-0.5 rounded border border-slate-700 bg-slate-800/80 hover:bg-emerald-500 hover:text-black hover:border-emerald-500 text-slate-400 transition cursor-pointer" title="Comparar VS">VS</button>
+              <button onclick="abrirVersus('${c.id}')" class="text-[9px] font-bold font-mono px-2 py-0.5 rounded border border-slate-700 bg-slate-800/80 hover:bg-[#00ff88] hover:text-black hover:border-[#00ff88] text-slate-400 transition cursor-pointer" title="Comparar VS">VS</button>
               ${statusBadge}
             </div>
           </div>
@@ -463,7 +556,7 @@
           banner.className = `bg-gradient-to-r ${cat.bannerColor} border ${cat.borderColor} rounded-xl px-4 py-2.5 text-xs text-slate-200 font-mono flex flex-col sm:flex-row items-center justify-between gap-2 shadow my-3`;
           banner.innerHTML = `
             <span class="truncate sm:pr-3 font-medium text-[11px] sm:text-xs">ESPACIO PUBLICITARIO DISPONIBLE</span>
-            <a href="mailto:info@modoia.online?subject=Pauta%20StreamRank" class="bg-black/60 hover:bg-emerald-500 hover:text-black text-emerald-400 px-3 py-1 rounded-lg border border-emerald-500/40 text-[10px] font-bold uppercase transition flex-shrink-0">Anunciar</a>
+            <a href="mailto:info@modoia.online?subject=Pauta%20StreamRank" class="bg-black/60 hover:bg-[#00ff88] hover:text-black text-[#00ff88] px-3 py-1 rounded-lg border border-[#00ff88]/40 text-[10px] font-bold uppercase transition flex-shrink-0">Anunciar</a>
           `;
           section.appendChild(banner);
 
@@ -481,7 +574,7 @@
           const toggleWrap = document.createElement('div');
           toggleWrap.className = "text-center pt-2";
           toggleWrap.innerHTML = `
-            <button onclick="toggleCategoria('${cat.id}')" class="px-5 py-2 rounded-xl bg-[#0b1120] border border-slate-800 hover:border-emerald-500 text-slate-300 hover:text-white text-xs font-mono font-bold transition shadow">
+            <button onclick="toggleCategoria('${cat.id}')" class="px-5 py-2 rounded-xl bg-[#0b1120] border border-slate-800 hover:border-[#00ff88] text-slate-300 hover:text-white text-xs font-mono font-bold transition shadow">
               ${isExpanded ? '▲ Ver menos canales' : '▼ Ver todos los canales (' + canalesFiltrados.length + ')'}
             </button>
           `;
@@ -490,49 +583,6 @@
 
         container.appendChild(section);
       });
-    }
-
-    // Funciones del Módulo Versus
-    function getTodosLosCanales() {
-      let todos = [];
-      datosGlobales.forEach(cat => {
-        cat.canales.forEach(c => {
-          if (!todos.find(x => x.id === c.id)) {
-            todos.push(c);
-          }
-        });
-      });
-      return todos.sort((a,b) => (b.viewers || 0) - (a.viewers || 0));
-    }
-
-    function populateVersusDropdowns() {
-      const canales = getTodosLosCanales();
-      const selA = document.getElementById('vsSelectA');
-      const selB = document.getElementById('vsSelectB');
-      let html = '';
-      canales.forEach(c => {
-        html += `<option value="${c.id}">${c.nombre} (${(c.viewers||0).toLocaleString('es-AR')})</option>`;
-      });
-      selA.innerHTML = html;
-      selB.innerHTML = html;
-    }
-
-    function abrirVersus(canalId) {
-      populateVersusDropdowns();
-      document.getElementById('vsSelectA').value = canalId;
-      
-      const canales = getTodosLosCanales();
-      const topCompetitor = canales.find(c => c.id !== canalId);
-      if (topCompetitor) {
-        document.getElementById('vsSelectB').value = topCompetitor.id;
-      }
-
-      renderVersus();
-      document.getElementById('vsModal').classList.remove('hidden');
-    }
-
-    function cerrarVersus() {
-      document.getElementById('vsModal').classList.add('hidden');
     }
 
     function renderContender(c, esGanador, textColorClass, barClass) {
@@ -580,6 +630,30 @@
       `;
     }
 
+    function getTodosLosCanales() {
+      let todos = [];
+      datosGlobales.forEach(cat => {
+        cat.canales.forEach(c => {
+          if (!todos.find(x => x.id === c.id)) {
+            todos.push(c);
+          }
+        });
+      });
+      return todos.sort((a,b) => (b.viewers || 0) - (a.viewers || 0));
+    }
+
+    function populateVersusDropdowns() {
+      const canales = getTodosLosCanales();
+      const selA = document.getElementById('vsSelectA');
+      const selB = document.getElementById('vsSelectB');
+      let html = '';
+      canales.forEach(c => {
+        html += `<option value="${c.id}">${c.nombre} (${(c.viewers||0).toLocaleString('es-AR')})</option>`;
+      });
+      selA.innerHTML = html;
+      selB.innerHTML = html;
+    }
+
     function renderVersus() {
       const canales = getTodosLosCanales();
       const idA = document.getElementById('vsSelectA').value;
@@ -595,21 +669,20 @@
       const pctA = total > 0 ? ((viewersA / total) * 100).toFixed(1) : 50;
       const pctB = total > 0 ? ((viewersB / total) * 100).toFixed(1) : 50;
       
-      // Update Plaque top badge based on status
       const statusA = getStatus(cA);
       const statusB = getStatus(cB);
       let plaqueBadgeHtml = '';
       
       if ((statusA.isLive && !statusA.isRerun) || (statusB.isLive && !statusB.isRerun)) {
         plaqueBadgeHtml = `
-          <div class="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-md">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span class="text-emerald-400 font-semibold font-mono text-xs tracking-wider uppercase">EN DIRECTO</span>
+          <div class="flex items-center gap-1.5 bg-[#00ff88]/10 border border-[#00ff88]/30 px-2.5 py-1 rounded-md">
+            <span class="w-2 h-2 rounded-full bg-[#00ff88] animate-pulse"></span>
+            <span class="text-[#00ff88] font-semibold font-mono text-xs tracking-wider uppercase">EN DIRECTO</span>
           </div>`;
       } else if (statusA.isLive || statusB.isLive) {
         plaqueBadgeHtml = `
           <div class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-md">
-            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
             <span class="text-amber-400 font-semibold font-mono text-xs tracking-wider uppercase">TRANSMITIENDO</span>
           </div>`;
       } else {
@@ -630,19 +703,22 @@
       document.getElementById('vsPctB').innerText = pctB + '%';
     }
 
-    function descargarPlaca() {
-      const area = document.getElementById('vsCaptureArea');
-      html2canvas(area, {
-         useCORS: true,
-         allowTaint: true,
-         backgroundColor: '#050811',
-         scale: window.devicePixelRatio > 1 ? window.devicePixelRatio : 2
-      }).then(canvas => {
-         const link = document.createElement('a');
-         link.download = `StreamRank-Versus-${Date.now()}.png`;
-         link.href = canvas.toDataURL('image/png');
-         link.click();
-      });
+    function abrirVersus(canalId) {
+      populateVersusDropdowns();
+      document.getElementById('vsSelectA').value = canalId;
+      
+      const canales = getTodosLosCanales();
+      const topCompetitor = canales.find(c => c.id !== canalId);
+      if (topCompetitor) {
+        document.getElementById('vsSelectB').value = topCompetitor.id;
+      }
+
+      renderVersus();
+      document.getElementById('vsModal').classList.remove('hidden');
+    }
+
+    function cerrarVersus() {
+      document.getElementById('vsModal').classList.add('hidden');
     }
 
     function filtrarCanales() { renderizarCatalogo(); }
