@@ -204,12 +204,12 @@
     <p>Desarrollado por <a href="https://modoia.online" target="_blank" class="text-slate-400 hover:text-matrix underline">Modo IA</a> • Contacto: info@modoia.online</p>
   </footer>
 
-  <!-- Modal de Versus 100% Responsive -->
+  <!-- Modal de Versus -->
   <div id="vsModal" class="fixed inset-0 z-[100] hidden bg-black/90 backdrop-blur-sm overflow-y-auto">
     <div class="flex items-center justify-center min-h-screen p-4">
       <div class="bg-[#050811] border border-slate-700 rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col overflow-hidden relative">
         <!-- Top controls -->
-        <div class="p-3 md:p-4 border-b border-slate-800 flex flex-col md:flex-row gap-3 items-center justify-between bg-slate-900/80">
+        <div class="p-3 border-b border-slate-800 flex flex-col md:flex-row gap-3 items-center justify-between bg-slate-900/80">
           <div class="flex-1 w-full min-w-0">
             <label class="text-[10px] text-slate-400 font-mono mb-1 block uppercase tracking-wider">Contendiente A</label>
             <select id="vsSelectA" onchange="renderVersus()" class="w-full bg-[#0b1120] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-matrix-30"></select>
@@ -223,27 +223,32 @@
         </div>
 
         <!-- Área de captura (Placa de Redes) -->
-        <div class="p-4 md:p-8 relative overflow-hidden bg-gradient-to-b from-[#0b1120] to-[#050811]" id="vsCaptureArea">
+        <div class="p-4 md:p-5 relative overflow-hidden bg-gradient-to-b from-[#0b1120] to-[#050811]" id="vsCaptureArea">
           <div class="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiMwNTA4MTEiPjwvaGVpZ2h0PjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiMxZTI5M2IiPjwvc3ZnPg==')] opacity-40 pointer-events-none"></div>
           
           <!-- Encabezado de Placa -->
-          <div class="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
+          <div class="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
             <div>
               <div class="flex items-center space-x-2 mb-1">
-                <span class="inline-block w-3 h-3 rounded-full bg-matrix border border-matrix-30"></span>
-                <h2 class="text-matrix font-black text-lg md:text-xl tracking-widest leading-none" style="font-family: 'Outfit', sans-serif;">STREAMRANK<span class="text-xs ml-1 font-mono">ARG</span></h2>
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-matrix border border-matrix-30"></span>
+                <h2 class="flex items-baseline tracking-widest leading-none" style="font-family: 'Outfit', sans-serif;">
+                  <span class="text-white font-black text-lg md:text-xl">STREAM</span>
+                  <span class="text-emerald-400 font-black text-lg md:text-xl">RANK</span>
+                  <span class="text-[10px] text-matrix font-mono font-bold ml-1">ARG</span>
+                  <span class="font-mono text-xs font-semibold text-emerald-300 ml-1.5">BETA</span>
+                </h2>
               </div>
               <span class="font-mono text-xs sm:text-sm font-semibold text-emerald-400/90 tracking-widest uppercase" id="vsTimestamp">Batalla de Audiencias Oficial</span>
             </div>
-            <div>
-              <span class="bg-red-500/10 text-red-500 border border-red-500/20 px-3 py-1 rounded font-mono font-bold text-[10px] tracking-wider uppercase">En Directo</span>
+            <div id="vsPlaqueBadge">
+              <!-- Se completa por JS -->
             </div>
           </div>
 
           <!-- Tarjetas de Contendientes y Divisor Central -->
-          <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
             <div id="vsCardA"></div>
-            <!-- VS Circle Center (Siempre visible y verde) -->
+            <!-- VS Circle Center -->
             <div class="flex absolute inset-0 items-center justify-center pointer-events-none z-20">
               <div class="w-10 h-10 md:w-14 md:h-14 rounded-full bg-[#050811] border-2 border-slate-700 flex items-center justify-center shadow-[0_0_30px_rgba(0,0,0,0.8)]">
                 <span class="text-emerald-400 font-black italic text-sm md:text-xl tracking-wider">VS</span>
@@ -253,7 +258,7 @@
           </div>
 
           <!-- Barra Comparativa (Progreso) -->
-          <div class="relative z-10 mt-6 md:mt-8">
+          <div class="relative z-10 mt-4 md:mt-5">
             <div class="flex justify-between mb-2 text-[11px] font-mono font-bold tracking-widest uppercase">
               <span class="text-matrix" id="vsPctA">50%</span>
               <span class="text-slate-500 hidden sm:block">Dominio de Audiencia</span>
@@ -267,8 +272,8 @@
         </div>
 
         <!-- Pie y Botón Descargar -->
-        <div class="p-4 border-t border-slate-800 bg-slate-900/80 flex justify-center">
-          <button onclick="descargarPlaca()" class="bg-matrix-10 hover:bg-emerald-500 hover:text-black text-emerald-400 px-6 py-3 rounded-xl border border-emerald-500/40 text-sm font-bold uppercase transition shadow-[0_0_15px_rgba(0,255,102,0.15)] flex items-center gap-2">
+        <div class="p-3 border-t border-slate-800 bg-slate-900/80 flex justify-center">
+          <button onclick="descargarPlaca()" class="bg-matrix-10 hover:bg-emerald-500 hover:text-black text-emerald-400 px-6 py-2.5 rounded-xl border border-emerald-500/40 text-sm font-bold uppercase transition shadow-[0_0_15px_rgba(0,255,102,0.15)] flex items-center gap-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
             Descargar Placa para Redes
           </button>
@@ -281,6 +286,19 @@
     let datosGlobales = [];
     const expandedCategories = {};
 
+    // Determina el estado exacto: EN VIVO, TRANSMITIENDO (Rerun/Bucle) o SEÑAL EN ESPERA
+    function getStatus(c) {
+      const isLive = c.is_live || false;
+      let isRerun = false;
+      if (c.title) {
+        const lowerTitle = c.title.toLowerCase();
+        if (['rerun', 'bucle', 'grabado', '24/7'].some(k => lowerTitle.includes(k))) {
+          isRerun = true;
+        }
+      }
+      return { isLive, isRerun };
+    }
+
     async function cargarCatalogo() {
       try {
         const res = await fetch('/api/ranking-categorias');
@@ -288,7 +306,7 @@
         datosGlobales = data.categorias;
         if (data.fecha && data.timestamp) {
           document.getElementById('relojHeader').innerText = data.fecha + ' • ' + data.timestamp + ' hs';
-          document.getElementById('vsTimestamp').innerText = `Corte: ${data.fecha} ${data.timestamp} hs`;
+          document.getElementById('vsTimestamp').innerText = `CORTE: ${data.fecha} ${data.timestamp} HS`;
         }
         renderizarCatalogo();
       } catch (err) {
@@ -321,6 +339,18 @@
       const handleLimpio = (c.yt || c.tw || c.ki || c.handle || '').replace('@', '');
       const ini = (c.nombre || 'SR').substring(0, 2).toUpperCase();
 
+      const { isLive, isRerun } = getStatus(c);
+      let statusBadge = '';
+      if (isLive) {
+        if (isRerun) {
+          statusBadge = `<div class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded"><span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span><span class="text-amber-400 font-semibold font-mono text-[9px] tracking-wider uppercase">◈ TRANSMITIENDO</span></div>`;
+        } else {
+          statusBadge = `<div class="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span><span class="text-emerald-400 font-semibold font-mono text-[9px] tracking-wider uppercase">● EN VIVO</span></div>`;
+        }
+      } else {
+        statusBadge = `<div class="flex items-center gap-1.5 bg-slate-800/60 border border-slate-700 px-2 py-0.5 rounded"><span class="text-slate-500 font-semibold font-mono text-[9px] tracking-wider uppercase">SEÑAL EN ESPERA</span></div>`;
+      }
+
       return `
       <div class="bg-[#0b1120] ${esLider ? 'border-2 glow-gold' : 'border border-slate-800'} rounded-2xl p-4 flex flex-col justify-between shadow-md">
         <div>
@@ -338,9 +368,7 @@
             </div>
             <div class="flex items-center gap-1.5 flex-shrink-0">
               <button onclick="abrirVersus('${c.id}')" class="text-[9px] font-bold font-mono px-2 py-0.5 rounded border border-slate-700 bg-slate-800/80 hover:bg-emerald-500 hover:text-black hover:border-emerald-500 text-slate-400 transition cursor-pointer" title="Comparar VS">VS</button>
-              <span class="text-[9px] font-bold font-mono px-2 py-0.5 rounded border ${c.is_live ? 'bg-matrix-10 text-matrix border-matrix-30' : 'bg-slate-800/60 text-slate-500 border-slate-700'}">
-                ${c.is_live ? 'EN VIVO' : 'OFFLINE'}
-              </span>
+              ${statusBadge}
             </div>
           </div>
           <p class="text-xs text-slate-400 mt-3 line-clamp-1 italic leading-relaxed">"${c.title || ''}"</p>
@@ -517,35 +545,35 @@
       const borderGlow = esGanador ? 'border-amber-400 shadow-[0_0_15px_rgba(234,179,8,0.15)]' : 'border-slate-800/80';
 
       return `
-      <div class="relative bg-slate-900/50 backdrop-blur-sm p-4 md:p-5 rounded-2xl border ${borderGlow} flex flex-col h-full z-0 transition-all">
+      <div class="relative bg-slate-900/50 backdrop-blur-sm p-3 md:p-4 rounded-2xl border ${borderGlow} flex flex-col h-full z-0 transition-all">
         ${corona}
-        <div class="flex items-center gap-4 mb-4">
-           <div class="relative w-14 h-14 flex-shrink-0 rounded-full border border-slate-700 bg-slate-800 flex items-center justify-center overflow-hidden shadow-lg">
-              <span class="text-[#94a3b8] font-bold text-lg font-sans">${ini}</span>
+        <div class="flex items-center gap-3 mb-3">
+           <div class="relative w-12 h-12 flex-shrink-0 rounded-full border border-slate-700 bg-slate-800 flex items-center justify-center overflow-hidden shadow-lg">
+              <span class="text-[#94a3b8] font-bold text-base font-sans">${ini}</span>
               <img src="/logos/${c.id}.jpg" crossorigin="anonymous" alt="${c.nombre || ''}" onerror="if(!this.dataset.step){this.dataset.step=1;this.src='/logos/${c.id}.png';}else if(this.dataset.step==1){this.dataset.step=2;this.src='/logos/${c.id}.webp';}else{this.style.display='none';}" class="absolute inset-0 w-full h-full object-cover"/>
            </div>
            <div class="min-w-0">
               <h3 class="font-black text-white text-base md:text-lg truncate leading-tight" style="font-family: 'Outfit', sans-serif;">${c.nombre || ''}</h3>
-              <span class="text-xs text-slate-400 font-mono truncate block mt-0.5">@${hnd}</span>
+              <span class="text-[10px] md:text-xs text-slate-400 font-mono truncate block mt-0.5">@${hnd}</span>
            </div>
         </div>
-        <p class="text-xs text-slate-300 mb-5 italic line-clamp-2 min-h-[32px] opacity-80">"${c.title || 'Transmisión sin título'}"</p>
+        <p class="text-[10px] md:text-xs text-slate-300 mb-3 italic line-clamp-2 min-h-[28px] md:min-h-[32px] opacity-80">"${c.title || 'Transmisión sin título'}"</p>
         <div class="mt-auto">
-           <div class="text-[10px] text-slate-500 uppercase font-mono tracking-widest mb-1">Audiencia Total</div>
+           <div class="text-[9px] md:text-[10px] text-slate-500 uppercase font-mono tracking-widest mb-1">Audiencia Total</div>
            <div class="text-2xl md:text-3xl font-black font-mono ${textColorClass} drop-shadow-md">${(c.viewers||0).toLocaleString('es-AR')}</div>
         </div>
-        <div class="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-slate-800/50">
-           <div class="text-center bg-[#0b1120] rounded p-1.5 border border-slate-800 shadow-inner">
-             <span class="block text-[8px] font-mono text-slate-500 mb-0.5 uppercase">YouTube</span>
-             <span class="text-xs font-mono font-bold text-slate-200">${c.plataformas_live && c.plataformas_live.yt ? c.viewers_breakdown.yt.toLocaleString('es-AR') : '0'}</span>
+        <div class="grid grid-cols-3 gap-1.5 mt-3 pt-3 border-t border-slate-800/50">
+           <div class="text-center bg-[#0b1120] rounded p-1 border border-slate-800 shadow-inner">
+             <span class="block text-[7px] md:text-[8px] font-mono text-slate-500 mb-0.5 uppercase">YouTube</span>
+             <span class="text-[10px] md:text-xs font-mono font-bold text-slate-200">${c.plataformas_live && c.plataformas_live.yt ? c.viewers_breakdown.yt.toLocaleString('es-AR') : '0'}</span>
            </div>
-           <div class="text-center bg-[#0b1120] rounded p-1.5 border border-slate-800 shadow-inner">
-             <span class="block text-[8px] font-mono text-slate-500 mb-0.5 uppercase">Twitch</span>
-             <span class="text-xs font-mono font-bold text-slate-200">${c.plataformas_live && c.plataformas_live.tw ? c.viewers_breakdown.tw.toLocaleString('es-AR') : '0'}</span>
+           <div class="text-center bg-[#0b1120] rounded p-1 border border-slate-800 shadow-inner">
+             <span class="block text-[7px] md:text-[8px] font-mono text-slate-500 mb-0.5 uppercase">Twitch</span>
+             <span class="text-[10px] md:text-xs font-mono font-bold text-slate-200">${c.plataformas_live && c.plataformas_live.tw ? c.viewers_breakdown.tw.toLocaleString('es-AR') : '0'}</span>
            </div>
-           <div class="text-center bg-[#0b1120] rounded p-1.5 border border-slate-800 shadow-inner">
-             <span class="block text-[8px] font-mono text-slate-500 mb-0.5 uppercase">Kick</span>
-             <span class="text-xs font-mono font-bold text-slate-200">${c.plataformas_live && c.plataformas_live.ki ? c.viewers_breakdown.ki.toLocaleString('es-AR') : '0'}</span>
+           <div class="text-center bg-[#0b1120] rounded p-1 border border-slate-800 shadow-inner">
+             <span class="block text-[7px] md:text-[8px] font-mono text-slate-500 mb-0.5 uppercase">Kick</span>
+             <span class="text-[10px] md:text-xs font-mono font-bold text-slate-200">${c.plataformas_live && c.plataformas_live.ki ? c.viewers_breakdown.ki.toLocaleString('es-AR') : '0'}</span>
            </div>
         </div>
       </div>
@@ -566,6 +594,31 @@
       
       const pctA = total > 0 ? ((viewersA / total) * 100).toFixed(1) : 50;
       const pctB = total > 0 ? ((viewersB / total) * 100).toFixed(1) : 50;
+      
+      // Update Plaque top badge based on status
+      const statusA = getStatus(cA);
+      const statusB = getStatus(cB);
+      let plaqueBadgeHtml = '';
+      
+      if ((statusA.isLive && !statusA.isRerun) || (statusB.isLive && !statusB.isRerun)) {
+        plaqueBadgeHtml = `
+          <div class="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-md">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-emerald-400 font-semibold font-mono text-xs tracking-wider uppercase">EN DIRECTO</span>
+          </div>`;
+      } else if (statusA.isLive || statusB.isLive) {
+        plaqueBadgeHtml = `
+          <div class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-md">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+            <span class="text-amber-400 font-semibold font-mono text-xs tracking-wider uppercase">TRANSMITIENDO</span>
+          </div>`;
+      } else {
+        plaqueBadgeHtml = `
+          <div class="flex items-center gap-1.5 bg-slate-800/60 border border-slate-700 px-2.5 py-1 rounded-md">
+            <span class="text-slate-500 font-semibold font-mono text-xs tracking-wider uppercase">SEÑAL EN ESPERA</span>
+          </div>`;
+      }
+      document.getElementById('vsPlaqueBadge').innerHTML = plaqueBadgeHtml;
       
       document.getElementById('vsCardA').innerHTML = renderContender(cA, viewersA >= viewersB && total > 0, 'text-matrix', 'bg-matrix');
       document.getElementById('vsCardB').innerHTML = renderContender(cB, viewersB > viewersA && total > 0, 'text-blue-400', 'bg-blue-500');
