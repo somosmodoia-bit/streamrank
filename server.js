@@ -11,7 +11,6 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Sanitización de la API key
 const RAW_YT_KEY = process.env.YOUTUBE_API_KEY || '';
 const YOUTUBE_API_KEY = RAW_YT_KEY.trim().replace(/['"\r\n\s]/g, '');
 
@@ -60,7 +59,6 @@ const CATEGORIAS_CONFIG = {
 
 const CATEGORIAS_ORDEN = ['entretenimiento', 'deportes', 'streamers', 'finanzas', 'noticias'];
 
-// Lista unificada por arroba (@handle) y nombre
 const CANALES = [
   // 1. Entretenimiento
   { id: 'luzutv', nombre: 'LUZU TV', categoria: 'entretenimiento', ytHandle: 'luzutv', twitchUser: 'luzutv' },
@@ -155,9 +153,13 @@ function requestJSON(options, postData = null) {
     try {
       const req = https.request(options, (res) => {
         let data = '';
-        res.on('data', chunk => data += chunk);
+        res.on('data', chunk => { data += chunk; });
         res.on('end', () => {
-          try { resolve(JSON.parse(data)); } catch (e) { resolve(null); }
+          try {
+            resolve(JSON.parse(data));
+          } catch (e) {
+            resolve(null);
+          }
         });
       });
       req.on('error', () => resolve(null));
@@ -221,7 +223,7 @@ async function consultarTwitch(user) {
   return { isLive: false, viewers: 0 };
 }
 
-// 3. Resolver ID del video en vivo activo por el endpoint canónico de YouTube
+// 3. Extracción de Video ID del en vivo
 function detectarVideoEnVivo(handle) {
   return new Promise((resolve) => {
     const options = {
@@ -236,29 +238,31 @@ function detectarVideoEnVivo(handle) {
     };
 
     const req = https.request(options, (res) => {
-      // Si redirige directamente al /watch?v=...
       const loc = res.headers.location;
       if (loc && loc.includes('/watch?v=')) {
         const match = loc.match(/v=([a-zA-Z0-9_-]{11})/);
-        if (match && match[1]) return resolve(match[1]);
+        if (match && match[1]) {
+          return resolve(match[1]);
+        }
       }
 
-      // Si responde 200, leemos el chunk inicial donde se declara el canonical y el videoId
       let html = '';
       res.on('data', (chunk) => {
         html += chunk;
-        if (html.length > 60000) req.destroy();
+        if (html.length > 60000) {
+          req.destroy();
+        }
       });
 
       const finalizar = () => {
         const matchVideo = html.match(/"videoId":"([a-zA-Z0-9_-]{11})"/);
         const matchCanonical = html.match(//);
-        const vId = (matchCanonical && matchCanonical[1]) || (matchVideo && matchVideo[1]);
+        const videoIdentificado = (matchCanonical && matchCanonical[1]) || (matchVideo && matchVideo[1]) || null;
 
-        if (vId && (html.includes('"isLive":true') || html.includes('"isLiveStream":true') || html.includes('liveStreamabilityRenderer'))) {
-          return resolve(vId);
+        if (videoIdentificado && (html.includes('"isLive":true') || html.includes('"isLiveStream":true') || html.includes('liveStreamabilityRenderer'))) {
+          return resolve(videoIdentificado);
         }
-        resolve(null);
+        return resolve(null);
       };
 
       res.on('end', finalizar);
@@ -266,12 +270,15 @@ function detectarVideoEnVivo(handle) {
     });
 
     req.on('error', () => resolve(null));
-    req.on('timeout', () => { req.destroy(); resolve(null); });
+    req.on('timeout', () => {
+      req.destroy();
+      resolve(null);
+    });
     req.end();
   });
 }
 
-// 4. Batch de telemetría oficial de YouTube con concurrentViewers determinista
+// 4. Batch de telemetría oficial de YouTube
 async function consultarMetricasOficialesYouTube(mapeos) {
   if (!YOUTUBE_API_KEY || mapeos.length === 0) return {};
 
@@ -312,7 +319,6 @@ async function pipelineGeneral() {
   const horaActual = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
   try {
-    // 1. Detectar videos en vivo en YouTube para todos los canales con handle
     const canalesYT = telemetriaState.filter(c => c.ytHandle);
     const detecciones = await Promise.all(canalesYT.map(async (c) => {
       const videoId = await detectarVideoEnVivo(c.ytHandle);
@@ -320,11 +326,8 @@ async function pipelineGeneral() {
     }));
 
     const vivosDetectados = detecciones.filter(d => d.videoId !== null);
-
-    // 2. Traer métricas oficiales de Google para esos videos
     const metricasYouTube = await consultarMetricasOficialesYouTube(vivosDetectados);
 
-    // 3. Cruzar Twitch, Kick y YouTube para cada canal
     for (const canal of telemetriaState) {
       const [tw, ki] = await Promise.all([
         canal.twitchUser ? consultarTwitch(canal.twitchUser) : Promise.resolve({ isLive: false, viewers: 0 }),
