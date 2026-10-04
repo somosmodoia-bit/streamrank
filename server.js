@@ -10,7 +10,10 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 10000;
-const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || '';
+
+// Sanitización estricta de la clave para evitar caracteres invisibles
+const RAW_YT_KEY = process.env.YOUTUBE_API_KEY || '';
+const YOUTUBE_API_KEY = RAW_YT_KEY.trim().replace(/['"\r\n\s]/g, '');
 
 app.use(cors());
 app.use(express.json());
@@ -260,8 +263,6 @@ async function sincronizarMultiplataforma() {
   ejecutando = true;
 
   const horaActual = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-
-  // Priorizamos los canales 24/7 de noticias y deportes primero
   const prioritarios = ['tn', 'c5n', 'lanacionmas', 'neura', 'tycsports', 'a24', 'luzutv', 'olga', 'davoo', 'lacobra'];
 
   for (const canal of telemetriaState) {
@@ -304,13 +305,12 @@ async function sincronizarMultiplataforma() {
 setTimeout(sincronizarMultiplataforma, 1000);
 setInterval(sincronizarMultiplataforma, 20000);
 
-// ENDPOINT DE DIAGNÓSTICO EN VIVO: Para ver qué devuelve Google exactamente
+// Endpoint de diagnóstico directo
 app.get('/api/test-yt', async (req, res) => {
   if (!YOUTUBE_API_KEY) {
     return res.json({ error: 'YOUTUBE_API_KEY no encontrada en process.env' });
   }
 
-  // Prueba directa con el canal de TN
   const tnChannelId = 'UCj6P3CGNP457_k4bZq1l_4w';
   const searchTest = await requestJSON({
     hostname: 'www.googleapis.com',
@@ -322,6 +322,8 @@ app.get('/api/test-yt', async (req, res) => {
   return res.json({
     apiKeyConfigurada: Boolean(YOUTUBE_API_KEY),
     longitudApiKey: YOUTUBE_API_KEY.length,
+    primeros4: YOUTUBE_API_KEY.substring(0, 4),
+    ultimos4: YOUTUBE_API_KEY.substring(YOUTUBE_API_KEY.length - 4),
     respuestaGoogle: searchTest
   });
 });
@@ -343,7 +345,7 @@ function validarToken(req) {
   return token ? envTokens.includes(token) : false;
 }
 
-// ENDPOINTS PRINCIPALES
+// Rutas de API
 app.get('/api/ranking-categorias', (req, res) => {
   try {
     const categorias = CATEGORIAS_ORDEN.map((catKey) => {
