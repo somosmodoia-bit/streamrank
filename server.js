@@ -54,62 +54,62 @@ const CATEGORIAS_CONFIG = {
 const CATEGORIAS_ORDEN = ['entretenimiento', 'deportes', 'streamers', 'finanzas', 'noticias'];
 
 const CANALES = [
-  // Entretenimiento
-  { id: 'luzutv', nombre: 'LUZU TV', yt: 'luzutv', tw: null, ki: null, categoria: 'entretenimiento' },
-  { id: 'olga', nombre: 'OLGA', yt: 'olgaenvivo_', tw: null, ki: null, categoria: 'entretenimiento' },
-  { id: 'blender', nombre: 'Blender', yt: 'somosblender', tw: null, ki: null, categoria: 'entretenimiento' },
-  { id: 'gelatina', nombre: 'Gelatina', yt: 'somosgelatina', tw: null, ki: null, categoria: 'entretenimiento' },
-  { id: 'vorterix', nombre: 'Vorterix', yt: 'VorterixOficial', tw: null, ki: null, categoria: 'entretenimiento' },
-  { id: 'bondilive', nombre: 'Bondi Live', yt: 'bondi_liveok', tw: null, ki: null, categoria: 'entretenimiento' },
-  { id: 'lacasastreaming', nombre: 'La Casa Streaming', yt: 'somoslacasa', tw: null, ki: null, categoria: 'entretenimiento' },
-  { id: 'unpocoderuido', nombre: 'Un Poco de Ruido', yt: 'unpocoderuido', tw: null, ki: null, categoria: 'entretenimiento' },
-  { id: 'loftstream', nombre: 'Loft Stream', yt: 'loftstream', tw: null, ki: null, categoria: 'entretenimiento' },
-  { id: 'republicaz', nombre: 'República Z', yt: 'RepublicaZ', tw: null, ki: null, categoria: 'entretenimiento' },
-  { id: 'posdata', nombre: 'Posdata', yt: 'posdatastream', tw: null, ki: null, categoria: 'entretenimiento' },
-  { id: 'telefe', nombre: 'Telefe Streams', yt: 'telefe', tw: null, ki: null, categoria: 'entretenimiento' },
-  { id: 'eltrece', nombre: 'eltrece', yt: 'eltrece', tw: null, ki: null, categoria: 'entretenimiento' },
-  { id: 'americatv', nombre: 'América TV', yt: 'americaenvivo', tw: null, ki: null, categoria: 'entretenimiento' },
+  // 1. Entretenimiento
+  { id: 'luzutv', nombre: 'LUZU TV', categoria: 'Entretenimiento', ytHandle: '@luzutv', twitchUser: 'luzutv' },
+  { id: 'olga', nombre: 'OLGA', categoria: 'Entretenimiento', ytHandle: '@olgaenvivo_', twitchUser: 'olgaenvivo' },
+  { id: 'blender', nombre: 'Blender', categoria: 'Entretenimiento', ytHandle: '@somosblender', twitchUser: 'somosblender' },
+  { id: 'gelatina', nombre: 'Gelatina', categoria: 'Entretenimiento', ytHandle: '@somosgelatina', twitchUser: 'somosgelatina' },
+  { id: 'vorterix', nombre: 'Vorterix', categoria: 'Entretenimiento', ytHandle: '@vorterixoficial', twitchUser: 'vorterixoficial' },
+  { id: 'bondilive', nombre: 'Bondi Live', categoria: 'Entretenimiento', ytHandle: '@bondi_liveok' },
+  { id: 'lacasastreaming', nombre: 'La Casa Streaming', categoria: 'Entretenimiento', ytHandle: '@lacasastreaming' },
+  { id: 'unpocoderuido', nombre: 'Un Poco de Ruido', categoria: 'Entretenimiento', ytHandle: '@unpocoderuido_' },
+  { id: 'republicaz', nombre: 'República Z', categoria: 'Entretenimiento', ytHandle: '@republicaz' },
+  { id: 'posdata', nombre: 'Posdata', categoria: 'Entretenimiento', ytHandle: '@posdatastream' },
+  { id: 'dgo', nombre: 'DGO en Vivo', categoria: 'Entretenimiento', ytHandle: '@DGO_Latam' },
+  { id: 'telefe', nombre: 'Telefe Streams', categoria: 'Entretenimiento', ytHandle: '@telefe' },
+  { id: 'eltrece', nombre: 'eltrece', categoria: 'Entretenimiento', ytHandle: '@eltrece' },
+  { id: 'americatv', nombre: 'América TV', categoria: 'Entretenimiento', ytHandle: '@americatv' },
 
-  // Deportes
-  { id: 'programa412', nombre: '412 Fútbol (Davoo & La Cobra)', yt: 'programa412', tw: null, ki: null, categoria: 'deportes' },
-  { id: 'azzstream', nombre: 'AZZ Stream (Flavio Azzaro)', yt: 'FlavioAzzaroOK', tw: null, ki: null, categoria: 'deportes' },
-  { id: 'picadotv', nombre: 'Picado TV', yt: 'picadotv', tw: null, ki: null, categoria: 'deportes' },
-  { id: 'tycsports', nombre: 'TyC Sports', yt: 'TyCSportsOficial', tw: null, ki: null, categoria: 'deportes' },
-  { id: 'espnarg', nombre: 'ESPN Argentina', yt: 'espnargentina', tw: null, ki: null, categoria: 'deportes' },
-  { id: 'foxsportsarg', nombre: 'Fox Sports Argentina', yt: 'FoxSportsArg', tw: null, ki: null, categoria: 'deportes' },
-  { id: 'tntsportsarg', nombre: 'TNT Sports Argentina', yt: 'TNTSportsAR', tw: null, ki: null, categoria: 'deportes' },
-  { id: 'dsports', nombre: 'DSports / DGO', yt: 'DIRECTVSports', tw: null, ki: null, categoria: 'deportes' },
-  { id: 'carrozza', nombre: 'Pablo Carrozza', yt: 'PabloCarrozza', tw: null, ki: null, categoria: 'deportes' },
+  // 2. Deportes
+  { id: 'programa412', nombre: '412 Fútbol (Davoo & Cobra)', categoria: 'Deportes', ytHandle: '@412futbol' },
+  { id: 'azzstream', nombre: 'AZZ Stream (Azzaro)', categoria: 'Deportes', ytHandle: '@azzstream' },
+  { id: 'picadotv', nombre: 'Picado TV', categoria: 'Deportes', ytHandle: '@picadotv' },
+  { id: 'carrozza', nombre: 'Pablo Carrozza', categoria: 'Deportes', ytHandle: '@pablocarrozza' },
+  { id: 'tycsports', nombre: 'TyC Sports', categoria: 'Deportes', ytHandle: '@TyCSportsOficial' },
+  { id: 'dsports', nombre: 'DSports', categoria: 'Deportes', ytHandle: '@DSports' },
+  { id: 'espnarg', nombre: 'ESPN Argentina', categoria: 'Deportes', ytHandle: '@espnargentina' },
+  { id: 'tntsportsarg', nombre: 'TNT Sports Argentina', categoria: 'Deportes', ytHandle: '@TNTSportsAR' },
 
-  // Streamers
-  { id: 'davoo', nombre: 'Davoo Xeneize', yt: null, tw: null, ki: 'davoo_xeneize', categoria: 'streamers' },
-  { id: 'lacobra', nombre: 'La Cobra', yt: null, tw: null, ki: 'lacobra', categoria: 'streamers' },
-  { id: 'spreen', nombre: 'Spreen', yt: null, tw: null, ki: 'spreen', categoria: 'streamers' },
-  { id: 'luquitas', nombre: 'Luquitas Rodríguez', yt: null, tw: 'luquitasrodriguez', ki: null, categoria: 'streamers' },
-  { id: 'martincirio', nombre: 'Martín Cirio', yt: 'MartinCirio', tw: null, ki: null, categoria: 'streamers' },
-  { id: 'coscu', nombre: 'Coscu', yt: null, tw: null, ki: 'coscu', categoria: 'streamers' },
-  { id: 'kunaguero', nombre: 'Kun Agüero', yt: null, tw: 'slakun10', ki: null, categoria: 'streamers' },
-  { id: 'momo', nombre: 'Momo Benavides', yt: null, tw: null, ki: 'momoladinastia', categoria: 'streamers' },
-  { id: 'brunenger', nombre: 'Brunenger', yt: null, tw: null, ki: 'brunenger', categoria: 'streamers' },
-  { id: 'goncho', nombre: 'Goncho Banzas', yt: null, tw: 'goncho', ki: null, categoria: 'streamers' },
+  // 3. Streamers
+  { id: 'davoo', nombre: 'Davoo Xeneize', categoria: 'Streamers', ytHandle: '@davooxeneize', twitchUser: 'davooxeneize' },
+  { id: 'lacobra', nombre: 'La Cobra', categoria: 'Streamers', ytHandle: '@lacobraaa', twitchUser: 'lacobraaa' },
+  { id: 'spreen', nombre: 'Spreen', categoria: 'Streamers', ytHandle: '@spreen', twitchUser: 'spreen', kickUser: 'spreen' },
+  { id: 'luquitas', nombre: 'Luquitas Rodríguez', categoria: 'Streamers', ytHandle: '@luquitasrodriguez', twitchUser: 'luquitasrodriguez' },
+  { id: 'martincirio', nombre: 'Martín Cirio', categoria: 'Streamers', ytHandle: '@martincirio', twitchUser: 'martincirio' },
+  { id: 'coscu', nombre: 'Coscu', categoria: 'Streamers', ytHandle: '@coscu', kickUser: 'coscu' },
+  { id: 'kunaguero', nombre: 'Kun Agüero', categoria: 'Streamers', ytHandle: '@SLAKUN10', twitchUser: 'slakun10' },
+  { id: 'momo', nombre: 'Momo Benavides', categoria: 'Streamers', ytHandle: '@momoladinastia', kickUser: 'momo' },
+  { id: 'brunenger', nombre: 'Brunenger', categoria: 'Streamers', ytHandle: '@brunengerx', kickUser: 'brunenger' },
+  { id: 'goncho', nombre: 'Goncho Banzas', categoria: 'Streamers', ytHandle: '@goncho', twitchUser: 'goncho' },
+  { id: 'gregorossello', nombre: 'Grego Rossello', categoria: 'Streamers', ytHandle: '@GregoRossello1' },
 
-  // Finanzas
-  { id: 'bullmarket', nombre: 'Bull Market Brokers', yt: 'bullmarketbrokers', tw: null, ki: null, categoria: 'finanzas' },
-  { id: 'joveninversor', nombre: 'Joven Inversor', yt: 'JovenInversor', tw: null, ki: null, categoria: 'finanzas' },
-  { id: 'elcronista', nombre: 'El Cronista TV', yt: 'CronistaComercial', tw: null, ki: null, categoria: 'finanzas' },
-  { id: 'ambitofinanciero', nombre: 'Ámbito Financiero', yt: 'AmbitoFinanciero', tw: null, ki: null, categoria: 'finanzas' },
-  { id: 'canale', nombre: 'Canal E (Económico)', yt: 'canaleperfil', tw: null, ki: null, categoria: 'finanzas' },
+  // 4. Economía & Finanzas
+  { id: 'bullmarket', nombre: 'Bull Market Brokers', categoria: 'Economía & Finanzas', ytHandle: '@BullMarketBrokers' },
+  { id: 'joveninversor', nombre: 'Joven Inversor', categoria: 'Economía & Finanzas', ytHandle: '@JovenInversor' },
+  { id: 'elcronista', nombre: 'El Cronista TV', categoria: 'Economía & Finanzas', ytHandle: '@ElCronistaTV' },
+  { id: 'ambitofinanciero', nombre: 'Ámbito Financiero', categoria: 'Economía & Finanzas', ytHandle: '@ambitofinanciero' },
+  { id: 'canale', nombre: 'Canal E', categoria: 'Economía & Finanzas', ytHandle: '@canaleoficial' },
 
-  // Noticias
-  { id: 'neura', nombre: 'Neura Media / Troncal (Fantino)', yt: 'neuramedia', tw: null, ki: null, categoria: 'noticias' },
-  { id: 'tn', nombre: 'TN (Todo Noticias)', yt: 'todonoticias', tw: null, ki: null, categoria: 'noticias' },
-  { id: 'c5n', nombre: 'C5N', yt: 'c5n', tw: null, ki: null, categoria: 'noticias' },
-  { id: 'lanacionmas', nombre: 'La Nación +', yt: 'lanacionmas', tw: null, ki: null, categoria: 'noticias' },
-  { id: 'carajostream', nombre: 'Carajo Stream', yt: 'carajostream', tw: null, ki: null, categoria: 'noticias' },
-  { id: 'eldestape', nombre: 'El Destape', yt: 'eldestapeweb', tw: null, ki: null, categoria: 'noticias' },
-  { id: 'a24', nombre: 'A24', yt: 'A24com', tw: null, ki: null, categoria: 'noticias' },
-  { id: 'infobae', nombre: 'Infobae en Vivo', yt: 'infobae', tw: null, ki: null, categoria: 'noticias' },
-  { id: 'elobservador', nombre: 'El Observador 107.9', yt: 'elobservador1079', tw: null, ki: null, categoria: 'noticias' }
+  // 5. Noticias & Actualidad
+  { id: 'neura', nombre: 'Neura Media / Troncal', categoria: 'Noticias & Actualidad', ytHandle: '@neuramedia', twitchUser: 'neuramedia' },
+  { id: 'tn', nombre: 'TN (Todo Noticias)', categoria: 'Noticias & Actualidad', ytHandle: '@todonoticias' },
+  { id: 'c5n', nombre: 'C5N', categoria: 'Noticias & Actualidad', ytHandle: '@c5n' },
+  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'Noticias & Actualidad', ytHandle: '@lanacionmas' },
+  { id: 'carajostream', nombre: 'Carajo Stream', categoria: 'Noticias & Actualidad', ytHandle: '@carajostream' },
+  { id: 'eldestape', nombre: 'El Destape', categoria: 'Noticias & Actualidad', ytHandle: '@ElDestapeRadio' },
+  { id: 'a24', nombre: 'A24', categoria: 'Noticias & Actualidad', ytHandle: '@A24com' },
+  { id: 'infobae', nombre: 'Infobae en Vivo', categoria: 'Noticias & Actualidad', ytHandle: '@infobae' },
+  { id: 'elobservador', nombre: 'El Observador 107.9', categoria: 'Noticias & Actualidad', ytHandle: '@ElObservador1079' }
 ];
 
 const publicPath = path.resolve(__dirname, 'public');
