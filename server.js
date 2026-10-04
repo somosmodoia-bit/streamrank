@@ -10,6 +10,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 10000;
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || '';
 
 app.use(cors());
 app.use(express.json());
@@ -80,8 +81,8 @@ const CANALES = [
   { id: 'tntsportsarg', nombre: 'TNT Sports Argentina', categoria: 'deportes', ytHandle: '@TNTSportsAR' },
 
   // 3. Streamers
-  { id: 'davoo', nombre: 'Davoo Xeneize', categoria: 'streamers', ytHandle: '@davooxeneize', twitchUser: 'davooxeneize' },
-  { id: 'lacobra', nombre: 'La Cobra', categoria: 'streamers', ytHandle: '@lacobraaa', twitchUser: 'lacobraaa' },
+  { id: 'davoo', nombre: 'Davoo Xeneize', categoria: 'streamers', ytHandle: '@davooxeneize', twitchUser: 'davooxeneize', kickUser: 'davooxeneize' },
+  { id: 'lacobra', nombre: 'La Cobra', categoria: 'streamers', ytHandle: '@lacobraaa', twitchUser: 'lacobraaa', kickUser: 'lacobraaa' },
   { id: 'spreen', nombre: 'Spreen', categoria: 'streamers', ytHandle: '@spreen', twitchUser: 'spreen', kickUser: 'spreen' },
   { id: 'luquitas', nombre: 'Luquitas Rodríguez', categoria: 'streamers', ytHandle: '@luquitasrodriguez', twitchUser: 'luquitasrodriguez' },
   { id: 'martincirio', nombre: 'Martín Cirio', categoria: 'streamers', ytHandle: '@martincirio', twitchUser: 'martincirio' },
@@ -90,25 +91,7 @@ const CANALES = [
   { id: 'momo', nombre: 'Momo Benavides', categoria: 'streamers', ytHandle: '@momoladinastia', kickUser: 'momo' },
   { id: 'brunenger', nombre: 'Brunenger', categoria: 'streamers', ytHandle: '@brunengerx', kickUser: 'brunenger' },
   { id: 'goncho', nombre: 'Goncho Banzas', categoria: 'streamers', ytHandle: '@goncho', twitchUser: 'goncho' },
-  { id: 'gregorossello', nombre: 'Grego Rossello', categoria: 'streamers', ytHandle: '@GregoRossello1' },
-
-  // 4. Economía & Finanzas
-  { id: 'bullmarket', nombre: 'Bull Market Brokers', categoria: 'finanzas', ytHandle: '@BullMarketBrokers' },
-  { id: 'joveninversor', nombre: 'Joven Inversor', categoria: 'finanzas', ytHandle: '@JovenInversor' },
-  { id: 'elcronista', nombre: 'El Cronista TV', categoria: 'finanzas', ytHandle: '@ElCronistaTV' },
-  { id: 'ambitofinanciero', nombre: 'Ámbito Financiero', categoria: 'finanzas', ytHandle: '@ambitofinanciero' },
-  { id: 'canale', nombre: 'Canal E', categoria: 'finanzas', ytHandle: '@canaleoficial' },
-
-  // 5. Noticias & Actualidad
-  { id: 'neura', nombre: 'Neura Media / Troncal', categoria: 'noticias', ytHandle: '@neuramedia', twitchUser: 'neuramedia' },
-  { id: 'tn', nombre: 'TN (Todo Noticias)', categoria: 'noticias', ytHandle: '@todonoticias' },
-  { id: 'c5n', nombre: 'C5N', categoria: 'noticias', ytHandle: '@c5n' },
-  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytHandle: '@lanacionmas' },
-  { id: 'carajostream', nombre: 'Carajo Stream', categoria: 'noticias', ytHandle: '@carajostream' },
-  { id: 'eldestape', nombre: 'El Destape', categoria: 'noticias', ytHandle: '@ElDestapeRadio' },
-  { id: 'a24', nombre: 'A24', categoria: 'noticias', ytHandle: '@A24com' },
-  { id: 'infobae', nombre: 'Infobae en Vivo', categoria: 'noticias', ytHandle: '@infobae' },
-  { id: 'elobservador', nombre: 'El Observador 107.9', categoria: 'noticias', ytHandle: '@ElObservador1079' }
+  { id: 'gregorossello', nombre: 'Grego Rossello', categoria: 'streamers', ytHandle: '@GregoRossello1' }
 ];
 
 const publicPath = path.resolve(__dirname, 'public');
@@ -141,128 +124,161 @@ const telemetriaState = CANALES.map((c) => {
   };
 });
 
-// Petición HTTP ultrarrápida con timeout estricto de 4 segundos
-function fetchUrlRapida(url, maxRedirects = 2) {
+// Helper HTTP genérico con timeout
+function requestJSON(options, postData = null) {
   return new Promise((resolve) => {
-    if (maxRedirects < 0) return resolve(null);
-
-    let finalizado = false;
-    const finalizar = (res) => {
-      if (!finalizado) {
-        finalizado = true;
-        resolve(res);
-      }
-    };
-
-    try {
-      const req = https.get(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-          'Accept-Language': 'es-419,es;q=0.9,en;q=0.8'
-        },
-        timeout: 4000 // Máximo 4 segundos por canal
-      }, (res) => {
-        if ([301, 302, 303, 307].includes(res.statusCode) && res.headers.location) {
-          let nextUrl = res.headers.location;
-          if (!nextUrl.startsWith('http')) nextUrl = 'https://www.youtube.com' + nextUrl;
-          req.destroy();
-          return resolve(fetchUrlRapida(nextUrl, maxRedirects - 1));
-        }
-
-        let body = '';
-        res.on('data', (chunk) => {
-          body += chunk;
-          if (body.length > 500000) {
-            req.destroy();
-            finalizar(body);
-          }
-        });
-
-        res.on('end', () => finalizar(body));
-        res.on('close', () => finalizar(body));
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); } catch (e) { resolve(null); }
       });
+    });
 
-      req.on('error', () => finalizar(null));
-      req.on('timeout', () => {
-        req.destroy();
-        finalizar(null);
-      });
-    } catch (e) {
-      finalizar(null);
-    }
+    req.on('error', () => resolve(null));
+    req.on('timeout', () => {
+      req.destroy();
+      resolve(null);
+    });
+
+    if (postData) req.write(postData);
+    req.end();
   });
 }
 
-async function scrapeCanalYT(ytHandle) {
-  if (!ytHandle) return null;
-  const cleanHandle = ytHandle.startsWith('@') ? ytHandle : `@${ytHandle}`;
-  const html = await fetchUrlRapida(`https://www.youtube.com/${cleanHandle}/live`);
-  if (!html) return null;
+// 1. Telemetría Kick (API pública nativa de Kick)
+async function consultarKick(user) {
+  if (!user) return { isLive: false, viewers: 0 };
+  const options = {
+    hostname: 'kick.com',
+    path: `/api/v1/channels/${user}`,
+    method: 'GET',
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+    timeout: 5000
+  };
 
-  try {
-    const isLive = html.includes('"isLive":true') || 
-                   html.includes('"isLiveNow":true') || 
-                   html.includes('"status":"LIVE"');
-
-    if (!isLive) {
-      return { isLive: false, viewers: 0, title: 'Señal en espera' };
-    }
-
-    let viewers = 0;
-    const matchViewers = html.match(/"viewCount":\{"runs":\[\{"text":"([^"]+)"\}/) ||
-                         html.match(/"originalViewCount":"(\d+)"/);
-
-    if (matchViewers) {
-      const rawText = matchViewers[1].replace(/[^\d]/g, '');
-      viewers = parseInt(rawText, 10) || 0;
-    }
-
-    let title = 'En vivo';
-    const matchTitle = html.match(/(.*?)<\/title>/);
-    if (matchTitle && matchTitle[1]) {
-      title = matchTitle[1].replace(' - YouTube', '').trim();
-    }
-
-    return { isLive: true, viewers, title };
-  } catch (err) {
-    return null;
+  const res = await requestJSON(options);
+  if (res && res.livestream && res.livestream.is_live) {
+    return {
+      isLive: true,
+      viewers: parseInt(res.livestream.viewer_count || 0, 10),
+      title: res.livestream.session_title || ''
+    };
   }
+  return { isLive: false, viewers: 0 };
 }
 
-// Worker asíncrono desacoplado: nunca bloquea la API
-let enProceso = false;
-async function sincronizarEnVivo() {
-  if (enProceso) return;
-  enProceso = true;
+// 2. Telemetría Twitch (GQL público sin requerir client-secret)
+async function consultarTwitch(user) {
+  if (!user) return { isLive: false, viewers: 0 };
+  const query = JSON.stringify({
+    query: `query { user(login: "${user}") { stream { viewersCount title } } }`
+  });
+
+  const options = {
+    hostname: 'gql.twitch.tv',
+    path: '/gql',
+    method: 'POST',
+    headers: {
+      'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko',
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(query)
+    },
+    timeout: 5000
+  };
+
+  const res = await requestJSON(options, query);
+  const stream = res?.data?.user?.stream;
+  if (stream) {
+    return {
+      isLive: true,
+      viewers: parseInt(stream.viewersCount || 0, 10),
+      title: stream.title || ''
+    };
+  }
+  return { isLive: false, viewers: 0 };
+}
+
+// 3. Telemetría YouTube (API v3 oficial de Google)
+async function consultarYouTube(handle) {
+  if (!handle || !YOUTUBE_API_KEY) return { isLive: false, viewers: 0, title: '' };
+  const cleanHandle = handle.replace('@', '');
+
+  const searchOpt = {
+    hostname: 'www.googleapis.com',
+    path: `/youtube/v3/search?part=snippet&eventType=live&type=video&q=\({encodeURIComponent(cleanHandle)}&key=\){YOUTUBE_API_KEY}&maxResults=1`,
+    method: 'GET',
+    timeout: 6000
+  };
+
+  const searchRes = await requestJSON(searchOpt);
+  if (!searchRes?.items?.length) return { isLive: false, viewers: 0, title: '' };
+
+  const item = searchRes.items[0];
+  const videoId = item.id.videoId;
+  const videoTitle = item.snippet.title;
+
+  const vidOpt = {
+    hostname: 'www.googleapis.com',
+    path: `/youtube/v3/videos?part=liveStreamingDetails&id=\({videoId}&key=\){YOUTUBE_API_KEY}`,
+    method: 'GET',
+    timeout: 6000
+  };
+
+  const vidRes = await requestJSON(vidOpt);
+  const details = vidRes?.items?.[0]?.liveStreamingDetails;
+  const viewers = parseInt(details?.concurrentViewers || '0', 10);
+
+  return { isLive: viewers > 0, viewers, title: videoTitle };
+}
+
+// Bucle en segundo plano: corre en paralelo cada 30 segundos
+let sincronizando = false;
+async function sincronizarMultiplataforma() {
+  if (sincronizando) return;
+  sincronizando = true;
 
   const horaActual = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
-  // Barremos de a 3 canales concurrentes para máxima velocidad sin ahogar el server
-  for (let i = 0; i < telemetriaState.length; i += 3) {
-    const trio = telemetriaState.slice(i, i + 3);
-    await Promise.all(trio.map(async (canal) => {
-      if (canal.ytHandle) {
-        const datos = await scrapeCanalYT(canal.ytHandle);
-        if (datos !== null) {
-          canal.is_live = datos.isLive;
-          canal.viewers = datos.viewers;
-          canal.viewers_breakdown.yt = datos.viewers;
-          canal.plataformas_live.yt = datos.isLive && datos.viewers > 0;
-          canal.title = datos.isLive ? datos.title : 'Señal en espera';
-          canal.hora_actualizacion = horaActual;
-        }
+  for (const canal of telemetriaState) {
+    try {
+      const [yt, tw, ki] = await Promise.all([
+        canal.ytHandle ? consultarYouTube(canal.ytHandle) : Promise.resolve({ isLive: false, viewers: 0 }),
+        canal.twitchUser ? consultarTwitch(canal.twitchUser) : Promise.resolve({ isLive: false, viewers: 0 }),
+        canal.kickUser ? consultarKick(canal.kickUser) : Promise.resolve({ isLive: false, viewers: 0 })
+      ]);
+
+      canal.viewers_breakdown.yt = yt.viewers;
+      canal.viewers_breakdown.tw = tw.viewers;
+      canal.viewers_breakdown.ki = ki.viewers;
+
+      canal.plataformas_live.yt = yt.isLive;
+      canal.plataformas_live.tw = tw.isLive;
+      canal.plataformas_live.ki = ki.isLive;
+
+      canal.viewers = yt.viewers + tw.viewers + ki.viewers;
+      canal.is_live = canal.viewers > 0 || yt.isLive || tw.isLive || ki.isLive;
+
+      if (canal.is_live) {
+        canal.title = yt.title || tw.title || ki.title || 'En vivo';
+      } else {
+        canal.title = 'Señal en espera';
       }
-    }));
+
+      canal.hora_actualizacion = horaActual;
+    } catch (e) {
+      // Si falla un canal puntual, continúa con el siguiente sin interrumpir el proceso
+    }
   }
 
-  enProceso = false;
+  sincronizando = false;
 }
 
-// Iniciar worker pasados 3 segundos para que el servidor levante al instante
-setTimeout(sincronizarEnVivo, 3000);
-setInterval(sincronizarEnVivo, 35000);
+// Inicia el rastreo tras 2 segundos y repite cada 30 segundos
+setTimeout(sincronizarMultiplataforma, 2000);
+setInterval(sincronizarMultiplataforma, 30000);
 
-// Helper autenticación
+// Helper autenticación institucional
 function validarToken(req) {
   const envTokens = (process.env.VALID_TOKENS || '').split(',').map((t) => t.trim()).filter(Boolean);
   if (envTokens.length === 0) return true;
@@ -279,7 +295,7 @@ function validarToken(req) {
   return token ? envTokens.includes(token) : false;
 }
 
-// RESPUESTA INMEDIATA: Nunca se cuelga
+// Rutas de API
 app.get('/api/ranking-categorias', (req, res) => {
   try {
     const categorias = CATEGORIAS_ORDEN.map((catKey) => {
