@@ -114,7 +114,7 @@
         <span>TELEMETRÍA EN TIEMPO REAL</span>
       </div>
       <h1 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
-        Catálogo y Rating de <span class="text-matrix">Streaming</span> Argentino
+        Catálogo y Rating de <span class="text-matrix">Streaming</span> Argentino <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono font-semibold align-middle ml-2">BETA</span>
       </h1>
       <p class="text-slate-400 text-xs sm:text-sm font-normal">
         Monitoreo simultáneo y transparente de YouTube Live, Twitch y Kick. Ranking oficial categorizado.
@@ -147,7 +147,9 @@
           document.getElementById('relojHeader').innerText = data.fecha + ' • ' + data.timestamp + ' hs';
         }
         renderizarCatalogo();
-      } catch (err) {}
+      } catch (err) {
+        console.error("Error cargando catálogo:", err);
+      }
     }
 
     function toggleCategoria(catId) {
@@ -160,7 +162,7 @@
         ? `<div class="h-6 flex items-center mb-2"><div class="bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-black text-[9px] font-mono px-2 py-0.5 rounded-md uppercase inline-block">👑 #1 LÍDER CATEGORÍA</div></div>` 
         : `<div class="h-6 flex items-center mb-2"><div class="text-[10px] font-mono font-bold text-slate-500">#${puesto}</div></div>`;
       
-      const hnd = (c.yt || c.tw || c.ki || c.handle || '').replace('@', '');
+      const handleLimpio = (c.yt || c.tw || c.ki || c.handle || '').replace('@', '');
       const ini = (c.nombre || 'SR').substring(0, 2).toUpperCase();
 
       return `
@@ -171,18 +173,21 @@
             <div class="flex items-center space-x-2.5 min-w-0">
               <div class="relative w-10 h-10 flex-shrink-0 rounded-full border border-slate-700 bg-slate-800 flex items-center justify-center overflow-hidden">
                 <span class="text-[#94a3b8] font-bold text-sm font-sans">${ini}</span>
-                <img src="/logos/${c.id}.jpg" alt="${c.nombre}" loading="lazy" onerror="if(!this.dataset.step) { this.dataset.step = 1; this.src = '/logos/${c.id}.png'; } else if(this.dataset.step == 1) { this.dataset.step = 2; this.src = '/logos/${c.id}.webp'; } else { this.style.display = 'none'; }" class="absolute inset-0 w-full h-full object-cover"/>
+                <img src="/logos/${c.id}.jpg" alt="${c.nombre || ''}" loading="lazy" onerror="if(!this.dataset.step) { this.dataset.step = 1; this.src = '/logos/${c.id}.png'; } else if(this.dataset.step == 1) { this.dataset.step = 2; this.src = '/logos/${c.id}.webp'; } else { this.style.display = 'none'; }" class="absolute inset-0 w-full h-full object-cover"/>
               </div>
               <div class="min-w-0">
                 <h3 class="font-bold text-white text-sm truncate leading-tight">${c.nombre}</h3>
-                <span class="text-[11px] text-slate-400 font-mono truncate block">@${hnd}</span>
+                <span class="text-[11px] text-slate-400 font-mono truncate block">@${handleLimpio}</span>
               </div>
             </div>
-            <span class="text-[9px] font-bold font-mono px-2 py-0.5 rounded border ${c.is_live ? 'bg-matrix-10 text-matrix border-matrix-30' : 'bg-slate-800/60 text-slate-500 border-slate-700'} flex-shrink-0">
-              ${c.is_live ? 'EN VIVO' : 'OFFLINE'}
-            </span>
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+              <button class="text-[9px] font-bold font-mono px-2 py-0.5 rounded border border-slate-700 bg-slate-800/80 hover:bg-emerald-500 hover:text-black hover:border-emerald-500 text-slate-400 transition cursor-pointer" title="Comparar VS">VS</button>
+              <span class="text-[9px] font-bold font-mono px-2 py-0.5 rounded border ${c.is_live ? 'bg-matrix-10 text-matrix border-matrix-30' : 'bg-slate-800/60 text-slate-500 border-slate-700'}">
+                ${c.is_live ? 'EN VIVO' : 'OFFLINE'}
+              </span>
+            </div>
           </div>
-          <p class="text-xs text-slate-400 mt-3 line-clamp-1 italic leading-relaxed">"${c.title}"</p>
+          <p class="text-xs text-slate-400 mt-3 line-clamp-1 italic leading-relaxed">"${c.title || ''}"</p>
         </div>
         <div class="mt-4 pt-3 border-t border-slate-800/80">
           <div class="flex items-baseline justify-between mb-2">
@@ -190,20 +195,20 @@
               <span class="text-[9px] text-slate-400 uppercase font-mono block">Total Viewers</span>
               <span class="text-base sm:text-lg font-black font-mono ${c.is_live ? 'text-matrix' : 'text-slate-500'}">${c.viewers.toLocaleString('es-AR')}</span>
             </div>
-            <span class="text-[10px] text-slate-400 font-mono">${c.is_live ? 'Activo' : 'Corte'} ${c.hora_actualizacion} hs</span>
+            <span class="text-[10px] text-slate-400 font-mono">${c.is_live ? 'Activo' : 'Corte'} ${c.hora_actualizacion || ''} hs</span>
           </div>
           <div class="grid grid-cols-3 gap-1.5 pt-1">
-            <div class="text-center py-1 px-1 rounded border text-[10px] font-mono font-bold flex items-center justify-center gap-1 ${c.plataformas_live.yt ? 'bg-red-950/40 border-red-500/50 text-red-400' : 'bg-slate-900 border-slate-800/80 text-slate-400'}">
-              <svg fill="#FF0000" viewBox="0 0 24 24" class="w-3.5 h-3.5 ${c.plataformas_live.yt ? '' : 'opacity-40 grayscale'}"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-              <span>${c.plataformas_live.yt ? c.viewers_breakdown.yt.toLocaleString('es-AR') : 'off'}</span>
+            <div class="text-center py-1 px-1 rounded border text-[10px] font-mono font-bold flex items-center justify-center gap-1 ${c.plataformas_live && c.plataformas_live.yt ? 'bg-red-950/40 border-red-500/50 text-red-400' : 'bg-slate-900 border-slate-800/80 text-slate-400'}">
+              <svg fill="#FF0000" viewBox="0 0 24 24" class="w-3.5 h-3.5 ${c.plataformas_live && c.plataformas_live.yt ? '' : 'opacity-40 grayscale'}"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+              <span>${c.plataformas_live && c.plataformas_live.yt ? c.viewers_breakdown.yt.toLocaleString('es-AR') : 'off'}</span>
             </div>
-            <div class="text-center py-1 px-1 rounded border text-[10px] font-mono font-bold flex items-center justify-center gap-1 ${c.plataformas_live.tw ? 'bg-purple-950/40 border-purple-500/50 text-purple-300' : 'bg-slate-900 border-slate-800/80 text-slate-400'}">
-              <svg fill="#9146FF" viewBox="0 0 24 24" class="w-3.5 h-3.5 ${c.plataformas_live.tw ? '' : 'opacity-40 grayscale'}"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/></svg>
-              <span>${c.plataformas_live.tw ? c.viewers_breakdown.tw.toLocaleString('es-AR') : 'off'}</span>
+            <div class="text-center py-1 px-1 rounded border text-[10px] font-mono font-bold flex items-center justify-center gap-1 ${c.plataformas_live && c.plataformas_live.tw ? 'bg-purple-950/40 border-purple-500/50 text-purple-300' : 'bg-slate-900 border-slate-800/80 text-slate-400'}">
+              <svg fill="#9146FF" viewBox="0 0 24 24" class="w-3.5 h-3.5 ${c.plataformas_live && c.plataformas_live.tw ? '' : 'opacity-40 grayscale'}"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/></svg>
+              <span>${c.plataformas_live && c.plataformas_live.tw ? c.viewers_breakdown.tw.toLocaleString('es-AR') : 'off'}</span>
             </div>
-            <div class="text-center py-1 px-1 rounded border text-[10px] font-mono font-bold flex items-center justify-center gap-1 ${c.plataformas_live.ki ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300' : 'bg-slate-900 border-slate-800/80 text-slate-400'}">
-              <svg fill="#53FC18" viewBox="0 0 24 24" class="w-3.5 h-3.5 ${c.plataformas_live.ki ? '' : 'opacity-40 grayscale'}"><path d="M3 3h5v5.5h3V5h5V3h5v7h-5v2h-3v2h3v2h5v7h-5v-2h-5v-3.5H8V21H3V3z"/></svg>
-              <span>${c.plataformas_live.ki ? c.viewers_breakdown.ki.toLocaleString('es-AR') : 'off'}</span>
+            <div class="text-center py-1 px-1 rounded border text-[10px] font-mono font-bold flex items-center justify-center gap-1 ${c.plataformas_live && c.plataformas_live.ki ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300' : 'bg-slate-900 border-slate-800/80 text-slate-400'}">
+              <svg fill="#53FC18" viewBox="0 0 24 24" class="w-3.5 h-3.5 ${c.plataformas_live && c.plataformas_live.ki ? '' : 'opacity-40 grayscale'}"><path d="M3 3h5v5.5h3V5h5V3h5v7h-5v2h-3v2h3v2h5v7h-5v-2h-5v-3.5H8V21H3V3z"/></svg>
+              <span>${c.plataformas_live && c.plataformas_live.ki ? c.viewers_breakdown.ki.toLocaleString('es-AR') : 'off'}</span>
             </div>
           </div>
         </div>
@@ -217,12 +222,13 @@
 
       datosGlobales.forEach((cat) => {
         const canalesFiltrados = cat.canales.filter(c => 
-          c.nombre.toLowerCase().includes(query) || c.handle.toLowerCase().includes(query) || c.title.toLowerCase().includes(query)
+          (c.nombre || '').toLowerCase().includes(query) || 
+          (c.handle || '').toLowerCase().includes(query) || 
+          (c.title || '').toLowerCase().includes(query)
         );
 
         if (query && canalesFiltrados.length === 0) return;
 
-        // Limpieza de nombres de categorías
         let catNombreReal = cat.nombre;
         if (cat.nombre.includes("Entretenimiento")) catNombreReal = "Entretenimiento";
         else if (cat.nombre.includes("Deportes")) catNombreReal = "Deportes";
@@ -230,7 +236,6 @@
         else if (cat.nombre.includes("Economía") || cat.nombre.includes("Finanzas")) catNombreReal = "Economía & Finanzas";
         else if (cat.nombre.includes("Noticias") || cat.nombre.includes("Actualidad")) catNombreReal = "Noticias & Actualidad";
 
-        // Mapeo a Iconos SVG minimalistas
         let catIconoSVG = '';
         switch(catNombreReal) {
           case 'Entretenimiento': catIconoSVG = '<svg class="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125Z"/></svg>'; break;
