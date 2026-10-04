@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
-import https from 'https';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -10,9 +9,6 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 10000;
-
-const RAW_YT_KEY = process.env.YOUTUBE_API_KEY || '';
-const YOUTUBE_API_KEY = RAW_YT_KEY.trim().replace(/['"\r\n\s]/g, '');
 
 app.use(cors());
 app.use(express.json());
@@ -46,7 +42,7 @@ const CATEGORIAS_CONFIG = {
     nombre: 'Economía & Finanzas',
     banner: 'ESPACIO PUBLICITARIO DISPONIBLE • FINANZAS',
     bannerColor: 'from-amber-950/80 via-slate-900 to-yellow-950/80',
-    borderColor: 'border-amber-500/30'
+    borderColor: 'border-purple-500/30'
   },
   noticias: {
     id: 'noticias',
@@ -120,12 +116,6 @@ const CANALES = [
 ];
 
 const publicPath = path.resolve(__dirname, 'public');
-const logosDir = path.join(publicPath, 'logos');
-
-if (!fs.existsSync(logosDir)) {
-  fs.mkdirSync(logosDir, { recursive: true });
-}
-
 const horaBase = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
 const telemetriaState = CANALES.map((c) => {
@@ -148,250 +138,163 @@ const telemetriaState = CANALES.map((c) => {
   };
 });
 
-function requestJSON(options, postData = null) {
-  return new Promise((resolve) => {
-    try {
-      const req = https.request(options, (res) => {
-        let data = '';
-        res.on('data', chunk => { data += chunk; });
-        res.on('end', () => {
-          try {
-            resolve({ status: res.statusCode, data: JSON.parse(data) });
-          } catch (e) {
-            resolve({ status: res.statusCode, data: null });
-          }
-        });
-      });
-      req.on('error', () => resolve({ status: 500, data: null }));
-      req.on('timeout', () => { req.destroy(); resolve({ status: 504, data: null }); });
-      if (postData) req.write(postData);
-      req.end();
-    } catch (e) {
-      resolve({ status: 500, data: null });
-    }
-  });
-}
-
 // 1. Kick API
 async function consultarKick(user) {
   if (!user) return { isLive: false, viewers: 0 };
-  const res = await requestJSON({
-    hostname: 'kick.com',
-    path: `/api/v1/channels/${user}`,
-    method: 'GET',
-    headers: { 'User-Agent': 'Mozilla/5.0' },
-    timeout: 3500
-  });
-
-  if (res?.data?.livestream?.is_live) {
-    return {
-      isLive: true,
-      viewers: parseInt(res.data.livestream.viewer_count || 0, 10),
-      title: res.data.livestream.session_title || ''
-    };
-  }
+  try {
+    const res = await fetch(`https://kick.com/api/v1/channels/${user}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      signal: AbortSignal.timeout(3500)
+    });
+    if (!res.ok) return { isLive: false, viewers: 0 };
+    const data = await res.json();
+    if (data?.livestream?.is_live) {
+      return {
+        isLive: true,
+        viewers: parseInt(data.livestream.viewer_count || 0, 10),
+        title: data.livestream.session_title || ''
+      };
+    }
+  } catch (e) {}
   return { isLive: false, viewers: 0 };
 }
 
 // 2. Twitch GQL
 async function consultarTwitch(user) {
   if (!user) return { isLive: false, viewers: 0 };
-  const query = JSON.stringify({
-    query: `query { user(login: "${user}") { stream { viewersCount title } } }`
-  });
-
-  const res = await requestJSON({
-    hostname: 'gql.twitch.tv',
-    path: '/gql',
-    method: 'POST',
-    headers: {
-      'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko',
-      'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(query)
-    },
-    timeout: 3500
-  }, query);
-
-  const stream = res?.data?.data?.user?.stream;
-  if (stream) {
-    return {
-      isLive: true,
-      viewers: parseInt(stream.viewersCount || 0, 10),
-      title: stream.title || ''
-    };
-  }
+  try {
+    const query = JSON.stringify({
+      query: `query { user(login: "${user}") { stream { viewersCount title } } }`
+    });
+    const res = await fetch('https://gql.twitch.tv/gql', {
+      method: 'POST',
+      headers: {
+        'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko',
+        'Content-Type': 'application/json'
+      },
+      body: query,
+      signal: AbortSignal.timeout(3500)
+    });
+    if (!res.ok) return { isLive: false, viewers: 0 };
+    const data = await res.json();
+    const stream = data?.data?.user?.stream;
+    if (stream) {
+      return {
+        isLive: true,
+        viewers: parseInt(stream.viewersCount || 0, 10),
+        title: stream.title || ''
+      };
+    }
+  } catch (e) {}
   return { isLive: false, viewers: 0 };
 }
 
-// 3. Extracción infalible de Video ID por la pestaña oficial /streams del canal
-function extraerVideoIdDeStreams(handle) {
-  return new Promise((resolve) => {
-    const options = {
-      hostname: 'www.youtube.com',
-      path: `/@${handle}/streams`,
-      method: 'GET',
+// 3. YouTube Nativo sin API Key (Siguiendo redirección /live directa)
+async function consultarYouTube(handle) {
+  if (!handle) return { isLive: false, viewers: 0, title: '' };
+
+  try {
+    const res = await fetch(`https://www.youtube.com/@${handle}/live`, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Accept-Language': 'es-419,es;q=0.9'
+        'Accept-Language': 'es-419,es;q=0.9,en;q=0.8'
       },
-      timeout: 4500
-    };
-
-    const req = https.request(options, (res) => {
-      let html = '';
-      res.on('data', chunk => {
-        html += chunk;
-        if (html.length > 120000) req.destroy();
-      });
-
-      const procesar = () => {
-        // En /streams, si hay un vivo activo, el JSON interno contiene "style":"LIVE" o "THUMBNAIL_OVERLAY_TIME_STATUS_STYLE_LIVE"
-        // y el videoId asociado a ese bloque
-        const liveBlockMatch = html.match(/"videoId":"([a-zA-Z0-9_-]{11})"[^}]+?"style":"(?:LIVE|THUMBNAIL_OVERLAY_TIME_STATUS_STYLE_LIVE)"/);
-        if (liveBlockMatch && liveBlockMatch[1]) {
-          return resolve(liveBlockMatch[1]);
-        }
-
-        // Si no, tomamos el primer video de la lista de streams para verificar con la API
-        const firstVideoMatch = html.match(/"videoId":"([a-zA-Z0-9_-]{11})"/);
-        if (firstVideoMatch && firstVideoMatch[1]) {
-          return resolve(firstVideoMatch[1]);
-        }
-
-        resolve(null);
-      };
-
-      res.on('end', procesar);
-      res.on('close', procesar);
+      redirect: 'follow',
+      signal: AbortSignal.timeout(4500)
     });
 
-    req.on('error', () => resolve(null));
-    req.on('timeout', () => { req.destroy(); resolve(null); });
-    req.end();
-  });
-}
-
-// 4. Batch de métricas oficiales con la API Key
-async function consultarMetricasBatch(videoIds) {
-  if (!YOUTUBE_API_KEY || videoIds.length === 0) return {};
-
-  const ids = [...new Set(videoIds)].join(',');
-  const res = await requestJSON({
-    hostname: 'www.googleapis.com',
-    path: `/youtube/v3/videos?part=snippet,liveStreamingDetails&id=\({ids}&key=\){YOUTUBE_API_KEY}`,
-    method: 'GET',
-    timeout: 5000
-  });
-
-  const mapa = {};
-  if (res?.data?.items) {
-    for (const v of res.data.items) {
-      const details = v.liveStreamingDetails;
-      // Confirmamos que esté efectivamente transmitiendo en este instante
-      if (details && details.concurrentViewers) {
-        mapa[v.id] = {
-          isLive: true,
-          viewers: parseInt(details.concurrentViewers, 10),
-          title: v.snippet?.title || 'En vivo'
-        };
-      }
+    const finalUrl = res.url || '';
+    // Si no redirigió a un /watch?v=, el canal está offline
+    if (!finalUrl.includes('/watch?v=')) {
+      return { isLive: false, viewers: 0, title: '' };
     }
+
+    const html = await res.text();
+
+    // Verificamos si realmente está transmitiendo en vivo
+    const isLive = html.includes('"isLive":true') || html.includes('"isLiveStream":true');
+    if (!isLive) {
+      return { isLive: false, viewers: 0, title: '' };
+    }
+
+    // Extraer viewers: formato exacto del player de YouTube
+    let viewers = 0;
+    const matchSimple = html.match(/"viewCount":\s*\{\s*"runs":\s*\[\s*\{\s*"text":\s*"([^"]+)"/);
+    const matchAlt = html.match(/"originalViewCount":\s*"(\d+)"/);
+    const matchConcur = html.match(/"concurrentViewers":\s*"(\d+)"/);
+
+    if (matchConcur) {
+      viewers = parseInt(matchConcur[1], 10);
+    } else if (matchAlt) {
+      viewers = parseInt(matchAlt[1], 10);
+    } else if (matchSimple) {
+      viewers = parseInt(matchSimple[1].replace(/[^0-9]/g, ''), 10) || 0;
+    }
+
+    // Extraer título
+    let title = 'En vivo';
+    const matchTitle = html.match(/([^<]+)<\/title>/);
+    if (matchTitle) {
+      title = matchTitle[1].replace(' - YouTube', '').trim();
+    }
+
+    return {
+      isLive: viewers > 0,
+      viewers,
+      title
+    };
+  } catch (err) {
+    return { isLive: false, viewers: 0, title: '' };
   }
-  return mapa;
 }
 
-// Bucle en segundo plano
-let sincronizando = false;
-async function sincronizarPipeline() {
-  if (sincronizando) return;
-  sincronizando = true;
+// Bucle en segundo plano: sincronización de toda la grilla
+let ejecutandoSincronizacion = false;
+async function pipelineGeneral() {
+  if (ejecutandoSincronizacion) return;
+  ejecutandoSincronizacion = true;
 
   const horaActual = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
-  try {
-    const canalesYT = telemetriaState.filter(c => c.ytHandle);
-    const detecciones = [];
+  // Procesamos en lotes de a 5 para no saturar conexiones
+  for (let i = 0; i < telemetriaState.length; i += 5) {
+    const lote = telemetriaState.slice(i, i + 5);
 
-    // Buscamos el ID en /streams para cada canal
-    await Promise.all(canalesYT.map(async (c) => {
+    await Promise.all(lote.map(async (canal) => {
       try {
-        const vId = await extraerVideoIdDeStreams(c.ytHandle);
-        if (vId) {
-          detecciones.push({ canalId: c.id, videoId: vId });
+        const [yt, tw, ki] = await Promise.all([
+          canal.ytHandle ? consultarYouTube(canal.ytHandle) : Promise.resolve({ isLive: false, viewers: 0 }),
+          canal.twitchUser ? consultarTwitch(canal.twitchUser) : Promise.resolve({ isLive: false, viewers: 0 }),
+          canal.kickUser ? consultarKick(canal.kickUser) : Promise.resolve({ isLive: false, viewers: 0 })
+        ]);
+
+        canal.viewers_breakdown.yt = yt.viewers;
+        canal.viewers_breakdown.tw = tw.viewers;
+        canal.viewers_breakdown.ki = ki.viewers;
+
+        canal.plataformas_live.yt = yt.isLive;
+        canal.plataformas_live.tw = tw.isLive;
+        canal.plataformas_live.ki = ki.isLive;
+
+        canal.viewers = yt.viewers + tw.viewers + ki.viewers;
+        canal.is_live = canal.viewers > 0;
+
+        if (canal.is_live) {
+          canal.title = yt.title || tw.title || ki.title || 'En vivo';
+        } else {
+          canal.title = 'Señal en espera';
         }
+
+        canal.hora_actualizacion = horaActual;
       } catch (e) {}
     }));
-
-    // Le consultamos a Google por todos los IDs juntos (1 punto de cuota)
-    const ids = detecciones.map(d => d.videoId);
-    const metricasMap = await consultarMetricasBatch(ids);
-
-    // Actualizamos toda la grilla
-    for (const canal of telemetriaState) {
-      const [tw, ki] = await Promise.all([
-        canal.twitchUser ? consultarTwitch(canal.twitchUser) : Promise.resolve({ isLive: false, viewers: 0 }),
-        canal.kickUser ? consultarKick(canal.kickUser) : Promise.resolve({ isLive: false, viewers: 0 })
-      ]);
-
-      const vivoInfo = detecciones.find(d => d.canalId === canal.id);
-      let ytViewers = 0;
-      let ytLive = false;
-      let ytTitle = '';
-
-      if (vivoInfo && metricasMap[vivoInfo.videoId]) {
-        ytViewers = metricasMap[vivoInfo.videoId].viewers;
-        ytLive = true;
-        ytTitle = metricasMap[vivoInfo.videoId].title;
-      }
-
-      canal.viewers_breakdown.yt = ytViewers;
-      canal.viewers_breakdown.tw = tw.viewers;
-      canal.viewers_breakdown.ki = ki.viewers;
-
-      canal.plataformas_live.yt = ytLive;
-      canal.plataformas_live.tw = tw.isLive;
-      canal.plataformas_live.ki = ki.isLive;
-
-      canal.viewers = ytViewers + tw.viewers + ki.viewers;
-      canal.is_live = canal.viewers > 0;
-
-      if (canal.is_live) {
-        canal.title = ytTitle || tw.title || ki.title || 'En vivo';
-      } else {
-        canal.title = 'Señal en espera';
-      }
-
-      canal.hora_actualizacion = horaActual;
-    }
-  } catch (err) {
-    console.error('Error general:', err);
   }
 
-  sincronizando = false;
+  ejecutandoSincronizacion = false;
 }
 
-setTimeout(sincronizarPipeline, 1000);
-setInterval(sincronizarPipeline, 20000);
-
-// Endpoint de prueba instantáneo
-app.get('/api/debug-yt', async (req, res) => {
-  const handle = req.query.handle || 'todonoticias';
-  const videoId = await extraerVideoIdDeStreams(handle);
-  let metricas = null;
-
-  if (videoId && YOUTUBE_API_KEY) {
-    const mapa = await consultarMetricasBatch([videoId]);
-    metricas = mapa[videoId] || null;
-  }
-
-  res.json({
-    canalProbado: handle,
-    videoIdDetectado: videoId,
-    apiKeyConfigurada: Boolean(YOUTUBE_API_KEY),
-    metricasOficiales: metricas,
-    viewersEnVivo: metricas?.viewers || 0
-  });
-});
+setTimeout(pipelineGeneral, 1000);
+setInterval(pipelineGeneral, 25000);
 
 // Helper de autenticación institucional
 function validarToken(req) {
@@ -410,7 +313,7 @@ function validarToken(req) {
   return token ? envTokens.includes(token) : false;
 }
 
-// Endpoints principales
+// Endpoints de API
 app.get('/api/ranking-categorias', (req, res) => {
   try {
     const categorias = CATEGORIAS_ORDEN.map((catKey) => {
