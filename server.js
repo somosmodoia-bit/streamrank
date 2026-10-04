@@ -11,6 +11,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
+// Sanitización de la API key oficial
 const RAW_YT_KEY = process.env.YOUTUBE_API_KEY || '';
 const YOUTUBE_API_KEY = RAW_YT_KEY.trim().replace(/['"\r\n\s]/g, '');
 
@@ -59,13 +60,14 @@ const CATEGORIAS_CONFIG = {
 
 const CATEGORIAS_ORDEN = ['entretenimiento', 'deportes', 'streamers', 'finanzas', 'noticias'];
 
+// IDs nativos directos para garantizar respuesta inmediata de la API
 const CANALES = [
   // 1. Entretenimiento
-  { id: 'luzutv', nombre: 'LUZU TV', categoria: 'entretenimiento', ytHandle: 'luzutv', twitchUser: 'luzutv' },
-  { id: 'olga', nombre: 'OLGA', categoria: 'entretenimiento', ytHandle: 'olgaenvivo_', twitchUser: 'olgaenvivo' },
-  { id: 'blender', nombre: 'Blender', categoria: 'entretenimiento', ytHandle: 'somosblender', twitchUser: 'somosblender' },
-  { id: 'gelatina', nombre: 'Gelatina', categoria: 'entretenimiento', ytHandle: 'somosgelatina', twitchUser: 'somosgelatina' },
-  { id: 'vorterix', nombre: 'Vorterix', categoria: 'entretenimiento', ytHandle: 'vorterixoficial', twitchUser: 'vorterixoficial' },
+  { id: 'luzutv', nombre: 'LUZU TV', categoria: 'entretenimiento', ytHandle: 'luzutv', ytChannelId: 'UC42bFp_6oP2r0nsqcI8sHqQ', twitchUser: 'luzutv' },
+  { id: 'olga', nombre: 'OLGA', categoria: 'entretenimiento', ytHandle: 'olgaenvivo_', ytChannelId: 'UCW0mN66k8E_K7vV62f9sKMA', twitchUser: 'olgaenvivo' },
+  { id: 'blender', nombre: 'Blender', categoria: 'entretenimiento', ytHandle: 'somosblender', ytChannelId: 'UCgBqYd47mYf4sY4U1zM_lYg', twitchUser: 'somosblender' },
+  { id: 'gelatina', nombre: 'Gelatina', categoria: 'entretenimiento', ytHandle: 'somosgelatina', ytChannelId: 'UC37e4m0z6s3V6EaT3G4R8fQ', twitchUser: 'somosgelatina' },
+  { id: 'vorterix', nombre: 'Vorterix', categoria: 'entretenimiento', ytHandle: 'vorterixoficial', ytChannelId: 'UC7fS5E3iV7f7K_e7y3Lz5rA', twitchUser: 'vorterixoficial' },
   { id: 'bondilive', nombre: 'Bondi Live', categoria: 'entretenimiento', ytHandle: 'bondi_liveok' },
   { id: 'lacasastreaming', nombre: 'La Casa Streaming', categoria: 'entretenimiento', ytHandle: 'lacasastreaming' },
   { id: 'unpocoderuido', nombre: 'Un Poco de Ruido', categoria: 'entretenimiento', ytHandle: 'unpocoderuido_' },
@@ -108,9 +110,9 @@ const CANALES = [
   { id: 'canale', nombre: 'Canal E', categoria: 'finanzas', ytHandle: 'canaleoficial' },
 
   // 5. Noticias & Actualidad
-  { id: 'tn', nombre: 'TN (Todo Noticias)', categoria: 'noticias', ytHandle: 'todonoticias' },
-  { id: 'c5n', nombre: 'C5N', categoria: 'noticias', ytHandle: 'c5n' },
-  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytHandle: 'lanacionmas' },
+  { id: 'tn', nombre: 'TN (Todo Noticias)', categoria: 'noticias', ytHandle: 'todonoticias', ytChannelId: 'UCj6PcyLvpnIRT_2W_EGly9g' },
+  { id: 'c5n', nombre: 'C5N', categoria: 'noticias', ytHandle: 'c5n', ytChannelId: 'UCFgk2Q2mVO1BklRQhSv6p0w' },
+  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytHandle: 'lanacionmas', ytChannelId: 'UCba3hst5UmF3CYJnbyW82Tw' },
   { id: 'neura', nombre: 'Neura Media / Troncal', categoria: 'noticias', ytHandle: 'neuramedia', twitchUser: 'neuramedia' },
   { id: 'carajostream', nombre: 'Carajo Stream', categoria: 'noticias', ytHandle: 'carajostream' },
   { id: 'eldestape', nombre: 'El Destape', categoria: 'noticias', ytHandle: 'ElDestapeRadio' },
@@ -135,6 +137,7 @@ const telemetriaState = CANALES.map((c) => {
     nombre: c.nombre,
     categoria: c.categoria,
     ytHandle: c.ytHandle || null,
+    ytChannelId: c.ytChannelId || null,
     twitchUser: c.twitchUser || null,
     kickUser: c.kickUser || null,
     handle,
@@ -223,10 +226,9 @@ async function consultarTwitch(user) {
   return { isLive: false, viewers: 0 };
 }
 
-// Cache persistente de Channel IDs
+// Cache de Channel IDs
 const channelIdCache = {};
 
-// 3. Resolver Channel ID mediante handle
 async function resolverChannelId(handle) {
   if (channelIdCache[handle]) return channelIdCache[handle];
   if (!YOUTUBE_API_KEY) return null;
@@ -246,25 +248,25 @@ async function resolverChannelId(handle) {
   return null;
 }
 
-// 4. Obtener video ID en vivo mediante Playlist Oficial UULV (1 unidad de cuota, sin bloqueos)
-async function detectarLiveVideoIdOficial(channelId) {
-  if (!channelId || !YOUTUBE_API_KEY) return null;
+// 3. Resolución segura de videos en vivo mediante API de subidas (UU)
+async function obtenerVideoIdsDeCanal(channelId) {
+  if (!channelId || !YOUTUBE_API_KEY) return [];
 
-  // En YouTube, la playlist de transmisiones en vivo de cualquier canal es UULV + ID sin 'UC'
-  const livePlaylistId = 'UULV' + channelId.substring(2);
+  // Playlist de subidas oficial de YouTube: UU + id sin 'UC'
+  const uploadsPlaylistId = 'UU' + channelId.substring(2);
 
   const res = await requestJSON({
     hostname: 'www.googleapis.com',
-    path: `/youtube/v3/playlistItems?part=contentDetails&playlistId=\({livePlaylistId}&maxResults=1&key=\){YOUTUBE_API_KEY}`,
+    path: `/youtube/v3/playlistItems?part=contentDetails&playlistId=\({uploadsPlaylistId}&maxResults=3&key=\){YOUTUBE_API_KEY}`,
     method: 'GET',
     timeout: 4500
   });
 
-  const videoId = res?.data?.items?.[0]?.contentDetails?.videoId;
-  return videoId || null;
+  const items = res?.data?.items || [];
+  return items.map(it => it.contentDetails?.videoId).filter(Boolean);
 }
 
-// 5. Batch de telemetría de YouTube con API Key oficial (1 unidad de cuota)
+// 4. Batch de telemetría de YouTube con API Key oficial
 async function consultarMetricasOficialesBatch(videoIds) {
   if (!YOUTUBE_API_KEY || videoIds.length === 0) return {};
 
@@ -280,7 +282,6 @@ async function consultarMetricasOficialesBatch(videoIds) {
   if (res?.data?.items) {
     for (const v of res.data.items) {
       const details = v.liveStreamingDetails;
-      // Solo si el video está transmitiendo en vivo ahora
       if (details && details.concurrentViewers) {
         mapa[v.id] = {
           isLive: true,
@@ -293,7 +294,7 @@ async function consultarMetricasOficialesBatch(videoIds) {
   return mapa;
 }
 
-// Bucle en segundo plano de telemetría
+// Bucle en segundo plano
 let ejecutando = false;
 async function sincronizarPipeline() {
   if (ejecutando) return;
@@ -303,41 +304,43 @@ async function sincronizarPipeline() {
 
   try {
     const canalesYT = telemetriaState.filter(c => c.ytHandle);
-    const detecciones = [];
+    const canalVideoMap = [];
+    const todosLosVideos = [];
 
-    // Localizar live video id de cada canal
     await Promise.all(canalesYT.map(async (c) => {
       try {
-        const channelId = await resolverChannelId(c.ytHandle);
-        if (channelId) {
-          const videoId = await detectarLiveVideoIdOficial(channelId);
-          if (videoId) {
-            detecciones.push({ canalId: c.id, videoId });
-          }
+        const cId = c.ytChannelId || (await resolverChannelId(c.ytHandle));
+        if (cId) {
+          c.ytChannelId = cId;
+          const vIds = await obtenerVideoIdsDeCanal(cId);
+          canalVideoMap.push({ canalId: c.id, videoIds: vIds });
+          todosLosVideos.push(...vIds);
         }
       } catch (e) {}
     }));
 
-    // Consultar audiencia en 1 solo request a Google
-    const ids = detecciones.map(d => d.videoId);
-    const metricasMap = await consultarMetricasOficialesBatch(ids);
+    const metricasMap = await consultarMetricasOficialesBatch(todosLosVideos);
 
-    // Actualizar todos los canales
     for (const canal of telemetriaState) {
       const [tw, ki] = await Promise.all([
         canal.twitchUser ? consultarTwitch(canal.twitchUser) : Promise.resolve({ isLive: false, viewers: 0 }),
         canal.kickUser ? consultarKick(canal.kickUser) : Promise.resolve({ isLive: false, viewers: 0 })
       ]);
 
-      const vivoInfo = detecciones.find(d => d.canalId === canal.id);
+      const mapping = canalVideoMap.find(m => m.canalId === canal.id);
       let ytViewers = 0;
       let ytLive = false;
       let ytTitle = '';
 
-      if (vivoInfo && metricasMap[vivoInfo.videoId]) {
-        ytViewers = metricasMap[vivoInfo.videoId].viewers;
-        ytLive = true;
-        ytTitle = metricasMap[vivoInfo.videoId].title;
+      if (mapping && mapping.videoIds) {
+        for (const vid of mapping.videoIds) {
+          if (metricasMap[vid]) {
+            ytViewers = metricasMap[vid].viewers;
+            ytLive = true;
+            ytTitle = metricasMap[vid].title;
+            break;
+          }
+        }
       }
 
       canal.viewers_breakdown.yt = ytViewers;
@@ -368,28 +371,6 @@ async function sincronizarPipeline() {
 
 setTimeout(sincronizarPipeline, 1000);
 setInterval(sincronizarPipeline, 20000);
-
-// Endpoint de diagnóstico
-app.get('/api/debug-yt', async (req, res) => {
-  const handle = req.query.handle || 'todonoticias';
-  const channelId = await resolverChannelId(handle);
-  const videoId = channelId ? await detectarLiveVideoIdOficial(channelId) : null;
-  let metricas = null;
-
-  if (videoId && YOUTUBE_API_KEY) {
-    const r = await consultarMetricasOficialesBatch([videoId]);
-    metricas = r[videoId] || null;
-  }
-
-  res.json({
-    canalProbado: handle,
-    channelId,
-    videoIdDetectado: videoId,
-    apiKeyConfigurada: Boolean(YOUTUBE_API_KEY),
-    metricasOficiales: metricas,
-    viewersEnVivo: metricas?.viewers || 0
-  });
-});
 
 // Helper de autenticación institucional
 function validarToken(req) {
