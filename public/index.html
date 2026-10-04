@@ -335,11 +335,9 @@
           <!-- Tarjetas de Contendientes y Divisor Central -->
           <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
             <div id="vsCardA"></div>
-            <!-- VS Circle Center -->
-            <div class="flex absolute inset-0 items-center justify-center pointer-events-none z-20">
-              <div class="w-10 h-10 md:w-14 md:h-14 rounded-full bg-[#050811] border-2 border-slate-700 flex items-center justify-center shadow-[0_0_30px_rgba(0,0,0,0.8)]">
-                <span class="text-[#00ff88] font-black italic text-sm md:text-xl tracking-wider">VS</span>
-              </div>
+            <!-- VS Circle Center con posicionamiento absoluto robusro sin translates -->
+            <div id="vsCircleCenter" class="absolute top-1/2 left-1/2 -mt-5 -ml-5 md:-mt-7 md:-ml-7 w-10 h-10 md:w-14 md:h-14 rounded-full bg-[#050811] border-2 border-slate-700 flex items-center justify-center shadow-[0_0_30px_rgba(0,0,0,0.8)] z-20 pointer-events-none">
+              <span class="text-[#00ff88] font-black italic text-sm md:text-xl tracking-wider">VS</span>
             </div>
             <div id="vsCardB"></div>
           </div>
@@ -513,9 +511,9 @@
       let statusBadge = '';
       if (isLive) {
         if (isRerun) {
-          statusBadge = `<div class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded"><span class="w-2 h-2 rounded-full bg-amber-400"></span><span class="text-amber-400 font-semibold font-mono text-[9px] tracking-wider uppercase">TRANSMITIENDO</span></div>`;
+          statusBadge = `<div class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded"><span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span><span class="text-amber-400 font-semibold font-mono text-[9px] tracking-wider uppercase">◈ TRANSMITIENDO</span></div>`;
         } else {
-          statusBadge = `<div class="flex items-center gap-1.5 bg-[#00ff88]/10 border border-[#00ff88]/30 px-2 py-0.5 rounded"><span class="w-2 h-2 rounded-full bg-[#00ff88] animate-pulse"></span><span class="text-[#00ff88] font-semibold font-mono text-[9px] tracking-wider uppercase">EN VIVO</span></div>`;
+          statusBadge = `<div class="flex items-center gap-1.5 bg-[#00ff88]/10 border border-[#00ff88]/30 px-2 py-0.5 rounded"><span class="w-1.5 h-1.5 rounded-full bg-[#00ff88] animate-pulse"></span><span class="text-[#00ff88] font-semibold font-mono text-[9px] tracking-wider uppercase">EN VIVO</span></div>`;
         }
       } else {
         statusBadge = `<div class="flex items-center gap-1.5 bg-slate-800/60 border border-slate-700 px-2 py-0.5 rounded"><span class="text-slate-500 font-semibold font-mono text-[9px] tracking-wider uppercase">SEÑAL EN ESPERA</span></div>`;
@@ -680,27 +678,27 @@
               <img src="/logos/${c.id}.jpg" crossorigin="anonymous" alt="${c.nombre || ''}" onerror="if(!this.dataset.step){this.dataset.step=1;this.src='/logos/${c.id}.png';}else if(this.dataset.step==1){this.dataset.step=2;this.src='/logos/${c.id}.webp';}else{this.style.display='none';}" class="absolute inset-0 w-full h-full object-cover"/>
            </div>
            <div class="min-w-0">
-              <h3 class="font-black text-white text-base md:text-lg truncate leading-tight" style="font-family: 'Outfit', sans-serif;">${c.nombre || ''}</h3>
-              <span class="text-[10px] md:text-xs text-slate-400 font-mono truncate block mt-0.5">@${hnd}</span>
+              <h3 class="font-black text-white text-base md:text-lg" style="font-family: 'Outfit', sans-serif; line-height: 1.3 !important; padding-bottom: 4px;">${c.nombre || ''}</h3>
+              <span class="text-[10px] md:text-xs text-slate-400 font-mono block" style="line-height: 1.3 !important; padding-bottom: 4px;">@${hnd}</span>
            </div>
         </div>
-        <p class="text-[10px] md:text-xs text-slate-300 mb-3 italic line-clamp-2 min-h-[28px] md:min-h-[32px] opacity-80">"${c.title || 'Transmisión sin título'}"</p>
+        <p class="text-[10px] md:text-xs text-slate-300 mb-3 italic opacity-80" style="line-height: 1.3 !important; padding-bottom: 4px;">"${c.title || 'Transmisión sin título'}"</p>
         <div class="mt-auto">
            <div class="text-[9px] md:text-[10px] text-slate-500 uppercase font-mono tracking-widest mb-1">Audiencia Total</div>
            <div class="text-2xl md:text-3xl font-black font-mono ${textColorClass} drop-shadow-md">${(c.viewers||0).toLocaleString('es-AR')}</div>
         </div>
         <div class="grid grid-cols-3 gap-1.5 mt-3 pt-3 border-t border-slate-800/50">
-           <div class="text-center py-1 px-1 rounded border text-[10px] font-mono font-bold flex items-center justify-center gap-1 ${c.plataformas_live && c.plataformas_live.yt ? 'bg-red-950/40 border-red-500/50 text-red-400' : 'bg-slate-900 border-slate-800/80 text-slate-400'} shadow-inner">
-             <svg fill="#FF0000" viewBox="0 0 24 24" class="w-3.5 h-3.5 md:w-4 md:h-4 ${c.plataformas_live && c.plataformas_live.yt ? '' : 'opacity-40 grayscale'}"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-             <span>${c.plataformas_live && c.plataformas_live.yt ? c.viewers_breakdown.yt.toLocaleString('es-AR') : 'off'}</span>
+           <div class="text-center bg-[#0b1120] rounded p-1 border border-slate-800 shadow-inner flex flex-col items-center justify-center">
+             <svg fill="#FF0000" viewBox="0 0 24 24" class="w-3 h-3 mb-0.5 ${c.plataformas_live && c.plataformas_live.yt ? '' : 'opacity-40 grayscale'}"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+             <span class="text-[10px] md:text-xs font-mono font-bold text-slate-200">${c.plataformas_live && c.plataformas_live.yt ? c.viewers_breakdown.yt.toLocaleString('es-AR') : 'off'}</span>
            </div>
-           <div class="text-center py-1 px-1 rounded border text-[10px] font-mono font-bold flex items-center justify-center gap-1 ${c.plataformas_live && c.plataformas_live.tw ? 'bg-purple-950/40 border-purple-500/50 text-purple-300' : 'bg-slate-900 border-slate-800/80 text-slate-400'} shadow-inner">
-             <svg fill="#9146FF" viewBox="0 0 24 24" class="w-3.5 h-3.5 md:w-4 md:h-4 ${c.plataformas_live && c.plataformas_live.tw ? '' : 'opacity-40 grayscale'}"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/></svg>
-             <span>${c.plataformas_live && c.plataformas_live.tw ? c.viewers_breakdown.tw.toLocaleString('es-AR') : 'off'}</span>
+           <div class="text-center bg-[#0b1120] rounded p-1 border border-slate-800 shadow-inner flex flex-col items-center justify-center">
+             <svg fill="#9146FF" viewBox="0 0 24 24" class="w-3 h-3 mb-0.5 ${c.plataformas_live && c.plataformas_live.tw ? '' : 'opacity-40 grayscale'}"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/></svg>
+             <span class="text-[10px] md:text-xs font-mono font-bold text-slate-200">${c.plataformas_live && c.plataformas_live.tw ? c.viewers_breakdown.tw.toLocaleString('es-AR') : 'off'}</span>
            </div>
-           <div class="text-center py-1 px-1 rounded border text-[10px] font-mono font-bold flex items-center justify-center gap-1 ${c.plataformas_live && c.plataformas_live.ki ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300' : 'bg-slate-900 border-slate-800/80 text-slate-400'} shadow-inner">
-             <svg fill="#53FC18" viewBox="0 0 24 24" class="w-3.5 h-3.5 md:w-4 md:h-4 ${c.plataformas_live && c.plataformas_live.ki ? '' : 'opacity-40 grayscale'}"><path d="M3 3h5v5.5h3V5h5V3h5v7h-5v2h-3v2h3v2h5v7h-5v-2h-5v-3.5H8V21H3V3z"/></svg>
-             <span>${c.plataformas_live && c.plataformas_live.ki ? c.viewers_breakdown.ki.toLocaleString('es-AR') : 'off'}</span>
+           <div class="text-center bg-[#0b1120] rounded p-1 border border-slate-800 shadow-inner flex flex-col items-center justify-center">
+             <svg fill="#53FC18" viewBox="0 0 24 24" class="w-3 h-3 mb-0.5 ${c.plataformas_live && c.plataformas_live.ki ? '' : 'opacity-40 grayscale'}"><path d="M3 3h5v5.5h3V5h5V3h5v7h-5v2h-3v2h3v2h5v7h-5v-2h-5v-3.5H8V21H3V3z"/></svg>
+             <span class="text-[10px] md:text-xs font-mono font-bold text-slate-200">${c.plataformas_live && c.plataformas_live.ki ? c.viewers_breakdown.ki.toLocaleString('es-AR') : 'off'}</span>
            </div>
         </div>
       </div>
@@ -822,10 +820,33 @@
         const canvas = await html2canvas(area, {
            useCORS: true,
            backgroundColor: '#050811',
-           scale: 2
+           scale: 2,
+           logging: false,
+           onclone: (clonedDoc) => {
+             const target = clonedDoc.getElementById('vsCaptureArea');
+             if (target) {
+               target.style.transform = 'none';
+               target.style.width = '700px';
+               target.style.margin = '0 auto';
+               
+               // Forzar layout de desktop para la captura (que tiene 700px)
+               const grid = target.querySelector('.grid-cols-1.md\\:grid-cols-2');
+               if (grid) {
+                 grid.className = 'relative z-10 grid grid-cols-2 gap-4';
+               }
+
+               // Ajustar tamaño del circulo VS
+               const vsCircle = target.querySelector('#vsCircleCenter');
+               if (vsCircle) {
+                 vsCircle.className = "absolute top-1/2 left-1/2 w-14 h-14 rounded-full bg-[#050811] border-2 border-slate-700 flex items-center justify-center shadow-[0_0_30px_rgba(0,0,0,0.8)] z-20 pointer-events-none";
+                 vsCircle.style.marginTop = "-28px";
+                 vsCircle.style.marginLeft = "-28px";
+               }
+             }
+           }
         });
         const link = document.createElement('a');
-        link.download = `streamrank_versus.png`;
+        link.download = `streamrank_versus_${Date.now()}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
       } catch (err) {
