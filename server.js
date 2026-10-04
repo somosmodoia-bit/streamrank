@@ -10,7 +10,6 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 10000;
-const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || null;
 
 app.use(cors());
 app.use(express.json());
@@ -119,9 +118,9 @@ if (!fs.existsSync(logosDir)) {
   fs.mkdirSync(logosDir, { recursive: true });
 }
 
-// Inicialización de estado con valores base razonables
 const horaBase = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
+// Estado inicial en memoria
 const telemetriaState = CANALES.map((c) => {
   const handle = c.ytHandle || (c.twitchUser ? `@\({c.twitchUser}` : '') || (c.kickUser ? `@\){c.kickUser}` : '');
   return {
@@ -142,73 +141,80 @@ const telemetriaState = CANALES.map((c) => {
   };
 });
 
-// Función de solicitud HTTP con seguimiento de redirecciones (soporta 301/302/303)
-function fetchHttpRedirect(url, redirectCount = 0) {
+// Petición HTTP ultrarrápida con timeout estricto de 4 segundos
+function fetchUrlRapida(url, maxRedirects = 2) {
   return new Promise((resolve) => {
-    if (redirectCount > 3) return resolve(null);
+    if (maxRedirects < 0) return resolve(null);
 
-    const req = https.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Accept-Language': 'es-419,es;q=0.9,en;q=0.8',
-        'Cookie': 'CONSENT=YES+cb.20210328-17-p0.es+FX+412; SOCS=CAESEwgDEgk2MzQzOTY4NDQaAmVzIAEaBgiA_K-uBg'
-      },
-      timeout: 10000
-    }, (res) => {
-      if ([301, 302, 303, 307].includes(res.statusCode) && res.headers.location) {
-        let nextUrl = res.headers.location;
-        if (!nextUrl.startsWith('http')) {
-          nextUrl = 'https://www.youtube.com' + nextUrl;
-        }
-        return resolve(fetchHttpRedirect(nextUrl, redirectCount + 1));
+    let finalizado = false;
+    const finalizar = (res) => {
+      if (!finalizado) {
+        finalizado = true;
+        resolve(res);
       }
+    };
 
-      let data = '';
-      res.on('data', (chunk) => {
-        data += chunk;
-        if (data.length > 800000) req.destroy();
+    try {
+      const req = https.get(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Accept-Language': 'es-419,es;q=0.9,en;q=0.8'
+        },
+        timeout: 4000 // Máximo 4 segundos por canal
+      }, (res) => {
+        if ([301, 302, 303, 307].includes(res.statusCode) && res.headers.location) {
+          let nextUrl = res.headers.location;
+          if (!nextUrl.startsWith('http')) nextUrl = 'https://www.youtube.com' + nextUrl;
+          req.destroy();
+          return resolve(fetchUrlRapida(nextUrl, maxRedirects - 1));
+        }
+
+        let body = '';
+        res.on('data', (chunk) => {
+          body += chunk;
+          if (body.length > 500000) {
+            req.destroy();
+            finalizar(body);
+          }
+        });
+
+        res.on('end', () => finalizar(body));
+        res.on('close', () => finalizar(body));
       });
 
-      res.on('end', () => resolve(data));
-      res.on('close', () => resolve(data));
-    });
-
-    req.on('error', () => resolve(null));
-    req.on('timeout', () => {
-      req.destroy();
-      resolve(null);
-    });
+      req.on('error', () => finalizar(null));
+      req.on('timeout', () => {
+        req.destroy();
+        finalizar(null);
+      });
+    } catch (e) {
+      finalizar(null);
+    }
   });
 }
 
-// Scraper YouTube Live resiliente
-async function consultarYouTubeLive(ytHandle) {
+async function scrapeCanalYT(ytHandle) {
   if (!ytHandle) return null;
   const cleanHandle = ytHandle.startsWith('@') ? ytHandle : `@${ytHandle}`;
-  const url = `https://www.youtube.com/${cleanHandle}/live`;
-
-  const html = await fetchHttpRedirect(url);
+  const html = await fetchUrlRapida(`https://www.youtube.com/${cleanHandle}/live`);
   if (!html) return null;
 
   try {
     const isLive = html.includes('"isLive":true') || 
                    html.includes('"isLiveNow":true') || 
-                   html.includes('"status":"LIVE"') ||
-                   html.includes('badge-style-type-live-now');
+                   html.includes('"status":"LIVE"');
 
     if (!isLive) {
       return { isLive: false, viewers: 0, title: 'Señal en espera' };
     }
 
     let viewers = 0;
-    // Captura espectadores de distintos formatos de YouTube
     const matchViewers = html.match(/"viewCount":\{"runs":\[\{"text":"([^"]+)"\}/) ||
-                         html.match(/"originalViewCount":"(\d+)"/) ||
-                         html.match(/"text":"([0-9.,\s]+)(?:espectadores|watching|viendo)/i);
+                         html.match(/"originalViewCount":"(\d+)"/);
 
     if (matchViewers) {
-      const rawNum = matchViewers[1].replace(/[^\d]/g, '');
-      viewers = parseInt(rawNum, 10) || 0;
+      const rawText = matchViewers[1].replace(/[^\d]/g, '');
+      viewers = parseInt(rawText, 10) || 0;
     }
 
     let title = 'En vivo';
@@ -218,44 +224,45 @@ async function consultarYouTubeLive(ytHandle) {
     }
 
     return { isLive: true, viewers, title };
-  } catch (e) {
+  } catch (err) {
     return null;
   }
 }
 
-// Bucle en segundo plano: corre cada 25 segundos
-let actualizando = false;
-async function actualizarTelemetria() {
-  if (actualizando) return;
-  actualizando = true;
+// Worker asíncrono desacoplado: nunca bloquea la API
+let enProceso = false;
+async function sincronizarEnVivo() {
+  if (enProceso) return;
+  enProceso = true;
 
   const horaActual = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
-  // Lotes pequeños para no saturar conexiones salientes
-  for (let i = 0; i < telemetriaState.length; i += 4) {
-    const lote = telemetriaState.slice(i, i + 4);
-    await Promise.all(lote.map(async (canal) => {
+  // Barremos de a 3 canales concurrentes para máxima velocidad sin ahogar el server
+  for (let i = 0; i < telemetriaState.length; i += 3) {
+    const trio = telemetriaState.slice(i, i + 3);
+    await Promise.all(trio.map(async (canal) => {
       if (canal.ytHandle) {
-        const resultado = await consultarYouTubeLive(canal.ytHandle);
-        if (resultado !== null) {
-          canal.is_live = resultado.isLive;
-          canal.viewers_breakdown.yt = resultado.viewers;
-          canal.viewers = resultado.viewers;
-          canal.plataformas_live.yt = resultado.isLive && resultado.viewers > 0;
-          canal.title = resultado.isLive ? resultado.title : 'Señal en espera';
+        const datos = await scrapeCanalYT(canal.ytHandle);
+        if (datos !== null) {
+          canal.is_live = datos.isLive;
+          canal.viewers = datos.viewers;
+          canal.viewers_breakdown.yt = datos.viewers;
+          canal.plataformas_live.yt = datos.isLive && datos.viewers > 0;
+          canal.title = datos.isLive ? datos.title : 'Señal en espera';
           canal.hora_actualizacion = horaActual;
         }
       }
     }));
   }
 
-  actualizando = false;
+  enProceso = false;
 }
 
-actualizarTelemetria();
-setInterval(actualizarTelemetria, 25000);
+// Iniciar worker pasados 3 segundos para que el servidor levante al instante
+setTimeout(sincronizarEnVivo, 3000);
+setInterval(sincronizarEnVivo, 35000);
 
-// Helper autenticación institucional
+// Helper autenticación
 function validarToken(req) {
   const envTokens = (process.env.VALID_TOKENS || '').split(',').map((t) => t.trim()).filter(Boolean);
   if (envTokens.length === 0) return true;
@@ -272,7 +279,7 @@ function validarToken(req) {
   return token ? envTokens.includes(token) : false;
 }
 
-// ENDPOINTS
+// RESPUESTA INMEDIATA: Nunca se cuelga
 app.get('/api/ranking-categorias', (req, res) => {
   try {
     const categorias = CATEGORIAS_ORDEN.map((catKey) => {
