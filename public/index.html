@@ -114,7 +114,7 @@
         <span>TELEMETRÍA EN TIEMPO REAL</span>
       </div>
       <h1 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
-        Catálogo y Rating de <span class="text-matrix">Streaming</span> Argentino <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono font-semibold align-middle ml-2">BETA</span>
+        Catálogo y Rating de <span class="text-matrix">Streaming</span> Argentino<sup class="text-[10px] font-mono text-emerald-400 font-bold ml-1">BETA</sup>
       </h1>
       <p class="text-slate-400 text-xs sm:text-sm font-normal">
         Monitoreo simultáneo y transparente de YouTube Live, Twitch y Kick. Ranking oficial categorizado.
@@ -162,7 +162,9 @@
         ? `<div class="h-6 flex items-center mb-2"><div class="bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-black text-[9px] font-mono px-2 py-0.5 rounded-md uppercase inline-block">👑 #1 LÍDER CATEGORÍA</div></div>` 
         : `<div class="h-6 flex items-center mb-2"><div class="text-[10px] font-mono font-bold text-slate-500">#${puesto}</div></div>`;
       
-      const handleLimpio = (c.yt || c.tw || c.ki || c.handle || '').replace('@', '');
+      const srv = c.yt ? 'youtube' : (c.tw ? 'twitch' : 'kick');
+      const hnd = (c.yt || c.tw || c.ki || c.handle || '').replace('@', '');
+      const avatarUrl = `https://unavatar.io/${srv}/${hnd}`;
       const ini = (c.nombre || 'SR').substring(0, 2).toUpperCase();
 
       return `
@@ -173,11 +175,11 @@
             <div class="flex items-center space-x-2.5 min-w-0">
               <div class="relative w-10 h-10 flex-shrink-0 rounded-full border border-slate-700 bg-slate-800 flex items-center justify-center overflow-hidden">
                 <span class="text-[#94a3b8] font-bold text-sm font-sans">${ini}</span>
-                <img src="/logos/${c.id}.jpg" alt="${c.nombre || ''}" loading="lazy" onerror="if(!this.dataset.step) { this.dataset.step = 1; this.src = '/logos/${c.id}.png'; } else if(this.dataset.step == 1) { this.dataset.step = 2; this.src = '/logos/${c.id}.webp'; } else { this.style.display = 'none'; }" class="absolute inset-0 w-full h-full object-cover"/>
+                <img src="${avatarUrl}" alt="${c.nombre || ''}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" class="absolute inset-0 w-full h-full object-cover"/>
               </div>
               <div class="min-w-0">
                 <h3 class="font-bold text-white text-sm truncate leading-tight">${c.nombre}</h3>
-                <span class="text-[11px] text-slate-400 font-mono truncate block">@${handleLimpio}</span>
+                <span class="text-[11px] text-slate-400 font-mono truncate block">@${hnd}</span>
               </div>
             </div>
             <div class="flex items-center gap-1.5 flex-shrink-0">
@@ -229,6 +231,7 @@
 
         if (query && canalesFiltrados.length === 0) return;
 
+        // Limpieza de nombres de categorías
         let catNombreReal = cat.nombre;
         if (cat.nombre.includes("Entretenimiento")) catNombreReal = "Entretenimiento";
         else if (cat.nombre.includes("Deportes")) catNombreReal = "Deportes";
@@ -236,6 +239,7 @@
         else if (cat.nombre.includes("Economía") || cat.nombre.includes("Finanzas")) catNombreReal = "Economía & Finanzas";
         else if (cat.nombre.includes("Noticias") || cat.nombre.includes("Actualidad")) catNombreReal = "Noticias & Actualidad";
 
+        // Mapeo a Iconos SVG minimalistas
         let catIconoSVG = '';
         switch(catNombreReal) {
           case 'Entretenimiento': catIconoSVG = '<svg class="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125Z"/></svg>'; break;
