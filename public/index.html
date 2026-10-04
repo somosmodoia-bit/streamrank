@@ -92,26 +92,39 @@
   </div>
 
   <header class="border-b border-slate-800/80 bg-[#050811]/90 backdrop-blur sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-2 sm:px-4 h-16 flex items-center justify-between gap-1 sm:gap-2">
-      <div class="flex items-center space-x-1.5 sm:space-x-3 min-w-0">
-        <div class="w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0 bg-black border border-[#00ff88] rounded-lg flex items-center justify-center relative">
-          <span class="absolute inline-flex h-2 w-2 sm:h-3 sm:w-3 rounded-full bg-[#00ff88] opacity-75 animate-ping"></span>
-          <span class="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-[#00ff88]"></span>
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-0 sm:h-16 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-0">
+      
+      <!-- Fila 1 en Mobile / Lado Izquierdo en Desktop -->
+      <div class="flex items-center justify-between w-full sm:w-auto">
+        <div class="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
+          <div class="w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0 bg-black border border-[#00ff88] rounded-lg flex items-center justify-center relative">
+            <span class="absolute inline-flex h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-[#00ff88] opacity-75 animate-ping"></span>
+            <span class="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-[#00ff88]"></span>
+          </div>
+          <div class="flex items-baseline flex-shrink-0">
+            <span class="text-[13px] sm:text-base font-extrabold tracking-wider text-white" style="font-family: 'Outfit', sans-serif;">STREAMRANK</span>
+            <span class="text-[9px] sm:text-[10px] text-[#00ff88] font-mono font-bold ml-1">ARG</span>
+            <span class="font-mono text-[10px] sm:text-sm font-semibold tracking-wider text-[#00ff88] ml-1.5 sm:ml-2">BETA</span>
+          </div>
         </div>
-        <div class="flex items-baseline min-w-0">
-          <span class="text-sm sm:text-base font-extrabold tracking-wider text-white truncate" style="font-family: 'Outfit', sans-serif;">STREAMRANK</span>
-          <span class="text-[9px] sm:text-[10px] text-matrix font-mono font-bold ml-1">ARG</span>
-          <span class="font-mono text-xs sm:text-sm font-semibold tracking-wider text-[#00ff88] ml-1 sm:ml-2">BETA</span>
-        </div>
-      </div>
-      <div class="flex items-center space-x-1.5 sm:space-x-3 flex-shrink-0">
-        <!-- Reloj adaptado a Mobile -->
-        <span id="relojHeader" class="text-[8px] sm:text-[11px] font-mono text-slate-400 text-right leading-tight max-w-[50px] sm:max-w-none">Sincronizando...</span>
-        <!-- Botón sin quiebres -->
-        <button onclick="abrirModalIA()" class="whitespace-nowrap bg-matrix-10 hover:bg-[#00ff88]/20 text-matrix text-[10px] sm:text-xs px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-lg border border-matrix-30 font-mono transition cursor-pointer">
+        
+        <!-- Botón Analytics (Solo visible en Mobile) -->
+        <button onclick="abrirModalIA()" class="sm:hidden whitespace-nowrap bg-[#00ff88]/10 hover:bg-[#00ff88]/20 text-[#00ff88] text-[9px] font-semibold px-2.5 py-1.5 rounded border border-[#00ff88]/30 font-mono transition cursor-pointer ml-2 flex-shrink-0">
           Descargar Analytics
         </button>
       </div>
+
+      <!-- Fila 2 en Mobile / Lado Derecho en Desktop -->
+      <div class="flex items-center sm:justify-end w-full sm:w-auto sm:space-x-3 pl-8 sm:pl-0 mt-0.5 sm:mt-0">
+        <!-- Reloj / Fecha en una sola línea -->
+        <span id="relojHeader" class="text-[11px] font-mono text-slate-400 whitespace-nowrap text-left sm:text-right w-full sm:w-auto">Sincronizando...</span>
+        
+        <!-- Botón Analytics (Solo visible en Desktop) -->
+        <button onclick="abrirModalIA()" class="hidden sm:block whitespace-nowrap bg-[#00ff88]/10 hover:bg-[#00ff88]/20 text-[#00ff88] text-xs px-3 py-1.5 rounded-lg border border-[#00ff88]/30 font-mono transition cursor-pointer">
+          Descargar Analytics
+        </button>
+      </div>
+
     </div>
   </header>
 
@@ -301,14 +314,14 @@
         <div class="p-4 md:p-5 relative overflow-hidden bg-gradient-to-b from-[#0b1120] to-[#050811]" id="vsCaptureArea">
           <div class="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiMwNTA4MTEiPjwvaGVpZ2h0PjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiMxZTI5M2IiPjwvc3ZnPg==')] opacity-40 pointer-events-none"></div>
           
-          <!-- Encabezado de Placa -->
+          <!-- Encabezado de Placa (STREAM verde, RANK ARG blanco) -->
           <div class="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
             <div>
               <div class="flex items-center space-x-2 mb-1">
                 <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#00ff88] border border-[#00ff88]/30"></span>
                 <h2 class="flex items-baseline tracking-widest leading-none" style="font-family: 'Outfit', sans-serif;">
-                  <span class="text-white font-black text-lg md:text-xl">STREAM</span>
-                  <span class="text-[#00ff88] font-black text-lg md:text-xl">RANK</span>
+                  <span class="text-[#00ff88] font-black text-lg md:text-xl">STREAM</span>
+                  <span class="text-white font-black text-lg md:text-xl">RANK</span>
                   <span class="text-white font-black text-sm md:text-base ml-1.5">ARG</span>
                 </h2>
               </div>
@@ -500,9 +513,9 @@
       let statusBadge = '';
       if (isLive) {
         if (isRerun) {
-          statusBadge = `<div class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded"><span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span><span class="text-amber-400 font-semibold font-mono text-[9px] tracking-wider uppercase">◈ TRANSMITIENDO</span></div>`;
+          statusBadge = `<div class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded"><span class="w-2 h-2 rounded-full bg-amber-400"></span><span class="text-amber-400 font-semibold font-mono text-[9px] tracking-wider uppercase">TRANSMITIENDO</span></div>`;
         } else {
-          statusBadge = `<div class="flex items-center gap-1.5 bg-[#00ff88]/10 border border-[#00ff88]/30 px-2 py-0.5 rounded"><span class="w-1.5 h-1.5 rounded-full bg-[#00ff88] animate-pulse"></span><span class="text-[#00ff88] font-semibold font-mono text-[9px] tracking-wider uppercase">EN VIVO</span></div>`;
+          statusBadge = `<div class="flex items-center gap-1.5 bg-[#00ff88]/10 border border-[#00ff88]/30 px-2 py-0.5 rounded"><span class="w-2 h-2 rounded-full bg-[#00ff88] animate-pulse"></span><span class="text-[#00ff88] font-semibold font-mono text-[9px] tracking-wider uppercase">EN VIVO</span></div>`;
         }
       } else {
         statusBadge = `<div class="flex items-center gap-1.5 bg-slate-800/60 border border-slate-700 px-2 py-0.5 rounded"><span class="text-slate-500 font-semibold font-mono text-[9px] tracking-wider uppercase">SEÑAL EN ESPERA</span></div>`;
@@ -524,7 +537,7 @@
               </div>
             </div>
             <div class="flex items-center gap-1.5 flex-shrink-0">
-              <button onclick="abrirVersus('${c.id}')" class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-xs px-2 py-1 rounded transition-all duration-200 hover:bg-emerald-500/20 hover:border-emerald-400 hover:text-emerald-400 hover:shadow-[0_0_10px_rgba(16,185,129,0.3)] cursor-pointer" title="Comparar VS">VS</button>
+              <button onclick="abrirVersus('${c.id}')" class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-xs px-2 py-1 rounded transition-all duration-200 hover:bg-[#00ff88]/20 hover:border-[#00ff88] hover:text-[#00ff88] hover:shadow-[0_0_10px_rgba(0,255,136,0.3)] cursor-pointer" title="Comparar VS">VS</button>
               ${statusBadge}
             </div>
           </div>
