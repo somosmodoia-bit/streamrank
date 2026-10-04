@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Sanitización estricta de la clave para evitar caracteres invisibles
+// Sanitización estricta de la clave para eliminar cualquier espacio o salto de línea
 const RAW_YT_KEY = process.env.YOUTUBE_API_KEY || '';
 const YOUTUBE_API_KEY = RAW_YT_KEY.trim().replace(/['"\r\n\s]/g, '');
 
@@ -60,6 +60,7 @@ const CATEGORIAS_CONFIG = {
 
 const CATEGORIAS_ORDEN = ['entretenimiento', 'deportes', 'streamers', 'finanzas', 'noticias'];
 
+// Canales con IDs de YouTube oficiales verificados
 const CANALES = [
   // 1. Entretenimiento
   { id: 'luzutv', nombre: 'LUZU TV', categoria: 'entretenimiento', ytChannelId: 'UCH5F5i0v9zZz8d9pS4C9w6A', twitchUser: 'luzutv' },
@@ -220,39 +221,50 @@ async function consultarTwitch(user) {
   return { isLive: false, viewers: 0 };
 }
 
-// 3. YouTube API Oficial Directa
-async function obtenerLiveYouTubePorCanal(channelId) {
-  if (!YOUTUBE_API_KEY || !channelId) return null;
+// 3. YouTube: Consulta directa por Videos.list usando el canal de subidas (0 cuota de búsqueda)
+async function consultarYouTubePorCanal(channelId) {
+  if (!YOUTUBE_API_KEY || !channelId) return { isLive: false, viewers: 0, title: '' };
+
   try {
-    const searchRes = await requestJSON({
+    // Convierte el Channel ID UC... en su Playlist de subidas UU...
+    const uploadsPlaylistId = 'UU' + channelId.substring(2);
+
+    // Obtener los videos recientes (1 unidad de cuota)
+    const playlistRes = await requestJSON({
       hostname: 'www.googleapis.com',
-      path: `/youtube/v3/search?part=snippet&channelId=\({channelId}&eventType=live&type=video&key=\){YOUTUBE_API_KEY}&maxResults=1`,
+      path: `/youtube/v3/playlistItems?part=contentDetails&playlistId=\({uploadsPlaylistId}&maxResults=3&key=\){YOUTUBE_API_KEY}`,
       method: 'GET',
-      timeout: 5000
+      timeout: 4500
     });
 
-    const item = searchRes?.data?.items?.[0];
-    const videoId = item?.id?.videoId;
-    if (!videoId) return { isLive: false, viewers: 0, title: '' };
+    const items = playlistRes?.data?.items;
+    if (!items || items.length === 0) return { isLive: false, viewers: 0, title: '' };
 
-    const videoRes = await requestJSON({
+    const videoIds = items.map(it => it.contentDetails.videoId).join(',');
+
+    // Consultar el estado en vivo de los videos en lote (1 unidad de cuota)
+    const videosRes = await requestJSON({
       hostname: 'www.googleapis.com',
-      path: `/youtube/v3/videos?part=snippet,liveStreamingDetails&id=\({videoId}&key=\){YOUTUBE_API_KEY}`,
+      path: `/youtube/v3/videos?part=snippet,liveStreamingDetails&id=\({videoIds}&key=\){YOUTUBE_API_KEY}`,
       method: 'GET',
-      timeout: 5000
+      timeout: 4500
     });
 
-    const details = videoRes?.data?.items?.[0]?.liveStreamingDetails;
-    const viewers = parseInt(details?.concurrentViewers || '0', 10);
-    const title = videoRes?.data?.items?.[0]?.snippet?.title || item.snippet?.title || 'En vivo';
+    const videoItems = videosRes?.data?.items || [];
+    for (const v of videoItems) {
+      const details = v.liveStreamingDetails;
+      if (details && details.concurrentViewers) {
+        return {
+          isLive: true,
+          viewers: parseInt(details.concurrentViewers, 10),
+          title: v.snippet?.title || 'En vivo'
+        };
+      }
+    }
 
-    return {
-      isLive: viewers > 0,
-      viewers: viewers,
-      title: title
-    };
+    return { isLive: false, viewers: 0, title: '' };
   } catch (err) {
-    return null;
+    return { isLive: false, viewers: 0, title: '' };
   }
 }
 
@@ -274,8 +286,7 @@ async function sincronizarMultiplataforma() {
 
       let yt = { isLive: false, viewers: 0, title: '' };
       if (canal.ytChannelId && prioritarios.includes(canal.id)) {
-        const resYt = await obtenerLiveYouTubePorCanal(canal.ytChannelId);
-        if (resYt !== null) yt = resYt;
+        yt = await consultarYouTubePorCanal(canal.ytChannelId);
       }
 
       canal.viewers_breakdown.yt = yt.viewers;
@@ -312,19 +323,12 @@ app.get('/api/test-yt', async (req, res) => {
   }
 
   const tnChannelId = 'UCj6P3CGNP457_k4bZq1l_4w';
-  const searchTest = await requestJSON({
-    hostname: 'www.googleapis.com',
-    path: `/youtube/v3/search?part=snippet&channelId=\({tnChannelId}&eventType=live&type=video&key=\){YOUTUBE_API_KEY}&maxResults=1`,
-    method: 'GET',
-    timeout: 6000
-  });
+  const resultado = await consultarYouTubePorCanal(tnChannelId);
 
   return res.json({
     apiKeyConfigurada: Boolean(YOUTUBE_API_KEY),
     longitudApiKey: YOUTUBE_API_KEY.length,
-    primeros4: YOUTUBE_API_KEY.substring(0, 4),
-    ultimos4: YOUTUBE_API_KEY.substring(YOUTUBE_API_KEY.length - 4),
-    respuestaGoogle: searchTest
+    resultadoTN: resultado
   });
 });
 
@@ -345,7 +349,7 @@ function validarToken(req) {
   return token ? envTokens.includes(token) : false;
 }
 
-// Rutas de API
+// ENDPOINTS PRINCIPALES
 app.get('/api/ranking-categorias', (req, res) => {
   try {
     const categorias = CATEGORIAS_ORDEN.map((catKey) => {
