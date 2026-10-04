@@ -223,61 +223,48 @@ async function consultarTwitch(user) {
   return { isLive: false, viewers: 0 };
 }
 
-// 3. YouTube Nativo sin bloqueos (Cliente Android oficial de Google)
-function consultarYouTubeAndroid(handle) {
-  return new Promise((resolve) => {
-    const postData = JSON.stringify({
-      context: {
-        client: {
-          clientName: 'ANDROID',
-          clientVersion: '19.09.37',
-          hl: 'es',
-          gl: 'AR'
-        }
-      },
-      url: `https://www.youtube.com/@${handle}/live`
-    });
+// Cache persistente de Channel IDs
+const channelIdCache = {};
 
-    const options = {
-      hostname: 'www.youtube.com',
-      path: '/youtubei/v1/navigation/resolve_url',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(postData),
-        'User-Agent': 'com.google.android.youtube/19.09.37 (Linux; U; Android 11; es_AR)'
-      },
-      timeout: 4500
-    };
+// 3. Resolver Channel ID mediante handle
+async function resolverChannelId(handle) {
+  if (channelIdCache[handle]) return channelIdCache[handle];
+  if (!YOUTUBE_API_KEY) return null;
 
-    const req = https.request(options, (res) => {
-      let data = '';
-      res.on('data', chunk => { data += chunk; });
-      res.on('end', () => {
-        try {
-          const parsed = JSON.parse(data);
-          const endpoint = parsed?.endpoint;
-          const videoId = endpoint?.watchEndpoint?.videoId;
-
-          if (videoId) {
-            // Buscamos los viewers directamente del payload del video
-            return resolve(videoId);
-          }
-          resolve(null);
-        } catch (e) {
-          resolve(null);
-        }
-      });
-    });
-
-    req.on('error', () => resolve(null));
-    req.on('timeout', () => { req.destroy(); resolve(null); });
-    req.write(postData);
-    req.end();
+  const res = await requestJSON({
+    hostname: 'www.googleapis.com',
+    path: `/youtube/v3/channels?part=id&forHandle=\({encodeURIComponent(handle)}&key=\){YOUTUBE_API_KEY}`,
+    method: 'GET',
+    timeout: 4500
   });
+
+  const cId = res?.data?.items?.[0]?.id;
+  if (cId) {
+    channelIdCache[handle] = cId;
+    return cId;
+  }
+  return null;
 }
 
-// 4. Batch de telemetría de YouTube con API Key oficial
+// 4. Obtener video ID en vivo mediante Playlist Oficial UULV (1 unidad de cuota, sin bloqueos)
+async function detectarLiveVideoIdOficial(channelId) {
+  if (!channelId || !YOUTUBE_API_KEY) return null;
+
+  // En YouTube, la playlist de transmisiones en vivo de cualquier canal es UULV + ID sin 'UC'
+  const livePlaylistId = 'UULV' + channelId.substring(2);
+
+  const res = await requestJSON({
+    hostname: 'www.googleapis.com',
+    path: `/youtube/v3/playlistItems?part=contentDetails&playlistId=\({livePlaylistId}&maxResults=1&key=\){YOUTUBE_API_KEY}`,
+    method: 'GET',
+    timeout: 4500
+  });
+
+  const videoId = res?.data?.items?.[0]?.contentDetails?.videoId;
+  return videoId || null;
+}
+
+// 5. Batch de telemetría de YouTube con API Key oficial (1 unidad de cuota)
 async function consultarMetricasOficialesBatch(videoIds) {
   if (!YOUTUBE_API_KEY || videoIds.length === 0) return {};
 
@@ -293,6 +280,7 @@ async function consultarMetricasOficialesBatch(videoIds) {
   if (res?.data?.items) {
     for (const v of res.data.items) {
       const details = v.liveStreamingDetails;
+      // Solo si el video está transmitiendo en vivo ahora
       if (details && details.concurrentViewers) {
         mapa[v.id] = {
           isLive: true,
@@ -305,7 +293,7 @@ async function consultarMetricasOficialesBatch(videoIds) {
   return mapa;
 }
 
-// Bucle en segundo plano
+// Bucle en segundo plano de telemetría
 let ejecutando = false;
 async function sincronizarPipeline() {
   if (ejecutando) return;
@@ -317,21 +305,24 @@ async function sincronizarPipeline() {
     const canalesYT = telemetriaState.filter(c => c.ytHandle);
     const detecciones = [];
 
-    // Resolver video en vivo mediante YouTubei (rápido y sin cuotas)
+    // Localizar live video id de cada canal
     await Promise.all(canalesYT.map(async (c) => {
       try {
-        const vId = await consultarYouTubeAndroid(c.ytHandle);
-        if (vId) {
-          detecciones.push({ canalId: c.id, videoId: vId });
+        const channelId = await resolverChannelId(c.ytHandle);
+        if (channelId) {
+          const videoId = await detectarLiveVideoIdOficial(channelId);
+          if (videoId) {
+            detecciones.push({ canalId: c.id, videoId });
+          }
         }
       } catch (e) {}
     }));
 
-    // Traer espectadores en 1 llamada oficial con la API Key
+    // Consultar audiencia en 1 solo request a Google
     const ids = detecciones.map(d => d.videoId);
     const metricasMap = await consultarMetricasOficialesBatch(ids);
 
-    // Cruzar todo
+    // Actualizar todos los canales
     for (const canal of telemetriaState) {
       const [tw, ki] = await Promise.all([
         canal.twitchUser ? consultarTwitch(canal.twitchUser) : Promise.resolve({ isLive: false, viewers: 0 }),
@@ -378,26 +369,25 @@ async function sincronizarPipeline() {
 setTimeout(sincronizarPipeline, 1000);
 setInterval(sincronizarPipeline, 20000);
 
-// Endpoint de prueba instantáneo para ver la respuesta en pantalla
+// Endpoint de diagnóstico
 app.get('/api/debug-yt', async (req, res) => {
   const handle = req.query.handle || 'todonoticias';
-  const videoId = await consultarYouTubeAndroid(handle);
-  let apiRespuesta = null;
+  const channelId = await resolverChannelId(handle);
+  const videoId = channelId ? await detectarLiveVideoIdOficial(channelId) : null;
+  let metricas = null;
 
   if (videoId && YOUTUBE_API_KEY) {
-    apiRespuesta = await requestJSON({
-      hostname: 'www.googleapis.com',
-      path: `/youtube/v3/videos?part=snippet,liveStreamingDetails&id=\({videoId}&key=\){YOUTUBE_API_KEY}`,
-      method: 'GET'
-    });
+    const r = await consultarMetricasOficialesBatch([videoId]);
+    metricas = r[videoId] || null;
   }
 
   res.json({
     canalProbado: handle,
+    channelId,
     videoIdDetectado: videoId,
     apiKeyConfigurada: Boolean(YOUTUBE_API_KEY),
-    metricasOficiales: apiRespuesta?.data?.items?.[0]?.liveStreamingDetails || null,
-    viewersEnVivo: apiRespuesta?.data?.items?.[0]?.liveStreamingDetails?.concurrentViewers || 0
+    metricasOficiales: metricas,
+    viewersEnVivo: metricas?.viewers || 0
   });
 });
 
