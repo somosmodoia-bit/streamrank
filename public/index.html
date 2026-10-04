@@ -160,9 +160,7 @@
         ? `<div class="h-6 flex items-center mb-2"><div class="bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-black text-[9px] font-mono px-2 py-0.5 rounded-md uppercase inline-block">👑 #1 LÍDER CATEGORÍA</div></div>` 
         : `<div class="h-6 flex items-center mb-2"><div class="text-[10px] font-mono font-bold text-slate-500">#${puesto}</div></div>`;
       
-      const srv = c.yt ? 'youtube' : (c.tw ? 'twitch' : 'kick');
       const hnd = (c.yt || c.tw || c.ki || c.handle || '').replace('@', '');
-      const avatarUrl = `https://unavatar.io/${srv}/${hnd}`;
       const ini = (c.nombre || 'SR').substring(0, 2).toUpperCase();
 
       return `
@@ -173,7 +171,7 @@
             <div class="flex items-center space-x-2.5 min-w-0">
               <div class="relative w-10 h-10 flex-shrink-0 rounded-full border border-slate-700 bg-slate-800 flex items-center justify-center overflow-hidden">
                 <span class="text-[#94a3b8] font-bold text-sm font-sans">${ini}</span>
-                <img src="${avatarUrl}" alt="${c.nombre}" loading="lazy" referrerpolicy="no-referrer" class="absolute inset-0 w-full h-full object-cover"/>
+                <img src="/logos/${c.id}.jpg" alt="${c.nombre}" loading="lazy" onerror="if(!this.dataset.step) { this.dataset.step = 1; this.src = '/logos/${c.id}.png'; } else if(this.dataset.step == 1) { this.dataset.step = 2; this.src = '/logos/${c.id}.webp'; } else { this.style.display = 'none'; }" class="absolute inset-0 w-full h-full object-cover"/>
               </div>
               <div class="min-w-0">
                 <h3 class="font-bold text-white text-sm truncate leading-tight">${c.nombre}</h3>
