@@ -11,7 +11,6 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Sanitización estricta de la clave para eliminar cualquier espacio o salto de línea
 const RAW_YT_KEY = process.env.YOUTUBE_API_KEY || '';
 const YOUTUBE_API_KEY = RAW_YT_KEY.trim().replace(/['"\r\n\s]/g, '');
 
@@ -60,7 +59,6 @@ const CATEGORIAS_CONFIG = {
 
 const CATEGORIAS_ORDEN = ['entretenimiento', 'deportes', 'streamers', 'finanzas', 'noticias'];
 
-// Canales con IDs de YouTube oficiales verificados
 const CANALES = [
   // 1. Entretenimiento
   { id: 'luzutv', nombre: 'LUZU TV', categoria: 'entretenimiento', ytChannelId: 'UCH5F5i0v9zZz8d9pS4C9w6A', twitchUser: 'luzutv' },
@@ -221,61 +219,52 @@ async function consultarTwitch(user) {
   return { isLive: false, viewers: 0 };
 }
 
-// 3. YouTube: Consulta directa por Videos.list usando el canal de subidas (0 cuota de búsqueda)
+// 3. YouTube: Detección exacta de vivo mediante Search + Videos.list
 async function consultarYouTubePorCanal(channelId) {
   if (!YOUTUBE_API_KEY || !channelId) return { isLive: false, viewers: 0, title: '' };
 
   try {
-    // Convierte el Channel ID UC... en su Playlist de subidas UU...
-    const uploadsPlaylistId = 'UU' + channelId.substring(2);
-
-    // Obtener los videos recientes (1 unidad de cuota)
-    const playlistRes = await requestJSON({
+    const searchRes = await requestJSON({
       hostname: 'www.googleapis.com',
-      path: `/youtube/v3/playlistItems?part=contentDetails&playlistId=\({uploadsPlaylistId}&maxResults=3&key=\){YOUTUBE_API_KEY}`,
+      path: `/youtube/v3/search?part=id&channelId=\({channelId}&eventType=live&type=video&key=\){YOUTUBE_API_KEY}&maxResults=1`,
       method: 'GET',
-      timeout: 4500
+      timeout: 5000
     });
 
-    const items = playlistRes?.data?.items;
-    if (!items || items.length === 0) return { isLive: false, viewers: 0, title: '' };
+    const videoId = searchRes?.data?.items?.[0]?.id?.videoId;
+    if (!videoId) return { isLive: false, viewers: 0, title: '' };
 
-    const videoIds = items.map(it => it.contentDetails.videoId).join(',');
-
-    // Consultar el estado en vivo de los videos en lote (1 unidad de cuota)
-    const videosRes = await requestJSON({
+    const videoRes = await requestJSON({
       hostname: 'www.googleapis.com',
-      path: `/youtube/v3/videos?part=snippet,liveStreamingDetails&id=\({videoIds}&key=\){YOUTUBE_API_KEY}`,
+      path: `/youtube/v3/videos?part=snippet,liveStreamingDetails&id=\({videoId}&key=\){YOUTUBE_API_KEY}`,
       method: 'GET',
-      timeout: 4500
+      timeout: 5000
     });
 
-    const videoItems = videosRes?.data?.items || [];
-    for (const v of videoItems) {
-      const details = v.liveStreamingDetails;
-      if (details && details.concurrentViewers) {
-        return {
-          isLive: true,
-          viewers: parseInt(details.concurrentViewers, 10),
-          title: v.snippet?.title || 'En vivo'
-        };
-      }
-    }
+    const item = videoRes?.data?.items?.[0];
+    const details = item?.liveStreamingDetails;
+    const viewers = parseInt(details?.concurrentViewers || '0', 10);
+    const title = item?.snippet?.title || 'En vivo';
 
-    return { isLive: false, viewers: 0, title: '' };
+    return {
+      isLive: viewers > 0,
+      viewers: viewers,
+      title: title
+    };
   } catch (err) {
     return { isLive: false, viewers: 0, title: '' };
   }
 }
 
-// Bucle en segundo plano: barriendo noticias y streaming activo
+// Canales principales a monitorear continuamente
+const PRIORITARIOS = ['tn', 'c5n', 'lanacionmas', 'neura', 'tycsports', 'a24', 'luzutv', 'olga'];
+
 let ejecutando = false;
 async function sincronizarMultiplataforma() {
   if (ejecutando) return;
   ejecutando = true;
 
   const horaActual = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-  const prioritarios = ['tn', 'c5n', 'lanacionmas', 'neura', 'tycsports', 'a24', 'luzutv', 'olga', 'davoo', 'lacobra'];
 
   for (const canal of telemetriaState) {
     try {
@@ -285,7 +274,7 @@ async function sincronizarMultiplataforma() {
       ]);
 
       let yt = { isLive: false, viewers: 0, title: '' };
-      if (canal.ytChannelId && prioritarios.includes(canal.id)) {
+      if (canal.ytChannelId && PRIORITARIOS.includes(canal.id)) {
         yt = await consultarYouTubePorCanal(canal.ytChannelId);
       }
 
@@ -314,7 +303,7 @@ async function sincronizarMultiplataforma() {
 }
 
 setTimeout(sincronizarMultiplataforma, 1000);
-setInterval(sincronizarMultiplataforma, 20000);
+setInterval(sincronizarMultiplataforma, 30000);
 
 // Endpoint de diagnóstico directo
 app.get('/api/test-yt', async (req, res) => {
@@ -349,7 +338,7 @@ function validarToken(req) {
   return token ? envTokens.includes(token) : false;
 }
 
-// ENDPOINTS PRINCIPALES
+// Endpoints principales
 app.get('/api/ranking-categorias', (req, res) => {
   try {
     const categorias = CATEGORIAS_ORDEN.map((catKey) => {
