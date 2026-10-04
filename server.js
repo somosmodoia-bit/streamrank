@@ -11,6 +11,10 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
+// API Key oficial limpia
+const RAW_YT_KEY = process.env.YOUTUBE_API_KEY || '';
+const YOUTUBE_API_KEY = RAW_YT_KEY.trim().replace(/['"\r\n\s]/g, '');
+
 app.use(cors());
 app.use(express.json());
 
@@ -216,94 +220,76 @@ async function consultarTwitch(user) {
   return { isLive: false, viewers: 0 };
 }
 
-// 3. YouTube: EXTRACCIÓN NATIVA (El método original robustecido)
-function consultarYouTubeNativo(handle) {
-  return new Promise((resolve) => {
-    if (!handle) return resolve({ isLive: false, viewers: 0, title: '' });
+// 3. YouTube API: Cache de Upload Playlists por Handle para no gastar cuota repetida
+const channelPlaylistCache = {};
 
-    const fetchLive = (pathUrl, redirectsLeft = 2) => {
-      const options = {
-        hostname: 'www.youtube.com',
-        path: pathUrl,
-        method: 'GET',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'es-419,es;q=0.9,en;q=0.8'
-        },
-        timeout: 4500
-      };
+async function obtenerUploadsPlaylistId(handle) {
+  if (channelPlaylistCache[handle]) return channelPlaylistCache[handle];
+  if (!YOUTUBE_API_KEY) return null;
 
-      const req = https.request(options, (res) => {
-        // Seguir redirecciones nativas de YouTube
-        if ([301, 302, 303, 307].includes(res.statusCode) && res.headers.location && redirectsLeft > 0) {
-          const loc = res.headers.location;
-          const nextPath = loc.startsWith('http') ? new URL(loc).pathname + new URL(loc).search : loc;
-          return fetchLive(nextPath, redirectsLeft - 1);
-        }
-
-        let html = '';
-        res.on('data', chunk => {
-          html += chunk;
-          // Si ya tenemos suficiente HTML con los datos de streaming, cortamos
-          if (html.length > 350000) req.destroy();
-        });
-
-        const procesar = () => {
-          // Si no es un stream en vivo real, descartar
-          const esEnVivo = html.includes('"isLive":true') || html.includes('"isLiveStream":true') || html.includes('watching now') || html.includes('espectadores');
-          if (!esEnVivo) {
-            return resolve({ isLive: false, viewers: 0, title: '' });
-          }
-
-          let viewers = 0;
-
-          // Patrón 1: Estructura nueva de YouTube originalViewCount
-          const m1 = html.match(/"originalViewCount":"(\d+)"/);
-          if (m1 && m1[1]) viewers = parseInt(m1[1], 10);
-
-          // Patrón 2: concurrentViewers
-          if (!viewers) {
-            const m2 = html.match(/"concurrentViewers":"(\d+)"/);
-            if (m2 && m2[1]) viewers = parseInt(m2[1], 10);
-          }
-
-          // Patrón 3: Formato textual localizado ("14.230 personas mirando" o "14,230 watching")
-          if (!viewers) {
-            const m3 = html.match(/([\d.,]+)\s+(?:personas están mirando|espectadores|watching now|en vivo)/i);
-            if (m3 && m3[1]) {
-              viewers = parseInt(m3[1].replace(/[.,]/g, ''), 10);
-            }
-          }
-
-          // Extraer título
-          let title = '';
-          const mTitle = html.match(/([^<]+)<\/title>/);
-          if (mTitle && mTitle[1]) {
-            title = mTitle[1].replace(' - YouTube', '').trim();
-          }
-
-          resolve({
-            isLive: viewers > 0,
-            viewers: viewers || 0,
-            title: title || 'En vivo'
-          });
-        };
-
-        res.on('end', procesar);
-        res.on('close', procesar);
-      });
-
-      req.on('error', () => resolve({ isLive: false, viewers: 0, title: '' }));
-      req.on('timeout', () => { req.destroy(); resolve({ isLive: false, viewers: 0, title: '' }); });
-      req.end();
-    };
-
-    fetchLive(`/@${handle}/live`);
+  const res = await requestJSON({
+    hostname: 'www.googleapis.com',
+    path: `/youtube/v3/channels?part=contentDetails&forHandle=\({encodeURIComponent(handle)}&key=\){YOUTUBE_API_KEY}`,
+    method: 'GET',
+    timeout: 4500
   });
+
+  const uploadsId = res?.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
+  if (uploadsId) {
+    channelPlaylistCache[handle] = uploadsId;
+    return uploadsId;
+  }
+  return null;
 }
 
-// Bucle en segundo plano: corre limpio cada 25 segundos
+// Consulta de transmisiones y métricas en vivo usando la API oficial
+async function consultarYouTubeOficial(handle) {
+  if (!YOUTUBE_API_KEY || !handle) return { isLive: false, viewers: 0, title: '' };
+
+  try {
+    const playlistId = await obtenerUploadsPlaylistId(handle);
+    if (!playlistId) return { isLive: false, viewers: 0, title: '' };
+
+    // 1. Obtener los videos más recientes del canal
+    const itemsRes = await requestJSON({
+      hostname: 'www.googleapis.com',
+      path: `/youtube/v3/playlistItems?part=contentDetails&playlistId=\({playlistId}&maxResults=3&key=\){YOUTUBE_API_KEY}`,
+      method: 'GET',
+      timeout: 4500
+    });
+
+    const items = itemsRes?.items || [];
+    if (items.length === 0) return { isLive: false, viewers: 0, title: '' };
+
+    const videoIds = items.map(it => it.contentDetails.videoId).join(',');
+
+    // 2. Consultar concurrentViewers de los videos en vivo
+    const videoData = await requestJSON({
+      hostname: 'www.googleapis.com',
+      path: `/youtube/v3/videos?part=snippet,liveStreamingDetails&id=\({videoIds}&key=\){YOUTUBE_API_KEY}`,
+      method: 'GET',
+      timeout: 4500
+    });
+
+    const videos = videoData?.items || [];
+    for (const v of videos) {
+      const details = v.liveStreamingDetails;
+      if (details && details.concurrentViewers) {
+        return {
+          isLive: true,
+          viewers: parseInt(details.concurrentViewers, 10),
+          title: v.snippet?.title || 'En vivo'
+        };
+      }
+    }
+
+    return { isLive: false, viewers: 0, title: '' };
+  } catch (err) {
+    return { isLive: false, viewers: 0, title: '' };
+  }
+}
+
+// Bucle en segundo plano: sincronización periódica
 let sincronizando = false;
 async function sincronizarPipeline() {
   if (sincronizando) return;
@@ -311,13 +297,12 @@ async function sincronizarPipeline() {
 
   const horaActual = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
-  // Procesamos en pequeños lotes concurrentes para no saturar la red
-  for (let i = 0; i < telemetriaState.length; i += 5) {
-    const lote = telemetriaState.slice(i, i + 5);
+  for (let i = 0; i < telemetriaState.length; i += 4) {
+    const lote = telemetriaState.slice(i, i + 4);
     await Promise.all(lote.map(async (canal) => {
       try {
         const [yt, tw, ki] = await Promise.all([
-          canal.ytHandle ? consultarYouTubeNativo(canal.ytHandle) : Promise.resolve({ isLive: false, viewers: 0 }),
+          canal.ytHandle ? consultarYouTubeOficial(canal.ytHandle) : Promise.resolve({ isLive: false, viewers: 0 }),
           canal.twitchUser ? consultarTwitch(canal.twitchUser) : Promise.resolve({ isLive: false, viewers: 0 }),
           canal.kickUser ? consultarKick(canal.kickUser) : Promise.resolve({ isLive: false, viewers: 0 })
         ]);
@@ -367,7 +352,7 @@ function validarToken(req) {
   return token ? envTokens.includes(token) : false;
 }
 
-// Endpoints principales
+// Endpoints de API
 app.get('/api/ranking-categorias', (req, res) => {
   try {
     const categorias = CATEGORIAS_ORDEN.map((catKey) => {
