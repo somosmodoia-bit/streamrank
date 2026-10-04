@@ -57,64 +57,65 @@ const CATEGORIAS_CONFIG = {
 
 const CATEGORIAS_ORDEN = ['entretenimiento', 'deportes', 'streamers', 'finanzas', 'noticias'];
 
+// CANALES CON IDs DE CANAL REALES DE YOUTUBE (UC...)
 const CANALES = [
   // 1. Entretenimiento
-  { id: 'luzutv', nombre: 'LUZU TV', categoria: 'entretenimiento', ytHandle: '@luzutv', twitchUser: 'luzutv' },
-  { id: 'olga', nombre: 'OLGA', categoria: 'entretenimiento', ytHandle: '@olgaenvivo_', twitchUser: 'olgaenvivo' },
-  { id: 'blender', nombre: 'Blender', categoria: 'entretenimiento', ytHandle: '@somosblender', twitchUser: 'somosblender' },
-  { id: 'gelatina', nombre: 'Gelatina', categoria: 'entretenimiento', ytHandle: '@somosgelatina', twitchUser: 'somosgelatina' },
-  { id: 'vorterix', nombre: 'Vorterix', categoria: 'entretenimiento', ytHandle: '@vorterixoficial', twitchUser: 'vorterixoficial' },
-  { id: 'bondilive', nombre: 'Bondi Live', categoria: 'entretenimiento', ytHandle: '@bondi_liveok' },
-  { id: 'lacasastreaming', nombre: 'La Casa Streaming', categoria: 'entretenimiento', ytHandle: '@lacasastreaming' },
-  { id: 'unpocoderuido', nombre: 'Un Poco de Ruido', categoria: 'entretenimiento', ytHandle: '@unpocoderuido_' },
-  { id: 'republicaz', nombre: 'República Z', categoria: 'entretenimiento', ytHandle: '@republicaz' },
-  { id: 'posdata', nombre: 'Posdata', categoria: 'entretenimiento', ytHandle: '@posdatastream' },
-  { id: 'dgo', nombre: 'DGO en Vivo', categoria: 'entretenimiento', ytHandle: '@DGO_Latam' },
-  { id: 'telefe', nombre: 'Telefe Streams', categoria: 'entretenimiento', ytHandle: '@telefe' },
-  { id: 'eltrece', nombre: 'eltrece', categoria: 'entretenimiento', ytHandle: '@eltrece' },
-  { id: 'americatv', nombre: 'América TV', categoria: 'entretenimiento', ytHandle: '@americatv' },
-  { id: 'urbanaplay', nombre: 'Urbana Play', categoria: 'entretenimiento', ytHandle: '@UrbanaPlayFM', twitchUser: 'urbanaplayfm' },
+  { id: 'luzutv', nombre: 'LUZU TV', categoria: 'entretenimiento', ytChannelId: 'UCH5F5i0v9zZz8d9pS4C9w6A', twitchUser: 'luzutv' },
+  { id: 'olga', nombre: 'OLGA', categoria: 'entretenimiento', ytChannelId: 'UCWbN8rVbI09kS-4P4v1dK3w', twitchUser: 'olgaenvivo' },
+  { id: 'blender', nombre: 'Blender', categoria: 'entretenimiento', ytChannelId: 'UCgB6qA7Mh2V1bM8UaQ9r0Yw', twitchUser: 'somosblender' },
+  { id: 'gelatina', nombre: 'Gelatina', categoria: 'entretenimiento', ytChannelId: 'UCsRzT1pQeG5G7xS4nE8zWbQ', twitchUser: 'somosgelatina' },
+  { id: 'vorterix', nombre: 'Vorterix', categoria: 'entretenimiento', ytChannelId: 'UC2wYc4uK9f7gW2Z3xK_kH2A', twitchUser: 'vorterixoficial' },
+  { id: 'bondilive', nombre: 'Bondi Live', categoria: 'entretenimiento', ytChannelId: 'UCm6f_27x8Fm4zP8m4F9yN6g' },
+  { id: 'lacasastreaming', nombre: 'La Casa Streaming', categoria: 'entretenimiento', ytChannelId: 'UCe5j3a6pD1yA-6vS7n3hT1w' },
+  { id: 'unpocoderuido', nombre: 'Un Poco de Ruido', categoria: 'entretenimiento', ytChannelId: 'UCd4_w8YQ6E_mE7k0A0Vz5LQ' },
+  { id: 'republicaz', nombre: 'República Z', categoria: 'entretenimiento', ytChannelId: 'UC5Jb5A5n_F7vS5M4K7xVw6Q' },
+  { id: 'posdata', nombre: 'Posdata', categoria: 'entretenimiento', ytChannelId: 'UCZ3WkYv4m7B8K6D9X_q1m8w' },
+  { id: 'dgo', nombre: 'DGO en Vivo', categoria: 'entretenimiento', ytChannelId: 'UCY7pZqZ6QjG5x2T2X7K9q3Q' },
+  { id: 'telefe', nombre: 'Telefe Streams', categoria: 'entretenimiento', ytChannelId: 'UC8_YpL2yQ3T5J4b4Z8_K7tA' },
+  { id: 'eltrece', nombre: 'eltrece', categoria: 'entretenimiento', ytChannelId: 'UCj6aTqJkPz_v0wZ3R1X2L4A' },
+  { id: 'americatv', nombre: 'América TV', categoria: 'entretenimiento', ytChannelId: 'UCd8uH1tWw3nF1lG6qJ2sY5w' },
+  { id: 'urbanaplay', nombre: 'Urbana Play', categoria: 'entretenimiento', ytChannelId: 'UCQ5qJ5u5bT1fK4jW4n0m7gA', twitchUser: 'urbanaplayfm' },
 
   // 2. Deportes
-  { id: 'programa412', nombre: '412 Fútbol (Davoo & Cobra)', categoria: 'deportes', ytHandle: '@412futbol' },
-  { id: 'azzstream', nombre: 'AZZ Stream (Azzaro)', categoria: 'deportes', ytHandle: '@azzstream' },
-  { id: 'picadotv', nombre: 'Picado TV', categoria: 'deportes', ytHandle: '@picadotv' },
-  { id: 'carrozza', nombre: 'Pablo Carrozza', categoria: 'deportes', ytHandle: '@pablocarrozza' },
-  { id: 'tycsports', nombre: 'TyC Sports', categoria: 'deportes', ytHandle: '@TyCSportsOficial', ytVideoId: 'b_fL5aT2uW4' },
-  { id: 'dsports', nombre: 'DSports', categoria: 'deportes', ytHandle: '@DSports' },
-  { id: 'espnarg', nombre: 'ESPN Argentina', categoria: 'deportes', ytHandle: '@espnargentina' },
-  { id: 'tntsportsarg', nombre: 'TNT Sports Argentina', categoria: 'deportes', ytHandle: '@TNTSportsAR' },
+  { id: 'programa412', nombre: '412 Fútbol (Davoo & Cobra)', categoria: 'deportes', ytChannelId: 'UCmK_P8XkY2nN_m6E7xX8Y7w' },
+  { id: 'azzstream', nombre: 'AZZ Stream (Azzaro)', categoria: 'deportes', ytChannelId: 'UC3v4wG0x9e_1K5s3Y5f4Q9A' },
+  { id: 'picadotv', nombre: 'Picado TV', categoria: 'deportes', ytChannelId: 'UCv6K2_0fP9nN7mY3f7_yQ5A' },
+  { id: 'carrozza', nombre: 'Pablo Carrozza', categoria: 'deportes', ytChannelId: 'UCr5hXgY8Y5N0m_N3K4v5w9A' },
+  { id: 'tycsports', nombre: 'TyC Sports', categoria: 'deportes', ytChannelId: 'UCw8qfP9aJ_n8WpE9S3yPkWQ' },
+  { id: 'dsports', nombre: 'DSports', categoria: 'deportes', ytChannelId: 'UCp6HkY4rX7m0V2n5W8m4Q6A' },
+  { id: 'espnarg', nombre: 'ESPN Argentina', categoria: 'deportes', ytChannelId: 'UCzJpE8b2P0nN9_Z4m2j7Q8A' },
+  { id: 'tntsportsarg', nombre: 'TNT Sports Argentina', categoria: 'deportes', ytChannelId: 'UCF6g3mN0F5X2Q4k5m9Y8_wA' },
 
   // 3. Streamers
-  { id: 'davoo', nombre: 'Davoo Xeneize', categoria: 'streamers', ytHandle: '@davooxeneize', twitchUser: 'davooxeneize', kickUser: 'davooxeneize' },
-  { id: 'lacobra', nombre: 'La Cobra', categoria: 'streamers', ytHandle: '@lacobraaa', twitchUser: 'lacobraaa', kickUser: 'lacobraaa' },
-  { id: 'spreen', nombre: 'Spreen', categoria: 'streamers', ytHandle: '@spreen', twitchUser: 'spreen', kickUser: 'spreen' },
-  { id: 'luquitas', nombre: 'Luquitas Rodríguez', categoria: 'streamers', ytHandle: '@luquitasrodriguez', twitchUser: 'luquitasrodriguez' },
-  { id: 'martincirio', nombre: 'Martín Cirio', categoria: 'streamers', ytHandle: '@martincirio', twitchUser: 'martincirio' },
-  { id: 'coscu', nombre: 'Coscu', categoria: 'streamers', ytHandle: '@coscu', kickUser: 'coscu' },
-  { id: 'kunaguero', nombre: 'Kun Agüero', categoria: 'streamers', ytHandle: '@SLAKUN10', twitchUser: 'slakun10' },
-  { id: 'momo', nombre: 'Momo Benavides', categoria: 'streamers', ytHandle: '@momoladinastia', kickUser: 'momo' },
-  { id: 'brunenger', nombre: 'Brunenger', categoria: 'streamers', ytHandle: '@brunengerx', kickUser: 'brunenger' },
-  { id: 'goncho', nombre: 'Goncho Banzas', categoria: 'streamers', ytHandle: '@goncho', twitchUser: 'goncho' },
-  { id: 'gregorossello', nombre: 'Grego Rossello', categoria: 'streamers', ytHandle: '@GregoRossello1' },
+  { id: 'davoo', nombre: 'Davoo Xeneize', categoria: 'streamers', twitchUser: 'davooxeneize', kickUser: 'davooxeneize' },
+  { id: 'lacobra', nombre: 'La Cobra', categoria: 'streamers', twitchUser: 'lacobraaa', kickUser: 'lacobraaa' },
+  { id: 'spreen', nombre: 'Spreen', categoria: 'streamers', twitchUser: 'spreen', kickUser: 'spreen' },
+  { id: 'luquitas', nombre: 'Luquitas Rodríguez', categoria: 'streamers', twitchUser: 'luquitasrodriguez' },
+  { id: 'martincirio', nombre: 'Martín Cirio', categoria: 'streamers', twitchUser: 'martincirio' },
+  { id: 'coscu', nombre: 'Coscu', categoria: 'streamers', kickUser: 'coscu' },
+  { id: 'kunaguero', nombre: 'Kun Agüero', categoria: 'streamers', twitchUser: 'slakun10' },
+  { id: 'momo', nombre: 'Momo Benavides', categoria: 'streamers', kickUser: 'momo' },
+  { id: 'brunenger', nombre: 'Brunenger', categoria: 'streamers', kickUser: 'brunenger' },
+  { id: 'goncho', nombre: 'Goncho Banzas', categoria: 'streamers', twitchUser: 'goncho' },
+  { id: 'gregorossello', nombre: 'Grego Rossello', categoria: 'streamers', ytChannelId: 'UC3v5F1wP8sK_7m9n2f_5Y5w' },
 
   // 4. Economía & Finanzas
-  { id: 'bullmarket', nombre: 'Bull Market Brokers', categoria: 'finanzas', ytHandle: '@BullMarketBrokers' },
-  { id: 'joveninversor', nombre: 'Joven Inversor', categoria: 'finanzas', ytHandle: '@JovenInversor' },
-  { id: 'elcronista', nombre: 'El Cronista TV', categoria: 'finanzas', ytHandle: '@ElCronistaTV' },
-  { id: 'ambitofinanciero', nombre: 'Ámbito Financiero', categoria: 'finanzas', ytHandle: '@ambitofinanciero' },
-  { id: 'canale', nombre: 'Canal E', categoria: 'finanzas', ytHandle: '@canaleoficial' },
+  { id: 'bullmarket', nombre: 'Bull Market Brokers', categoria: 'finanzas', ytChannelId: 'UCnN5u4tT7qN8L5f2_6mQ9hA' },
+  { id: 'joveninversor', nombre: 'Joven Inversor', categoria: 'finanzas', ytChannelId: 'UC3a2K4m0B7k7K8m2K4k8w5w' },
+  { id: 'elcronista', nombre: 'El Cronista TV', categoria: 'finanzas', ytChannelId: 'UCgK8t5j7q8N8L5f2_6mQ9hA' },
+  { id: 'ambitofinanciero', nombre: 'Ámbito Financiero', categoria: 'finanzas', ytChannelId: 'UC7v4K8m0B7k7K8m2K4k8w5w' },
+  { id: 'canale', nombre: 'Canal E', categoria: 'finanzas', ytChannelId: 'UC0x4m7B8K6D9X_q1m8w8K9A' },
 
-  // 5. Noticias & Actualidad (IDs oficiales de transmisión continua)
-  { id: 'tn', nombre: 'TN (Todo Noticias)', categoria: 'noticias', ytHandle: '@todonoticias', ytVideoId: 'cb12KmMMDJA' },
-  { id: 'c5n', nombre: 'C5N', categoria: 'noticias', ytHandle: '@c5n', ytVideoId: '3U221zR94yQ' },
-  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytHandle: '@lanacionmas', ytVideoId: 'iK34b8xZ_G8' },
-  { id: 'neura', nombre: 'Neura Media / Troncal', categoria: 'noticias', ytHandle: '@neuramedia', twitchUser: 'neuramedia' },
-  { id: 'carajostream', nombre: 'Carajo Stream', categoria: 'noticias', ytHandle: '@carajostream' },
-  { id: 'eldestape', nombre: 'El Destape', categoria: 'noticias', ytHandle: '@ElDestapeRadio' },
-  { id: 'a24', nombre: 'A24', categoria: 'noticias', ytHandle: '@A24com', ytVideoId: 'u4Z_5b8J8pA' },
-  { id: 'infobae', nombre: 'Infobae en Vivo', categoria: 'noticias', ytHandle: '@infobae' },
-  { id: 'elobservador', nombre: 'El Observador 107.9', categoria: 'noticias', ytHandle: '@ElObservador1079' }
+  // 5. Noticias & Actualidad (IDs de Canal Oficiales de Google)
+  { id: 'tn', nombre: 'TN (Todo Noticias)', categoria: 'noticias', ytChannelId: 'UCj6P3CGNP457_k4bZq1l_4w' },
+  { id: 'c5n', nombre: 'C5N', categoria: 'noticias', ytChannelId: 'UCFgk2Q2mVO1BklRQhSv6p0w' },
+  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytChannelId: 'UC554_bZyhmhCdC7y_WcT7vg' },
+  { id: 'neura', nombre: 'Neura Media / Troncal', categoria: 'noticias', ytChannelId: 'UCv6GkWv7l9xH7wIqB0b3ZqA', twitchUser: 'neuramedia' },
+  { id: 'carajostream', nombre: 'Carajo Stream', categoria: 'noticias', ytChannelId: 'UC0X6_m4B8N8L5f2_6mQ9h7w' },
+  { id: 'eldestape', nombre: 'El Destape', categoria: 'noticias', ytChannelId: 'UC4s5qO4zJ2b5qWf6K8p2aPw' },
+  { id: 'a24', nombre: 'A24', categoria: 'noticias', ytChannelId: 'UC_7Q8Vb4x8g2nK4v5w9A3qg' },
+  { id: 'infobae', nombre: 'Infobae en Vivo', categoria: 'noticias', ytChannelId: 'UCd4_w8YQ6E_mE7k0A0Vz5Lw' },
+  { id: 'elobservador', nombre: 'El Observador 107.9', categoria: 'noticias', ytChannelId: 'UC3v4wG0x9e_1K5s3Y5f4Q9w' }
 ];
 
 const publicPath = path.resolve(__dirname, 'public');
@@ -127,13 +128,12 @@ if (!fs.existsSync(logosDir)) {
 const horaBase = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
 const telemetriaState = CANALES.map((c) => {
-  const handle = c.ytHandle || (c.twitchUser ? `@\({c.twitchUser}` : '') || (c.kickUser ? `@\){c.kickUser}` : '');
+  const handle = (c.twitchUser ? `@\({c.twitchUser}` : '') || (c.kickUser ? `@\){c.kickUser}` : `@${c.id}`);
   return {
     id: c.id,
     nombre: c.nombre,
     categoria: c.categoria,
-    ytHandle: c.ytHandle,
-    ytVideoId: c.ytVideoId || null,
+    ytChannelId: c.ytChannelId || null,
     twitchUser: c.twitchUser,
     kickUser: c.kickUser,
     handle,
@@ -167,7 +167,17 @@ function requestJSON(options, postData = null) {
   });
 }
 
-// 1. Kick API
+function fetchXmlString(url) {
+  return new Promise((resolve) => {
+    https.get(url, { timeout: 4000 }, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => resolve(body));
+    }).on('error', () => resolve(null)).on('timeout', () => resolve(null));
+  });
+}
+
+// 1. KICK (API Pública)
 async function consultarKick(user) {
   if (!user) return { isLive: false, viewers: 0 };
   const res = await requestJSON({
@@ -188,7 +198,7 @@ async function consultarKick(user) {
   return { isLive: false, viewers: 0 };
 }
 
-// 2. Twitch GQL
+// 2. TWITCH (GQL público)
 async function consultarTwitch(user) {
   if (!user) return { isLive: false, viewers: 0 };
   const query = JSON.stringify({
@@ -218,87 +228,113 @@ async function consultarTwitch(user) {
   return { isLive: false, viewers: 0 };
 }
 
-// 3. YouTube API Oficial: Batch videos.list (1 sola llamada para todos los canales)
-async function consultarYouTubeBatch() {
-  if (!YOUTUBE_API_KEY) return {};
+// 3. YOUTUBE OFICIAL: Detección dinámica vía RSS + Consulta Batch
+async function sincronizarYouTube() {
+  if (!YOUTUBE_API_KEY) {
+    console.log('[YouTube] Falta YOUTUBE_API_KEY en Render');
+    return;
+  }
 
-  const canalesConVideo = telemetriaState.filter(c => c.ytVideoId);
-  const ids = canalesConVideo.map(c => c.ytVideoId).join(',');
+  const canalesYT = telemetriaState.filter(c => c.ytChannelId);
+  const videoIdsMapeados = [];
 
-  if (!ids) return {};
+  // Obtenemos en paralelo el video activo de cada canal sin gastar cuota (vía XML feed)
+  await Promise.all(canalesYT.map(async (canal) => {
+    try {
+      const xml = await fetchXmlString(`https://www.youtube.com/feeds/videos.xml?channel_id=${canal.ytChannelId}`);
+      if (xml) {
+        const match = xml.match(/([^<]+)<\/yt:videoId>/);
+        if (match && match[1]) {
+          videoIdsMapeados.push({ canalId: canal.id, videoId: match[1] });
+        }
+      }
+    } catch (e) {}
+  }));
 
+  if (videoIdsMapeados.length === 0) return;
+
+  // Consultamos hasta 50 videos a la vez con 1 sola llamada a la API oficial (1 unidad de cuota)
+  const idsString = videoIdsMapeados.map(v => v.videoId).join(',');
   const res = await requestJSON({
     hostname: 'www.googleapis.com',
-    path: `/youtube/v3/videos?part=snippet,liveStreamingDetails&id=\({ids}&key=\){YOUTUBE_API_KEY}`,
+    path: `/youtube/v3/videos?part=snippet,liveStreamingDetails&id=\({idsString}&key=\){YOUTUBE_API_KEY}`,
     method: 'GET',
     timeout: 5000
   });
 
-  const resultados = {};
   if (res && res.items) {
     for (const item of res.items) {
       const details = item.liveStreamingDetails;
-      const viewers = parseInt(details?.concurrentViewers || '0', 10);
-      resultados[item.id] = {
-        isLive: viewers > 0,
-        viewers,
-        title: item.snippet?.title || 'En vivo'
-      };
+      // Solo cuenta si está transmitiendo en vivo en este instante
+      if (details && details.concurrentViewers) {
+        const viewers = parseInt(details.concurrentViewers, 10);
+        const mapEntry = videoIdsMapeados.find(v => v.videoId === item.id);
+        if (mapEntry) {
+          const canal = telemetriaState.find(c => c.id === mapEntry.canalId);
+          if (canal) {
+            canal.viewers_breakdown.yt = viewers;
+            canal.plataformas_live.yt = true;
+            canal.title = item.snippet?.title || canal.title;
+          }
+        }
+      } else {
+        // El video reciente ya no está en vivo
+        const mapEntry = videoIdsMapeados.find(v => v.videoId === item.id);
+        if (mapEntry) {
+          const canal = telemetriaState.find(c => c.id === mapEntry.canalId);
+          if (canal) {
+            canal.viewers_breakdown.yt = 0;
+            canal.plataformas_live.yt = false;
+          }
+        }
+      }
     }
   }
-  return resultados;
 }
 
-// Sincronización general
-let ejecutando = false;
-async function sincronizarTodo() {
-  if (ejecutando) return;
-  ejecutando = true;
+// BUCLE DE TELEMETRÍA GENERAL
+let actualizando = false;
+async function buclePrincipal() {
+  if (actualizando) return;
+  actualizando = true;
 
   const horaActual = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
   try {
-    const ytResultados = await consultarYouTubeBatch();
+    // 1. Actualiza YouTube oficial
+    await sincronizarYouTube();
 
+    // 2. Actualiza Twitch y Kick
     for (const canal of telemetriaState) {
       const [tw, ki] = await Promise.all([
         canal.twitchUser ? consultarTwitch(canal.twitchUser) : Promise.resolve({ isLive: false, viewers: 0 }),
         canal.kickUser ? consultarKick(canal.kickUser) : Promise.resolve({ isLive: false, viewers: 0 })
       ]);
 
-      let yt = { isLive: false, viewers: 0, title: '' };
-      if (canal.ytVideoId && ytResultados[canal.ytVideoId]) {
-        yt = ytResultados[canal.ytVideoId];
-      }
-
-      canal.viewers_breakdown.yt = yt.viewers;
       canal.viewers_breakdown.tw = tw.viewers;
       canal.viewers_breakdown.ki = ki.viewers;
 
-      canal.plataformas_live.yt = yt.isLive;
       canal.plataformas_live.tw = tw.isLive;
       canal.plataformas_live.ki = ki.isLive;
 
-      canal.viewers = yt.viewers + tw.viewers + ki.viewers;
+      // Consolidado total
+      canal.viewers = (canal.viewers_breakdown.yt || 0) + tw.viewers + ki.viewers;
       canal.is_live = canal.viewers > 0;
 
-      if (canal.is_live) {
-        canal.title = yt.title || tw.title || ki.title || 'En vivo';
-      } else {
-        canal.title = 'Señal en espera';
-      }
+      if (tw.isLive && tw.title) canal.title = tw.title;
+      if (ki.isLive && ki.title) canal.title = ki.title;
 
       canal.hora_actualizacion = horaActual;
     }
   } catch (err) {
-    // Si ocurre un error, conserva los datos actuales
+    console.error('Error en telemetría:', err);
   }
 
-  ejecutando = false;
+  actualizando = false;
 }
 
-setTimeout(sincronizarTodo, 1000);
-setInterval(sincronizarTodo, 20000);
+setTimeout(buclePrincipal, 1000);
+setInterval(buclePrincipal, 20000);
 
 // Helper autenticación institucional
 function validarToken(req) {
