@@ -107,7 +107,7 @@
       <div class="flex items-center space-x-3">
         <span id="relojHeader" class="text-[11px] font-mono text-slate-400 hidden sm:inline">Sincronizando...</span>
         <button onclick="abrirModalIA()" class="bg-matrix-10 hover:bg-[#00ff88]/20 text-matrix text-xs px-3 py-1.5 rounded-lg border border-matrix-30 font-mono transition cursor-pointer">
-          Dataset IA
+          Descargar Analytics
         </button>
       </div>
     </div>
@@ -118,7 +118,7 @@
       <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-md bg-matrix-10 border border-matrix-30 text-matrix text-[11px] font-mono font-bold">
         <span class="relative flex h-2 w-2">
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00ff88] opacity-75"></span>
-          <span class="relative inline-flex rounded-full h-2 w-2 bg-[#00ff88]"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-[#00ff66]"></span>
         </span>
         <span>TELEMETRÍA EN TIEMPO REAL</span>
       </div>
@@ -273,19 +273,18 @@
         <div class="p-4 md:p-5 relative overflow-hidden bg-gradient-to-b from-[#0b1120] to-[#050811]" id="vsCaptureArea">
           <div class="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiMwNTA4MTEiPjwvaGVpZ2h0PjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiMxZTI5M2IiPjwvc3ZnPg==')] opacity-40 pointer-events-none"></div>
           
-          <!-- Encabezado de Placa (STREAM blanco, RANK verde, BETA lado) -->
+          <!-- Encabezado de Placa (STREAM verde, RANK ARG blanco) -->
           <div class="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
             <div>
               <div class="flex items-center space-x-2 mb-1">
                 <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#00ff88] border border-[#00ff88]/30"></span>
                 <h2 class="flex items-baseline tracking-widest leading-none" style="font-family: 'Outfit', sans-serif;">
-                  <span class="text-white font-black text-lg md:text-xl">STREAM</span>
-                  <span class="text-[#00ff88] font-black text-lg md:text-xl">RANK</span>
+                  <span class="text-[#00ff88] font-black text-lg md:text-xl">STREAM</span>
+                  <span class="text-white font-black text-lg md:text-xl">RANK</span>
                   <span class="text-white font-black text-sm md:text-base ml-1.5">ARG</span>
-                  <span class="font-mono text-xs font-semibold text-[#00ff88]/80 ml-1.5">BETA</span>
                 </h2>
               </div>
-              <span class="font-mono text-xs sm:text-sm font-semibold text-[#00ff88] tracking-widest uppercase" id="vsTimestamp">Batalla de Audiencias Oficial</span>
+              <span class="font-mono text-xs sm:text-sm font-semibold text-[#00ff88]/90 tracking-widest uppercase" id="vsTimestamp">Batalla de Audiencias Oficial</span>
             </div>
             <div id="vsPlaqueBadge">
               <!-- Se completa por JS -->
@@ -460,7 +459,7 @@
               </div>
             </div>
             <div class="flex items-center gap-1.5 flex-shrink-0">
-              <button onclick="abrirVersus('${c.id}')" class="text-[9px] font-bold font-mono px-2 py-0.5 rounded border border-slate-700 bg-slate-800/80 hover:bg-[#00ff88] hover:text-black hover:border-[#00ff88] text-slate-400 transition cursor-pointer" title="Comparar VS">VS</button>
+              <button onclick="abrirVersus('${c.id}')" class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-xs px-2 py-1 rounded transition-all duration-200 hover:bg-emerald-500/20 hover:border-emerald-400 hover:text-emerald-400 hover:shadow-[0_0_10px_rgba(16,185,129,0.3)] cursor-pointer" title="Comparar VS">VS</button>
               ${statusBadge}
             </div>
           </div>
@@ -676,13 +675,13 @@
       if ((statusA.isLive && !statusA.isRerun) || (statusB.isLive && !statusB.isRerun)) {
         plaqueBadgeHtml = `
           <div class="flex items-center gap-1.5 bg-[#00ff88]/10 border border-[#00ff88]/30 px-2.5 py-1 rounded-md">
-            <span class="w-2 h-2 rounded-full bg-[#00ff88] animate-pulse"></span>
+            <span class="w-1.5 h-1.5 rounded-full bg-[#00ff88] animate-pulse"></span>
             <span class="text-[#00ff88] font-semibold font-mono text-xs tracking-wider uppercase">EN DIRECTO</span>
           </div>`;
       } else if (statusA.isLive || statusB.isLive) {
         plaqueBadgeHtml = `
           <div class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-md">
-            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
             <span class="text-amber-400 font-semibold font-mono text-xs tracking-wider uppercase">TRANSMITIENDO</span>
           </div>`;
       } else {
