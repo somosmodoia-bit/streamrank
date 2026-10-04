@@ -165,6 +165,23 @@ const telemetriaState = CANALES.map((c) => {
   };
 });
 
+// Middleware helper de autenticación multi-token por variable de entorno
+function validarToken(req) {
+  const envTokens = (process.env.VALID_TOKENS || '').split(',').map((t) => t.trim()).filter(Boolean);
+  if (envTokens.length === 0) return true; // Si no hay tokens configurados, permite acceso libre
+
+  const authHeader = req.headers.authorization;
+  let token = null;
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7).trim();
+  } else if (req.query.token) {
+    token = String(req.query.token).trim();
+  }
+
+  return token ? envTokens.includes(token) : false;
+}
+
 // RUTA PRINCIPAL
 app.get('/api/ranking-categorias', (req, res) => {
   try {
@@ -214,14 +231,50 @@ app.get('/api/dataset-ai', (req, res) => {
   });
 });
 
+// ENDPOINT DE ANALYTICS CON VALIDACIÓN Y SOPORTE PARA FILTROS
 app.get('/api/descargar-analytics', (req, res) => {
-  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', 'attachment; filename="streamrank_analytics.csv"');
-  let csv = 'Canal,Categoria,Handle,Viewers_Total,YouTube,Twitch,Kick,Estado,Titulo,Ultima_Actualizacion\n';
-  telemetriaState.forEach((c) => {
-    csv += `"\({c.nombre}","\){c.categoria}","\({c.handle}",\){c.viewers},\({c.viewers_breakdown.yt},\){c.viewers_breakdown.tw},\({c.viewers_breakdown.ki},"\){c.is_live ? 'EN VIVO' : 'OFFLINE'}","\({(c.title || '').replace(/"/g, '""')}","\){c.hora_actualizacion}"\n`;
-  });
-  res.send(csv);
+  if (!validarToken(req)) {
+    return res.status(401).json({ error: 'Clave institucional inválida o no provista' });
+  }
+
+  const canalId = req.query.canal || 'todos';
+  const periodo = req.query.periodo || 'hoy';
+  const formato = req.query.formato || 'json';
+
+  let datosFiltrados = telemetriaState;
+  if (canalId !== 'todos') {
+    datosFiltrados = telemetriaState.filter((c) => c.id === canalId);
+  }
+
+  if (formato === 'csv') {
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="streamrank_\({canalId}_\){periodo}.csv"`);
+    let csv = 'Canal,Categoria,Handle,Viewers_Total,YouTube,Twitch,Kick,Estado,Titulo,Ultima_Actualizacion\n';
+    datosFiltrados.forEach((c) => {
+      csv += `"\({c.nombre}","\){c.categoria}","\({c.handle}",\){c.viewers},\({c.viewers_breakdown.yt},\){c.viewers_breakdown.tw},\({c.viewers_breakdown.ki},"\){c.is_live ? 'EN VIVO' : 'OFFLINE'}","\({(c.title || '').replace(/"/g, '""')}","\){c.hora_actualizacion}"\n`;
+    });
+    return res.send(csv);
+  }
+
+  // Entrega JSON lista para arrastrar a ChatGPT / Claude / Gemini
+  const exportPayload = {
+    metadata: {
+      fuente: 'StreamRank Argentina',
+      alcance: canalId,
+      periodo: periodo,
+      timestamp: new Date().toISOString(),
+      formato: 'AI_Semantic_Dataset'
+    },
+    instrucciones_ia: {
+      rol: 'Sos un auditor senior de medios y métricas de streaming en Argentina.',
+      tarea: 'Respondé las dudas del usuario basándote exclusivamente en la telemetría adjunta. Si el usuario arrastra otro archivo para comparar, cruzá los datos directamente.'
+    },
+    canales: datosFiltrados
+  };
+
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="streamrank_\({canalId}_\){periodo}.json"`);
+  return res.json(exportPayload);
 });
 
 app.get('/modoia', (req, res) => {
