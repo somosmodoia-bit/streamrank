@@ -10,14 +10,13 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 10000;
-const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || '';
 
 app.use(cors());
 app.use(express.json());
 
 app.get('/health', (req, res) => res.status(200).send('OK'));
 
-// MAPA ESTRICTO DE CATEGORÍAS (backend <-> frontend match 1:1)
+// MAPA DE CATEGORÍAS (backend <-> frontend match 1:1)
 const CATEGORIAS_CONFIG = {
   entretenimiento: {
     id: 'entretenimiento',
@@ -58,64 +57,65 @@ const CATEGORIAS_CONFIG = {
 
 const CATEGORIAS_ORDEN = ['entretenimiento', 'deportes', 'streamers', 'finanzas', 'noticias'];
 
+// LISTADO MAESTRO DE CANALES
 const CANALES = [
   // 1. Entretenimiento
-  { id: 'luzutv', nombre: 'LUZU TV', categoria: 'entretenimiento', ytHandle: '@luzutv', twitchUser: 'luzutv', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'olga', nombre: 'OLGA', categoria: 'entretenimiento', ytHandle: '@olgaenvivo_', twitchUser: 'olgaenvivo', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'blender', nombre: 'Blender', categoria: 'entretenimiento', ytHandle: '@somosblender', twitchUser: 'somosblender', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'gelatina', nombre: 'Gelatina', categoria: 'entretenimiento', ytHandle: '@somosgelatina', twitchUser: 'somosgelatina', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'vorterix', nombre: 'Vorterix', categoria: 'entretenimiento', ytHandle: '@vorterixoficial', twitchUser: 'vorterixoficial', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'bondilive', nombre: 'Bondi Live', categoria: 'entretenimiento', ytHandle: '@bondi_liveok', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'lacasastreaming', nombre: 'La Casa Streaming', categoria: 'entretenimiento', ytHandle: '@lacasastreaming', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'unpocoderuido', nombre: 'Un Poco de Ruido', categoria: 'entretenimiento', ytHandle: '@unpocoderuido_', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'republicaz', nombre: 'República Z', categoria: 'entretenimiento', ytHandle: '@republicaz', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'posdata', nombre: 'Posdata', categoria: 'entretenimiento', ytHandle: '@posdatastream', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'dgo', nombre: 'DGO en Vivo', categoria: 'entretenimiento', ytHandle: '@DGO_Latam', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'telefe', nombre: 'Telefe Streams', categoria: 'entretenimiento', ytHandle: '@telefe', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'eltrece', nombre: 'eltrece', categoria: 'entretenimiento', ytHandle: '@eltrece', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'americatv', nombre: 'América TV', categoria: 'entretenimiento', ytHandle: '@americatv', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'urbanaplay', nombre: 'Urbana Play', categoria: 'entretenimiento', ytHandle: '@UrbanaPlayFM', twitchUser: 'urbanaplayfm', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
+  { id: 'luzutv', nombre: 'LUZU TV', categoria: 'entretenimiento', ytHandle: '@luzutv', twitchUser: 'luzutv' },
+  { id: 'olga', nombre: 'OLGA', categoria: 'entretenimiento', ytHandle: '@olgaenvivo_', twitchUser: 'olgaenvivo' },
+  { id: 'blender', nombre: 'Blender', categoria: 'entretenimiento', ytHandle: '@somosblender', twitchUser: 'somosblender' },
+  { id: 'gelatina', nombre: 'Gelatina', categoria: 'entretenimiento', ytHandle: '@somosgelatina', twitchUser: 'somosgelatina' },
+  { id: 'vorterix', nombre: 'Vorterix', categoria: 'entretenimiento', ytHandle: '@vorterixoficial', twitchUser: 'vorterixoficial' },
+  { id: 'bondilive', nombre: 'Bondi Live', categoria: 'entretenimiento', ytHandle: '@bondi_liveok' },
+  { id: 'lacasastreaming', nombre: 'La Casa Streaming', categoria: 'entretenimiento', ytHandle: '@lacasastreaming' },
+  { id: 'unpocoderuido', nombre: 'Un Poco de Ruido', categoria: 'entretenimiento', ytHandle: '@unpocoderuido_' },
+  { id: 'republicaz', nombre: 'República Z', categoria: 'entretenimiento', ytHandle: '@republicaz' },
+  { id: 'posdata', nombre: 'Posdata', categoria: 'entretenimiento', ytHandle: '@posdatastream' },
+  { id: 'dgo', nombre: 'DGO en Vivo', categoria: 'entretenimiento', ytHandle: '@DGO_Latam' },
+  { id: 'telefe', nombre: 'Telefe Streams', categoria: 'entretenimiento', ytHandle: '@telefe' },
+  { id: 'eltrece', nombre: 'eltrece', categoria: 'entretenimiento', ytHandle: '@eltrece' },
+  { id: 'americatv', nombre: 'América TV', categoria: 'entretenimiento', ytHandle: '@americatv' },
+  { id: 'urbanaplay', nombre: 'Urbana Play', categoria: 'entretenimiento', ytHandle: '@UrbanaPlayFM', twitchUser: 'urbanaplayfm' },
 
   // 2. Deportes
-  { id: 'programa412', nombre: '412 Fútbol (Davoo & Cobra)', categoria: 'deportes', ytHandle: '@412futbol', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'azzstream', nombre: 'AZZ Stream (Azzaro)', categoria: 'deportes', ytHandle: '@azzstream', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'picadotv', nombre: 'Picado TV', categoria: 'deportes', ytHandle: '@picadotv', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'carrozza', nombre: 'Pablo Carrozza', categoria: 'deportes', ytHandle: '@pablocarrozza', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'tycsports', nombre: 'TyC Sports', categoria: 'deportes', ytHandle: '@TyCSportsOficial', defViewers: 14200, defLive: true, defTitle: 'TyC Sports en Vivo • Cobertura Deportiva' },
-  { id: 'dsports', nombre: 'DSports', categoria: 'deportes', ytHandle: '@DSports', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'espnarg', nombre: 'ESPN Argentina', categoria: 'deportes', ytHandle: '@espnargentina', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'tntsportsarg', nombre: 'TNT Sports Argentina', categoria: 'deportes', ytHandle: '@TNTSportsAR', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
+  { id: 'programa412', nombre: '412 Fútbol (Davoo & Cobra)', categoria: 'deportes', ytHandle: '@412futbol' },
+  { id: 'azzstream', nombre: 'AZZ Stream (Azzaro)', categoria: 'deportes', ytHandle: '@azzstream' },
+  { id: 'picadotv', nombre: 'Picado TV', categoria: 'deportes', ytHandle: '@picadotv' },
+  { id: 'carrozza', nombre: 'Pablo Carrozza', categoria: 'deportes', ytHandle: '@pablocarrozza' },
+  { id: 'tycsports', nombre: 'TyC Sports', categoria: 'deportes', ytHandle: '@TyCSportsOficial' },
+  { id: 'dsports', nombre: 'DSports', categoria: 'deportes', ytHandle: '@DSports' },
+  { id: 'espnarg', nombre: 'ESPN Argentina', categoria: 'deportes', ytHandle: '@espnargentina' },
+  { id: 'tntsportsarg', nombre: 'TNT Sports Argentina', categoria: 'deportes', ytHandle: '@TNTSportsAR' },
 
   // 3. Streamers
-  { id: 'davoo', nombre: 'Davoo Xeneize', categoria: 'streamers', ytHandle: '@davooxeneize', twitchUser: 'davooxeneize', kickUser: 'davooxeneize', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'lacobra', nombre: 'La Cobra', categoria: 'streamers', ytHandle: '@lacobraaa', twitchUser: 'lacobraaa', kickUser: 'lacobraaa', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'spreen', nombre: 'Spreen', categoria: 'streamers', ytHandle: '@spreen', twitchUser: 'spreen', kickUser: 'spreen', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'luquitas', nombre: 'Luquitas Rodríguez', categoria: 'streamers', ytHandle: '@luquitasrodriguez', twitchUser: 'luquitasrodriguez', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'martincirio', nombre: 'Martín Cirio', categoria: 'streamers', ytHandle: '@martincirio', twitchUser: 'martincirio', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'coscu', nombre: 'Coscu', categoria: 'streamers', ytHandle: '@coscu', kickUser: 'coscu', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'kunaguero', nombre: 'Kun Agüero', categoria: 'streamers', ytHandle: '@SLAKUN10', twitchUser: 'slakun10', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'momo', nombre: 'Momo Benavides', categoria: 'streamers', ytHandle: '@momoladinastia', kickUser: 'momo', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'brunenger', nombre: 'Brunenger', categoria: 'streamers', ytHandle: '@brunengerx', kickUser: 'brunenger', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'goncho', nombre: 'Goncho Banzas', categoria: 'streamers', ytHandle: '@goncho', twitchUser: 'goncho', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'gregorossello', nombre: 'Grego Rossello', categoria: 'streamers', ytHandle: '@GregoRossello1', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
+  { id: 'davoo', nombre: 'Davoo Xeneize', categoria: 'streamers', ytHandle: '@davooxeneize', twitchUser: 'davooxeneize', kickUser: 'davooxeneize' },
+  { id: 'lacobra', nombre: 'La Cobra', categoria: 'streamers', ytHandle: '@lacobraaa', twitchUser: 'lacobraaa', kickUser: 'lacobraaa' },
+  { id: 'spreen', nombre: 'Spreen', categoria: 'streamers', ytHandle: '@spreen', twitchUser: 'spreen', kickUser: 'spreen' },
+  { id: 'luquitas', nombre: 'Luquitas Rodríguez', categoria: 'streamers', ytHandle: '@luquitasrodriguez', twitchUser: 'luquitasrodriguez' },
+  { id: 'martincirio', nombre: 'Martín Cirio', categoria: 'streamers', ytHandle: '@martincirio', twitchUser: 'martincirio' },
+  { id: 'coscu', nombre: 'Coscu', categoria: 'streamers', ytHandle: '@coscu', kickUser: 'coscu' },
+  { id: 'kunaguero', nombre: 'Kun Agüero', categoria: 'streamers', ytHandle: '@SLAKUN10', twitchUser: 'slakun10' },
+  { id: 'momo', nombre: 'Momo Benavides', categoria: 'streamers', ytHandle: '@momoladinastia', kickUser: 'momo' },
+  { id: 'brunenger', nombre: 'Brunenger', categoria: 'streamers', ytHandle: '@brunengerx', kickUser: 'brunenger' },
+  { id: 'goncho', nombre: 'Goncho Banzas', categoria: 'streamers', ytHandle: '@goncho', twitchUser: 'goncho' },
+  { id: 'gregorossello', nombre: 'Grego Rossello', categoria: 'streamers', ytHandle: '@GregoRossello1' },
 
-  // 4. Economía & Finanzas (Clave: finanzas)
-  { id: 'bullmarket', nombre: 'Bull Market Brokers', categoria: 'finanzas', ytHandle: '@BullMarketBrokers', defViewers: 1200, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'joveninversor', nombre: 'Joven Inversor', categoria: 'finanzas', ytHandle: '@JovenInversor', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'elcronista', nombre: 'El Cronista TV', categoria: 'finanzas', ytHandle: '@ElCronistaTV', defViewers: 850, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'ambitofinanciero', nombre: 'Ámbito Financiero', categoria: 'finanzas', ytHandle: '@ambitofinanciero', defViewers: 0, defLive: false, defTitle: 'Señal en espera' },
-  { id: 'canale', nombre: 'Canal E', categoria: 'finanzas', ytHandle: '@canaleoficial', defViewers: 950, defLive: false, defTitle: 'Señal en espera' },
+  // 4. Economía & Finanzas
+  { id: 'bullmarket', nombre: 'Bull Market Brokers', categoria: 'finanzas', ytHandle: '@BullMarketBrokers' },
+  { id: 'joveninversor', nombre: 'Joven Inversor', categoria: 'finanzas', ytHandle: '@JovenInversor' },
+  { id: 'elcronista', nombre: 'El Cronista TV', categoria: 'finanzas', ytHandle: '@ElCronistaTV' },
+  { id: 'ambitofinanciero', nombre: 'Ámbito Financiero', categoria: 'finanzas', ytHandle: '@ambitofinanciero' },
+  { id: 'canale', nombre: 'Canal E', categoria: 'finanzas', ytHandle: '@canaleoficial' },
 
-  // 5. Noticias & Actualidad (Clave: noticias)
-  { id: 'neura', nombre: 'Neura Media / Troncal', categoria: 'noticias', ytHandle: '@neuramedia', twitchUser: 'neuramedia', defViewers: 18400, defLive: true, defTitle: 'NEURA MEDIA • Troncal' },
-  { id: 'tn', nombre: 'TN (Todo Noticias)', categoria: 'noticias', ytHandle: '@todonoticias', defViewers: 48500, defLive: true, defTitle: 'TN EN VIVO • Cobertura en directo' },
-  { id: 'c5n', nombre: 'C5N', categoria: 'noticias', ytHandle: '@c5n', defViewers: 36200, defLive: true, defTitle: 'C5N EN DIRECTO • Noticias las 24 horas' },
-  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytHandle: '@lanacionmas', defViewers: 29300, defLive: true, defTitle: 'LN+ Transmisión Continua' },
-  { id: 'carajostream', nombre: 'Carajo Stream', categoria: 'noticias', ytHandle: '@carajostream', defViewers: 6200, defLive: true, defTitle: 'Carajo Stream en Vivo' },
-  { id: 'eldestape', nombre: 'El Destape', categoria: 'noticias', ytHandle: '@ElDestapeRadio', defViewers: 8900, defLive: true, defTitle: 'El Destape en Directo' },
-  { id: 'a24', nombre: 'A24', categoria: 'noticias', ytHandle: '@A24com', defViewers: 12500, defLive: true, defTitle: 'A24 en Vivo' },
-  { id: 'infobae', nombre: 'Infobae en Vivo', categoria: 'noticias', ytHandle: '@infobae', defViewers: 3400, defLive: true, defTitle: 'Infobae Cobertura en Directo' },
-  { id: 'elobservador', nombre: 'El Observador 107.9', categoria: 'noticias', ytHandle: '@ElObservador1079', defViewers: 2800, defLive: true, defTitle: 'El Observador 107.9 Streaming' }
+  // 5. Noticias & Actualidad
+  { id: 'neura', nombre: 'Neura Media / Troncal', categoria: 'noticias', ytHandle: '@neuramedia', twitchUser: 'neuramedia' },
+  { id: 'tn', nombre: 'TN (Todo Noticias)', categoria: 'noticias', ytHandle: '@todonoticias' },
+  { id: 'c5n', nombre: 'C5N', categoria: 'noticias', ytHandle: '@c5n' },
+  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytHandle: '@lanacionmas' },
+  { id: 'carajostream', nombre: 'Carajo Stream', categoria: 'noticias', ytHandle: '@carajostream' },
+  { id: 'eldestape', nombre: 'El Destape', categoria: 'noticias', ytHandle: '@ElDestapeRadio' },
+  { id: 'a24', nombre: 'A24', categoria: 'noticias', ytHandle: '@A24com' },
+  { id: 'infobae', nombre: 'Infobae en Vivo', categoria: 'noticias', ytHandle: '@infobae' },
+  { id: 'elobservador', nombre: 'El Observador 107.9', categoria: 'noticias', ytHandle: '@ElObservador1079' }
 ];
 
 const publicPath = path.resolve(__dirname, 'public');
@@ -127,7 +127,7 @@ if (!fs.existsSync(logosDir)) {
 
 const horaBase = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
-// Inicialización de la telemetría asegurando coincidencia absoluta
+// Estado inicial en memoria
 const telemetriaState = CANALES.map((c) => {
   const handle = c.ytHandle || (c.twitchUser ? `@\({c.twitchUser}` : '') || (c.kickUser ? `@\){c.kickUser}` : '');
   return {
@@ -139,24 +139,16 @@ const telemetriaState = CANALES.map((c) => {
     kickUser: c.kickUser,
     handle,
     avatar: `/logos/${c.id}.jpg`,
-    viewers: c.defViewers || 0,
-    is_live: Boolean(c.defLive),
-    title: c.defTitle || 'Señal en espera',
+    viewers: 0,
+    is_live: false,
+    title: 'Señal en espera',
     hora_actualizacion: horaBase,
-    plataformas_live: {
-      yt: Boolean(c.defLive),
-      tw: false,
-      ki: false
-    },
-    viewers_breakdown: {
-      yt: c.defViewers || 0,
-      tw: 0,
-      ki: 0
-    }
+    plataformas_live: { yt: false, tw: false, ki: false },
+    viewers_breakdown: { yt: 0, tw: 0, ki: 0 }
   };
 });
 
-// Helper de peticiones HTTP con control estricto de timeout
+// Helper de peticiones JSON seguras con timeout
 function requestJSON(options, postData = null) {
   return new Promise((resolve) => {
     try {
@@ -182,7 +174,7 @@ function requestJSON(options, postData = null) {
   });
 }
 
-// 1. Kick API
+// 1. KICK (API Pública oficial de Kick)
 async function consultarKick(user) {
   if (!user) return { isLive: false, viewers: 0 };
   const res = await requestJSON({
@@ -203,7 +195,7 @@ async function consultarKick(user) {
   return { isLive: false, viewers: 0 };
 }
 
-// 2. Twitch GQL
+// 2. TWITCH (GQL público de alta velocidad)
 async function consultarTwitch(user) {
   if (!user) return { isLive: false, viewers: 0 };
   const query = JSON.stringify({
@@ -233,45 +225,157 @@ async function consultarTwitch(user) {
   return { isLive: false, viewers: 0 };
 }
 
-// Bucle en segundo plano: corre en paralelo sin bloquear la API
-let refrescando = false;
-async function sincronizarMultiplataforma() {
-  if (refrescando) return;
-  refrescando = true;
+// 3. YOUTUBE (Lector directo de transmisión en vivo en tiempo real)
+function consultarYouTube(handle) {
+  return new Promise((resolve) => {
+    if (!handle) return resolve({ isLive: false, viewers: 0, title: '' });
+    const cleanHandle = handle.startsWith('@') ? handle : `@${handle}`;
+    const url = `https://www.youtube.com/${cleanHandle}/live`;
+
+    const req = https.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept-Language': 'es-419,es;q=0.9,en;q=0.8'
+      },
+      timeout: 5000
+    }, (res) => {
+      // Manejo de redirección natural a /watch?v=XXXX
+      if ([301, 302, 303, 307].includes(res.statusCode) && res.headers.location) {
+        let redir = res.headers.location;
+        if (!redir.startsWith('http')) redir = 'https://www.youtube.com' + redir;
+        return resolve(fetchHtmlBuffer(redir));
+      }
+
+      let data = '';
+      res.on('data', chunk => {
+        data += chunk;
+        if (data.length > 700000) {
+          req.destroy();
+          resolve(parseYouTubeHtml(data));
+        }
+      });
+      res.on('end', () => resolve(parseYouTubeHtml(data)));
+      res.on('close', () => resolve(parseYouTubeHtml(data)));
+    });
+
+    req.on('error', () => resolve({ isLive: false, viewers: 0, title: '' }));
+    req.on('timeout', () => {
+      req.destroy();
+      resolve({ isLive: false, viewers: 0, title: '' });
+    });
+  });
+}
+
+function fetchHtmlBuffer(url) {
+  return new Promise((resolve) => {
+    const req = https.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept-Language': 'es-419,es;q=0.9,en;q=0.8'
+      },
+      timeout: 5000
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => {
+        data += chunk;
+        if (data.length > 700000) {
+          req.destroy();
+          resolve(parseYouTubeHtml(data));
+        }
+      });
+      res.on('end', () => resolve(parseYouTubeHtml(data)));
+      res.on('close', () => resolve(parseYouTubeHtml(data)));
+    });
+
+    req.on('error', () => resolve({ isLive: false, viewers: 0, title: '' }));
+    req.on('timeout', () => {
+      req.destroy();
+      resolve({ isLive: false, viewers: 0, title: '' });
+    });
+  });
+}
+
+function parseYouTubeHtml(html) {
+  try {
+    const isLive = html.includes('"isLive":true') || 
+                   html.includes('"isLiveNow":true') || 
+                   html.includes('"status":"LIVE"');
+
+    if (!isLive) {
+      return { isLive: false, viewers: 0, title: 'Señal en espera' };
+    }
+
+    let viewers = 0;
+    const matchViewers = html.match(/"viewCount":\{"runs":\[\{"text":"([^"]+)"\}/) ||
+                         html.match(/"originalViewCount":"(\d+)"/) ||
+                         html.match(/"text":"([0-9.,\s]+)(?:espectadores|watching|viendo)/i);
+
+    if (matchViewers) {
+      const rawNum = matchViewers[1].replace(/[^\d]/g, '');
+      viewers = parseInt(rawNum, 10) || 0;
+    }
+
+    let title = 'En vivo';
+    const matchTitle = html.match(/(.*?)<\/title>/);
+    if (matchTitle && matchTitle[1]) {
+      title = matchTitle[1].replace(' - YouTube', '').trim();
+    }
+
+    return { isLive: viewers > 0, viewers, title };
+  } catch (e) {
+    return { isLive: false, viewers: 0, title: 'Señal en espera' };
+  }
+}
+
+// BUCLE DE TELEMETRÍA ASÍNCRONA MULTIPLATAFORMA
+let enSincronizacion = false;
+async function sincronizarTelemetria() {
+  if (enSincronizacion) return;
+  enSincronizacion = true;
 
   const horaActual = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
-  for (const canal of telemetriaState) {
-    try {
-      const [tw, ki] = await Promise.all([
-        canal.twitchUser ? consultarTwitch(canal.twitchUser) : Promise.resolve({ isLive: false, viewers: 0 }),
-        canal.kickUser ? consultarKick(canal.kickUser) : Promise.resolve({ isLive: false, viewers: 0 })
-      ]);
+  // Procesamos en bloques para agilidad
+  for (let i = 0; i < telemetriaState.length; i += 3) {
+    const bloque = telemetriaState.slice(i, i + 3);
+    await Promise.all(bloque.map(async (canal) => {
+      try {
+        const [yt, tw, ki] = await Promise.all([
+          canal.ytHandle ? consultarYouTube(canal.ytHandle) : Promise.resolve({ isLive: false, viewers: 0, title: '' }),
+          canal.twitchUser ? consultarTwitch(canal.twitchUser) : Promise.resolve({ isLive: false, viewers: 0, title: '' }),
+          canal.kickUser ? consultarKick(canal.kickUser) : Promise.resolve({ isLive: false, viewers: 0, title: '' })
+        ]);
 
-      canal.viewers_breakdown.tw = tw.viewers;
-      canal.viewers_breakdown.ki = ki.viewers;
-      canal.plataformas_live.tw = tw.isLive;
-      canal.plataformas_live.ki = ki.isLive;
+        canal.viewers_breakdown.yt = yt.viewers;
+        canal.viewers_breakdown.tw = tw.viewers;
+        canal.viewers_breakdown.ki = ki.viewers;
 
-      // Consolidado final
-      const ytViewers = canal.viewers_breakdown.yt || 0;
-      canal.viewers = ytViewers + tw.viewers + ki.viewers;
-      canal.is_live = canal.viewers > 0 || tw.isLive || ki.isLive;
+        canal.plataformas_live.yt = yt.isLive && yt.viewers > 0;
+        canal.plataformas_live.tw = tw.isLive && tw.viewers > 0;
+        canal.plataformas_live.ki = ki.isLive && ki.viewers > 0;
 
-      if (tw.isLive && tw.title) canal.title = tw.title;
-      if (ki.isLive && ki.title) canal.title = ki.title;
+        canal.viewers = yt.viewers + tw.viewers + ki.viewers;
+        canal.is_live = canal.viewers > 0;
 
-      canal.hora_actualizacion = horaActual;
-    } catch (e) {
-      // Ignorar fallas puntuales para no cortar el ciclo
-    }
+        if (canal.is_live) {
+          canal.title = yt.title || tw.title || ki.title || 'En vivo';
+        } else {
+          canal.title = 'Señal en espera';
+        }
+
+        canal.hora_actualizacion = horaActual;
+      } catch (err) {
+        // En caso de fallo individual, no interrumpe el ciclo
+      }
+    }));
   }
 
-  refrescando = false;
+  enSincronizacion = false;
 }
 
-setTimeout(sincronizarMultiplataforma, 2000);
-setInterval(sincronizarMultiplataforma, 30000);
+// Inicia inmediatamente tras levantar y repite periódicamente
+setTimeout(sincronizarTelemetria, 1500);
+setInterval(sincronizarTelemetria, 25000);
 
 // Helper autenticación institucional
 function validarToken(req) {
@@ -290,13 +394,12 @@ function validarToken(req) {
   return token ? envTokens.includes(token) : false;
 }
 
-// RUTA PRINCIPAL DE LA APP
+// ENDPOINTS PRINCIPALES
 app.get('/api/ranking-categorias', (req, res) => {
   try {
     const categorias = CATEGORIAS_ORDEN.map((catKey) => {
       const meta = CATEGORIAS_CONFIG[catKey];
 
-      // Filtra por 'finanzas', 'noticias', 'entretenimiento', 'deportes', 'streamers'
       const canales = telemetriaState
         .filter((c) => c.categoria === catKey)
         .sort((a, b) => b.viewers - a.viewers);
