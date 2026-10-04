@@ -57,11 +57,10 @@ const CATEGORIAS_CONFIG = {
 
 const CATEGORIAS_ORDEN = ['entretenimiento', 'deportes', 'streamers', 'finanzas', 'noticias'];
 
-// IDs de canal confirmados de YouTube para consultas directas y confiables
 const CANALES = [
   // 1. Entretenimiento
-  { id: 'luzutv', nombre: 'LUZU TV', categoria: 'entretenimiento', ytHandle: '@luzutv', ytChannelId: 'UCH5F5i0v9zZz8d9pS4C9w6A', twitchUser: 'luzutv' },
-  { id: 'olga', nombre: 'OLGA', categoria: 'entretenimiento', ytHandle: '@olgaenvivo_', ytChannelId: 'UCWbN8rVbI09kS-4P4v1dK3w', twitchUser: 'olgaenvivo' },
+  { id: 'luzutv', nombre: 'LUZU TV', categoria: 'entretenimiento', ytHandle: '@luzutv', twitchUser: 'luzutv' },
+  { id: 'olga', nombre: 'OLGA', categoria: 'entretenimiento', ytHandle: '@olgaenvivo_', twitchUser: 'olgaenvivo' },
   { id: 'blender', nombre: 'Blender', categoria: 'entretenimiento', ytHandle: '@somosblender', twitchUser: 'somosblender' },
   { id: 'gelatina', nombre: 'Gelatina', categoria: 'entretenimiento', ytHandle: '@somosgelatina', twitchUser: 'somosgelatina' },
   { id: 'vorterix', nombre: 'Vorterix', categoria: 'entretenimiento', ytHandle: '@vorterixoficial', twitchUser: 'vorterixoficial' },
@@ -81,7 +80,7 @@ const CANALES = [
   { id: 'azzstream', nombre: 'AZZ Stream (Azzaro)', categoria: 'deportes', ytHandle: '@azzstream' },
   { id: 'picadotv', nombre: 'Picado TV', categoria: 'deportes', ytHandle: '@picadotv' },
   { id: 'carrozza', nombre: 'Pablo Carrozza', categoria: 'deportes', ytHandle: '@pablocarrozza' },
-  { id: 'tycsports', nombre: 'TyC Sports', categoria: 'deportes', ytHandle: '@TyCSportsOficial', ytChannelId: 'UCw8qfP9aJ_n8WpE9S3yPkWQ', defViewers: 13800, defLive: true, defTitle: 'TyC Sports en Vivo' },
+  { id: 'tycsports', nombre: 'TyC Sports', categoria: 'deportes', ytHandle: '@TyCSportsOficial', ytVideoId: 'b_fL5aT2uW4' },
   { id: 'dsports', nombre: 'DSports', categoria: 'deportes', ytHandle: '@DSports' },
   { id: 'espnarg', nombre: 'ESPN Argentina', categoria: 'deportes', ytHandle: '@espnargentina' },
   { id: 'tntsportsarg', nombre: 'TNT Sports Argentina', categoria: 'deportes', ytHandle: '@TNTSportsAR' },
@@ -106,16 +105,16 @@ const CANALES = [
   { id: 'ambitofinanciero', nombre: 'Ámbito Financiero', categoria: 'finanzas', ytHandle: '@ambitofinanciero' },
   { id: 'canale', nombre: 'Canal E', categoria: 'finanzas', ytHandle: '@canaleoficial' },
 
-  // 5. Noticias & Actualidad (con IDs oficiales de YouTube)
-  { id: 'neura', nombre: 'Neura Media / Troncal', categoria: 'noticias', ytHandle: '@neuramedia', ytChannelId: 'UCv6GkWv7l9xH7wIqB0b3ZqA', twitchUser: 'neuramedia', defViewers: 17200, defLive: true, defTitle: 'NEURA MEDIA • Troncal' },
-  { id: 'tn', nombre: 'TN (Todo Noticias)', categoria: 'noticias', ytHandle: '@todonoticias', ytChannelId: 'UCj6P3CGNP457_k4bZq1l_4w', defViewers: 43800, defLive: true, defTitle: 'TN EN VIVO • Cobertura en directo' },
-  { id: 'c5n', nombre: 'C5N', categoria: 'noticias', ytHandle: '@c5n', ytChannelId: 'UCFgk2Q2mVO1BklRQhSv6p0w', defViewers: 34500, defLive: true, defTitle: 'C5N EN DIRECTO • Noticias las 24 horas' },
-  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytHandle: '@lanacionmas', ytChannelId: 'UC554_bZyhmhCdC7y_WcT7vg', defViewers: 28100, defLive: true, defTitle: 'LN+ Transmisión Continua' },
-  { id: 'carajostream', nombre: 'Carajo Stream', categoria: 'noticias', ytHandle: '@carajostream', defViewers: 5800, defLive: true, defTitle: 'Carajo Stream en Vivo' },
-  { id: 'eldestape', nombre: 'El Destape', categoria: 'noticias', ytHandle: '@ElDestapeRadio', defViewers: 8200, defLive: true, defTitle: 'El Destape en Directo' },
-  { id: 'a24', nombre: 'A24', categoria: 'noticias', ytHandle: '@A24com', ytChannelId: 'UCq28mGf0Y8H_H8FvC3L9YRw', defViewers: 11900, defLive: true, defTitle: 'A24 en Vivo' },
-  { id: 'infobae', nombre: 'Infobae en Vivo', categoria: 'noticias', ytHandle: '@infobae', defViewers: 3200, defLive: true, defTitle: 'Infobae Cobertura en Directo' },
-  { id: 'elobservador', nombre: 'El Observador 107.9', categoria: 'noticias', ytHandle: '@ElObservador1079', defViewers: 2600, defLive: true, defTitle: 'El Observador 107.9 Streaming' }
+  // 5. Noticias & Actualidad (IDs oficiales de transmisión continua)
+  { id: 'tn', nombre: 'TN (Todo Noticias)', categoria: 'noticias', ytHandle: '@todonoticias', ytVideoId: 'cb12KmMMDJA' },
+  { id: 'c5n', nombre: 'C5N', categoria: 'noticias', ytHandle: '@c5n', ytVideoId: '3U221zR94yQ' },
+  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytHandle: '@lanacionmas', ytVideoId: 'iK34b8xZ_G8' },
+  { id: 'neura', nombre: 'Neura Media / Troncal', categoria: 'noticias', ytHandle: '@neuramedia', twitchUser: 'neuramedia' },
+  { id: 'carajostream', nombre: 'Carajo Stream', categoria: 'noticias', ytHandle: '@carajostream' },
+  { id: 'eldestape', nombre: 'El Destape', categoria: 'noticias', ytHandle: '@ElDestapeRadio' },
+  { id: 'a24', nombre: 'A24', categoria: 'noticias', ytHandle: '@A24com', ytVideoId: 'u4Z_5b8J8pA' },
+  { id: 'infobae', nombre: 'Infobae en Vivo', categoria: 'noticias', ytHandle: '@infobae' },
+  { id: 'elobservador', nombre: 'El Observador 107.9', categoria: 'noticias', ytHandle: '@ElObservador1079' }
 ];
 
 const publicPath = path.resolve(__dirname, 'public');
@@ -127,28 +126,24 @@ if (!fs.existsSync(logosDir)) {
 
 const horaBase = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
-// Estado en memoria con persistencia continua
 const telemetriaState = CANALES.map((c) => {
   const handle = c.ytHandle || (c.twitchUser ? `@\({c.twitchUser}` : '') || (c.kickUser ? `@\){c.kickUser}` : '');
-  const viewers = c.defViewers || 0;
-  const isLive = Boolean(c.defLive);
-
   return {
     id: c.id,
     nombre: c.nombre,
     categoria: c.categoria,
     ytHandle: c.ytHandle,
-    ytChannelId: c.ytChannelId || null,
+    ytVideoId: c.ytVideoId || null,
     twitchUser: c.twitchUser,
     kickUser: c.kickUser,
     handle,
     avatar: `/logos/${c.id}.jpg`,
-    viewers,
-    is_live: isLive,
-    title: c.defTitle || 'Señal en espera',
+    viewers: 0,
+    is_live: false,
+    title: 'Señal en espera',
     hora_actualizacion: horaBase,
-    plataformas_live: { yt: isLive, tw: false, ki: false },
-    viewers_breakdown: { yt: viewers, tw: 0, ki: 0 }
+    plataformas_live: { yt: false, tw: false, ki: false },
+    viewers_breakdown: { yt: 0, tw: 0, ki: 0 }
   };
 });
 
@@ -162,13 +157,8 @@ function requestJSON(options, postData = null) {
           try { resolve(JSON.parse(data)); } catch (e) { resolve(null); }
         });
       });
-
       req.on('error', () => resolve(null));
-      req.on('timeout', () => {
-        req.destroy();
-        resolve(null);
-      });
-
+      req.on('timeout', () => { req.destroy(); resolve(null); });
       if (postData) req.write(postData);
       req.end();
     } catch (e) {
@@ -228,113 +218,87 @@ async function consultarTwitch(user) {
   return { isLive: false, viewers: 0 };
 }
 
-// 3. YouTube API Oficial con cuota ultra-optimizada
-async function consultarYouTubeOficial(channelId, handle) {
-  if (!YOUTUBE_API_KEY) return null;
+// 3. YouTube API Oficial: Batch videos.list (1 sola llamada para todos los canales)
+async function consultarYouTubeBatch() {
+  if (!YOUTUBE_API_KEY) return {};
 
-  try {
-    let queryParam = '';
-    if (channelId) {
-      queryParam = `channelId=${channelId}`;
-    } else if (handle) {
-      queryParam = `q=${encodeURIComponent(handle.replace('@', ''))}`;
-    } else {
-      return null;
+  const canalesConVideo = telemetriaState.filter(c => c.ytVideoId);
+  const ids = canalesConVideo.map(c => c.ytVideoId).join(',');
+
+  if (!ids) return {};
+
+  const res = await requestJSON({
+    hostname: 'www.googleapis.com',
+    path: `/youtube/v3/videos?part=snippet,liveStreamingDetails&id=\({ids}&key=\){YOUTUBE_API_KEY}`,
+    method: 'GET',
+    timeout: 5000
+  });
+
+  const resultados = {};
+  if (res && res.items) {
+    for (const item of res.items) {
+      const details = item.liveStreamingDetails;
+      const viewers = parseInt(details?.concurrentViewers || '0', 10);
+      resultados[item.id] = {
+        isLive: viewers > 0,
+        viewers,
+        title: item.snippet?.title || 'En vivo'
+      };
     }
-
-    const searchRes = await requestJSON({
-      hostname: 'www.googleapis.com',
-      path: `/youtube/v3/search?part=snippet&eventType=live&type=video&\({queryParam}&key=\){YOUTUBE_API_KEY}&maxResults=1`,
-      method: 'GET',
-      timeout: 4500
-    });
-
-    if (!searchRes?.items?.length) return { isLive: false, viewers: 0, title: '' };
-
-    const videoId = searchRes.items[0]?.id?.videoId;
-    const videoTitle = searchRes.items[0]?.snippet?.title || '';
-
-    if (!videoId) return { isLive: false, viewers: 0, title: '' };
-
-    const videoRes = await requestJSON({
-      hostname: 'www.googleapis.com',
-      path: `/youtube/v3/videos?part=liveStreamingDetails&id=\({videoId}&key=\){YOUTUBE_API_KEY}`,
-      method: 'GET',
-      timeout: 4500
-    });
-
-    const details = videoRes?.items?.[0]?.liveStreamingDetails;
-    const viewers = parseInt(details?.concurrentViewers || '0', 10);
-
-    return {
-      isLive: viewers > 0,
-      viewers: viewers,
-      title: videoTitle
-    };
-  } catch (e) {
-    return null;
   }
+  return resultados;
 }
 
-// Sincronizador Multiplataforma sin degradación a cero
+// Sincronización general
 let ejecutando = false;
-async function sincronizarMultiplataforma() {
+async function sincronizarTodo() {
   if (ejecutando) return;
   ejecutando = true;
 
   const horaActual = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
-  // Priorizamos los canales de noticias y entretenimiento en vivo
-  for (const canal of telemetriaState) {
-    try {
+  try {
+    const ytResultados = await consultarYouTubeBatch();
+
+    for (const canal of telemetriaState) {
       const [tw, ki] = await Promise.all([
         canal.twitchUser ? consultarTwitch(canal.twitchUser) : Promise.resolve({ isLive: false, viewers: 0 }),
         canal.kickUser ? consultarKick(canal.kickUser) : Promise.resolve({ isLive: false, viewers: 0 })
       ]);
 
-      let ytViewers = canal.viewers_breakdown.yt || 0;
-      let ytIsLive = canal.plataformas_live.yt || false;
-
-      // Si tenemos API Key y canal con ID, refrescamos YouTube en tiempo real
-      if (YOUTUBE_API_KEY && (canal.ytChannelId || canal.ytHandle)) {
-        const ytData = await consultarYouTubeOficial(canal.ytChannelId, canal.ytHandle);
-        if (ytData !== null) {
-          if (ytData.isLive) {
-            ytViewers = ytData.viewers;
-            ytIsLive = true;
-            canal.title = ytData.title;
-          } else if (!canal.defLive) {
-            ytViewers = 0;
-            ytIsLive = false;
-          }
-        }
+      let yt = { isLive: false, viewers: 0, title: '' };
+      if (canal.ytVideoId && ytResultados[canal.ytVideoId]) {
+        yt = ytResultados[canal.ytVideoId];
       }
 
-      canal.viewers_breakdown.yt = ytViewers;
+      canal.viewers_breakdown.yt = yt.viewers;
       canal.viewers_breakdown.tw = tw.viewers;
       canal.viewers_breakdown.ki = ki.viewers;
 
-      canal.plataformas_live.yt = ytIsLive;
-      canal.plataformas_live.tw = tw.isLive && tw.viewers > 0;
-      canal.plataformas_live.ki = ki.isLive && ki.viewers > 0;
+      canal.plataformas_live.yt = yt.isLive;
+      canal.plataformas_live.tw = tw.isLive;
+      canal.plataformas_live.ki = ki.isLive;
 
-      canal.viewers = ytViewers + tw.viewers + ki.viewers;
+      canal.viewers = yt.viewers + tw.viewers + ki.viewers;
       canal.is_live = canal.viewers > 0;
 
-      if (tw.isLive && tw.title) canal.title = tw.title;
-      if (ki.isLive && ki.title) canal.title = ki.title;
+      if (canal.is_live) {
+        canal.title = yt.title || tw.title || ki.title || 'En vivo';
+      } else {
+        canal.title = 'Señal en espera';
+      }
 
       canal.hora_actualizacion = horaActual;
-    } catch (err) {
-      // Si falla una llamada, mantiene el valor previo sin poner en cero
     }
+  } catch (err) {
+    // Si ocurre un error, conserva los datos actuales
   }
 
   ejecutando = false;
 }
 
-setTimeout(sincronizarMultiplataforma, 1000);
-setInterval(sincronizarMultiplataforma, 25000);
+setTimeout(sincronizarTodo, 1000);
+setInterval(sincronizarTodo, 20000);
 
 // Helper autenticación institucional
 function validarToken(req) {
@@ -353,7 +317,7 @@ function validarToken(req) {
   return token ? envTokens.includes(token) : false;
 }
 
-// ENDPOINTS DE TELEMETRÍA
+// ENDPOINTS
 app.get('/api/ranking-categorias', (req, res) => {
   try {
     const categorias = CATEGORIAS_ORDEN.map((catKey) => {
