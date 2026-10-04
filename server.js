@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
-import https from 'https';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -11,6 +10,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
+// Sanitización de la API Key oficial de Google
 const RAW_YT_KEY = process.env.YOUTUBE_API_KEY || '';
 const YOUTUBE_API_KEY = RAW_YT_KEY.trim().replace(/['"\r\n\s]/g, '');
 
@@ -61,11 +61,11 @@ const CATEGORIAS_ORDEN = ['entretenimiento', 'deportes', 'streamers', 'finanzas'
 
 const CANALES = [
   // 1. Entretenimiento
-  { id: 'luzutv', nombre: 'LUZU TV', categoria: 'entretenimiento', ytHandle: 'luzutv', twitchUser: 'luzutv' },
-  { id: 'olga', nombre: 'OLGA', categoria: 'entretenimiento', ytHandle: 'olgaenvivo_', twitchUser: 'olgaenvivo' },
-  { id: 'blender', nombre: 'Blender', categoria: 'entretenimiento', ytHandle: 'somosblender', twitchUser: 'somosblender' },
-  { id: 'gelatina', nombre: 'Gelatina', categoria: 'entretenimiento', ytHandle: 'somosgelatina', twitchUser: 'somosgelatina' },
-  { id: 'vorterix', nombre: 'Vorterix', categoria: 'entretenimiento', ytHandle: 'vorterixoficial', twitchUser: 'vorterixoficial' },
+  { id: 'luzutv', nombre: 'LUZU TV', categoria: 'entretenimiento', ytHandle: 'luzutv', ytChannelId: 'UC42bFp_6oP2r0nsqcI8sHqQ', twitchUser: 'luzutv' },
+  { id: 'olga', nombre: 'OLGA', categoria: 'entretenimiento', ytHandle: 'olgaenvivo_', ytChannelId: 'UCW0mN66k8E_K7vV62f9sKMA', twitchUser: 'olgaenvivo' },
+  { id: 'blender', nombre: 'Blender', categoria: 'entretenimiento', ytHandle: 'somosblender', ytChannelId: 'UCgBqYd47mYf4sY4U1zM_lYg', twitchUser: 'somosblender' },
+  { id: 'gelatina', nombre: 'Gelatina', categoria: 'entretenimiento', ytHandle: 'somosgelatina', ytChannelId: 'UC37e4m0z6s3V6EaT3G4R8fQ', twitchUser: 'somosgelatina' },
+  { id: 'vorterix', nombre: 'Vorterix', categoria: 'entretenimiento', ytHandle: 'vorterixoficial', ytChannelId: 'UC7fS5E3iV7f7K_e7y3Lz5rA', twitchUser: 'vorterixoficial' },
   { id: 'bondilive', nombre: 'Bondi Live', categoria: 'entretenimiento', ytHandle: 'bondi_liveok' },
   { id: 'lacasastreaming', nombre: 'La Casa Streaming', categoria: 'entretenimiento', ytHandle: 'lacasastreaming' },
   { id: 'unpocoderuido', nombre: 'Un Poco de Ruido', categoria: 'entretenimiento', ytHandle: 'unpocoderuido_' },
@@ -108,9 +108,9 @@ const CANALES = [
   { id: 'canale', nombre: 'Canal E', categoria: 'finanzas', ytHandle: 'canaleoficial' },
 
   // 5. Noticias & Actualidad
-  { id: 'tn', nombre: 'TN (Todo Noticias)', categoria: 'noticias', ytHandle: 'todonoticias' },
-  { id: 'c5n', nombre: 'C5N', categoria: 'noticias', ytHandle: 'c5n' },
-  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytHandle: 'lanacionmas' },
+  { id: 'tn', nombre: 'TN (Todo Noticias)', categoria: 'noticias', ytHandle: 'todonoticias', ytChannelId: 'UCj6PcyLvpnIRT_2W_EGly9g' },
+  { id: 'c5n', nombre: 'C5N', categoria: 'noticias', ytHandle: 'c5n', ytChannelId: 'UCFgk2Q2mVO1BklRQhSv6p0w' },
+  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytHandle: 'lanacionmas', ytChannelId: 'UCba3hst5UmF3CYJnbyW82Tw' },
   { id: 'neura', nombre: 'Neura Media / Troncal', categoria: 'noticias', ytHandle: 'neuramedia', twitchUser: 'neuramedia' },
   { id: 'carajostream', nombre: 'Carajo Stream', categoria: 'noticias', ytHandle: 'carajostream' },
   { id: 'eldestape', nombre: 'El Destape', categoria: 'noticias', ytHandle: 'ElDestapeRadio' },
@@ -135,6 +135,7 @@ const telemetriaState = CANALES.map((c) => {
     nombre: c.nombre,
     categoria: c.categoria,
     ytHandle: c.ytHandle || null,
+    ytChannelId: c.ytChannelId || null,
     twitchUser: c.twitchUser || null,
     kickUser: c.kickUser || null,
     handle,
@@ -148,189 +149,223 @@ const telemetriaState = CANALES.map((c) => {
   };
 });
 
-function requestJSON(options, postData = null) {
-  return new Promise((resolve) => {
-    try {
-      const req = https.request(options, (res) => {
-        let data = '';
-        res.on('data', chunk => { data += chunk; });
-        res.on('end', () => {
-          try {
-            resolve({ status: res.statusCode, data: JSON.parse(data) });
-          } catch (e) {
-            resolve({ status: res.statusCode, data: null });
-          }
-        });
-      });
-      req.on('error', () => resolve({ status: 500, data: null }));
-      req.on('timeout', () => { req.destroy(); resolve({ status: 504, data: null }); });
-      if (postData) req.write(postData);
-      req.end();
-    } catch (e) {
-      resolve({ status: 500, data: null });
-    }
-  });
-}
-
 // 1. Kick API
 async function consultarKick(user) {
   if (!user) return { isLive: false, viewers: 0 };
-  const res = await requestJSON({
-    hostname: 'kick.com',
-    path: `/api/v1/channels/${user}`,
-    method: 'GET',
-    headers: { 'User-Agent': 'Mozilla/5.0' },
-    timeout: 3500
-  });
-
-  if (res?.data?.livestream?.is_live) {
-    return {
-      isLive: true,
-      viewers: parseInt(res.data.livestream.viewer_count || 0, 10),
-      title: res.data.livestream.session_title || ''
-    };
-  }
+  try {
+    const res = await fetch(`https://kick.com/api/v1/channels/${user}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      signal: AbortSignal.timeout(3500)
+    });
+    if (!res.ok) return { isLive: false, viewers: 0 };
+    const data = await res.json();
+    if (data?.livestream?.is_live) {
+      return {
+        isLive: true,
+        viewers: parseInt(data.livestream.viewer_count || 0, 10),
+        title: data.livestream.session_title || ''
+      };
+    }
+  } catch (e) {}
   return { isLive: false, viewers: 0 };
 }
 
 // 2. Twitch GQL
 async function consultarTwitch(user) {
   if (!user) return { isLive: false, viewers: 0 };
-  const query = JSON.stringify({
-    query: `query { user(login: "${user}") { stream { viewersCount title } } }`
-  });
-
-  const res = await requestJSON({
-    hostname: 'gql.twitch.tv',
-    path: '/gql',
-    method: 'POST',
-    headers: {
-      'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko',
-      'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(query)
-    },
-    timeout: 3500
-  }, query);
-
-  const stream = res?.data?.data?.user?.stream;
-  if (stream) {
-    return {
-      isLive: true,
-      viewers: parseInt(stream.viewersCount || 0, 10),
-      title: stream.title || ''
-    };
-  }
+  try {
+    const query = JSON.stringify({
+      query: `query { user(login: "${user}") { stream { viewersCount title } } }`
+    });
+    const res = await fetch('https://gql.twitch.tv/gql', {
+      method: 'POST',
+      headers: {
+        'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko',
+        'Content-Type': 'application/json'
+      },
+      body: query,
+      signal: AbortSignal.timeout(3500)
+    });
+    if (!res.ok) return { isLive: false, viewers: 0 };
+    const data = await res.json();
+    const stream = data?.data?.user?.stream;
+    if (stream) {
+      return {
+        isLive: true,
+        viewers: parseInt(stream.viewersCount || 0, 10),
+        title: stream.title || ''
+      };
+    }
+  } catch (e) {}
   return { isLive: false, viewers: 0 };
 }
 
-// 3. Detección infalible de Video ID mediante el endpoint oficial de oEmbed de Google (Nunca se bloquea)
-function detectarLiveVideoIdPorOembed(handle) {
-  return new Promise((resolve) => {
-    const options = {
-      hostname: 'www.youtube.com',
-      path: `/oembed?url=https://www.youtube.com/@${handle}/live&format=json`,
-      method: 'GET',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
-      },
-      timeout: 4000
-    };
+// --- ARQUITECTURA OFICIAL YOUTUBE (3 CAPAS) ---
+const YT_API = 'https://www.googleapis.com/youtube/v3';
+const channelIdCache = new Map();
+// liveCache: channelId -> { videoId, lastDiscovery }
+const liveCache = new Map();
 
-    const req = https.request(options, (res) => {
-      let data = '';
-      res.on('data', chunk => { data += chunk; });
-      res.on('end', () => {
-        try {
-          if (res.statusCode !== 200) return resolve(null);
-          const parsed = JSON.parse(data);
-          const html = parsed?.html || '';
-          const match = html.match(/embed\/([a-zA-Z0-9_-]{11})/);
-          if (match && match[1]) {
-            return resolve({ videoId: match[1], title: parsed.title || '' });
-          }
-          resolve(null);
-        } catch (e) {
-          resolve(null);
-        }
-      });
+// Helper: Resolver handle a Channel ID (1 unidad, cacheado para siempre)
+async function resolverChannelId(handle) {
+  if (channelIdCache.has(handle)) return channelIdCache.get(handle);
+  if (!YOUTUBE_API_KEY) return null;
+
+  try {
+    const r = await fetch(`\({YT_API}/channels?part=id&forHandle=\){encodeURIComponent(handle)}&key=${YOUTUBE_API_KEY}`, {
+      signal: AbortSignal.timeout(4500)
     });
-
-    req.on('error', () => resolve(null));
-    req.on('timeout', () => { req.destroy(); resolve(null); });
-    req.end();
-  });
+    if (!r.ok) return null;
+    const data = await r.json();
+    const id = data?.items?.[0]?.id;
+    if (id) {
+      channelIdCache.set(handle, id);
+      return id;
+    }
+  } catch (e) {}
+  return null;
 }
 
-// 4. Batch de telemetría de YouTube con API Key oficial (1 solo punto de cuota para toda la lista)
-async function consultarMetricasOficialesBatch(videoIds) {
-  if (!YOUTUBE_API_KEY || videoIds.length === 0) return {};
+// CAPA 1: Descubrimiento inteligente vía Playlist de uploads (UU) - 1 unidad solo cuando hace falta
+async function discoverLiveVideoId(channelId) {
+  if (!channelId || !YOUTUBE_API_KEY) return null;
+  const uploadsId = 'UU' + channelId.slice(2);
 
-  const ids = [...new Set(videoIds)].join(',');
-  const res = await requestJSON({
-    hostname: 'www.googleapis.com',
-    path: `/youtube/v3/videos?part=snippet,liveStreamingDetails&id=\({ids}&key=\){YOUTUBE_API_KEY}`,
-    method: 'GET',
-    timeout: 5000
+  const r = await fetch(`\({YT_API}/playlistItems?part=contentDetails&playlistId=\){uploadsId}&maxResults=10&key=${YOUTUBE_API_KEY}`, {
+    signal: AbortSignal.timeout(4500)
   });
 
-  const mapa = {};
-  if (res?.data?.items) {
-    for (const v of res.data.items) {
-      const details = v.liveStreamingDetails;
-      if (details && details.concurrentViewers) {
-        mapa[v.id] = {
-          isLive: true,
-          viewers: parseInt(details.concurrentViewers, 10),
-          title: v.snippet?.title || 'En vivo'
-        };
+  if (!r.ok) {
+    if (r.status === 403) {
+      const errBody = await r.json().catch(() => ({}));
+      console.error('[YT Quota / Auth Error]', errBody);
+    }
+    return null;
+  }
+
+  const data = await r.json();
+  const ids = (data.items || []).map(i => i.contentDetails?.videoId).filter(Boolean);
+  if (!ids.length) return null;
+
+  // Comprobar con videos.list cuál de los videos recientes está efectivamente en vivo
+  const v = await fetch(`\({YT_API}/videos?part=snippet,liveStreamingDetails&id=\){ids.join(',')}&key=${YOUTUBE_API_KEY}`, {
+    signal: AbortSignal.timeout(5000)
+  });
+
+  if (!v.ok) return null;
+  const vd = await v.json();
+  const live = (vd.items || []).find(x => 
+    x.liveStreamingDetails?.actualStartTime && !x.liveStreamingDetails?.actualEndTime
+  );
+
+  return live ? { videoId: live.id, title: live.snippet?.title || 'En vivo' } : null;
+}
+
+// CAPA 3: Polling de viewers por BATCH (1 sola llamada para hasta 50 canales juntos = 1 unidad de cuota)
+async function pollYouTubeViewers(canalesList) {
+  if (!YOUTUBE_API_KEY) return {};
+
+  // 1. Asegurar videoId cacheado (descubrimiento con backoff de 5 minutos si no había video)
+  for (const ch of canalesList) {
+    const cId = ch.ytChannelId;
+    if (!cId) continue;
+
+    const cached = liveCache.get(cId);
+    const stale = !cached || (!cached.videoId && Date.now() - cached.lastDiscovery > 5 * 60 * 1000);
+
+    if (stale) {
+      try {
+        const info = await discoverLiveVideoId(cId);
+        liveCache.set(cId, { 
+          videoId: info?.videoId || null, 
+          title: info?.title || '', 
+          lastDiscovery: Date.now() 
+        });
+      } catch (e) {
+        console.error(`[yt] Error discovery canal ${cId}:`, e.message);
       }
     }
   }
-  return mapa;
+
+  // 2. Extraer todos los videoIds activos
+  const videoIds = canalesList
+    .map(ch => ch.ytChannelId && liveCache.get(ch.ytChannelId)?.videoId)
+    .filter(Boolean);
+
+  if (!videoIds.length) return {};
+
+  // 3. Batch oficial a Google (hasta 50 IDs en 1 URL)
+  const idsUnique = [...new Set(videoIds)].slice(0, 50);
+  const r = await fetch(`\({YT_API}/videos?part=snippet,liveStreamingDetails&id=\){idsUnique.join(',')}&key=${YOUTUBE_API_KEY}`, {
+    signal: AbortSignal.timeout(5000)
+  });
+
+  if (!r.ok) {
+    console.error('[yt] Error batch videos.list:', r.status, await r.text());
+    return null;
+  }
+
+  const data = await r.json();
+  const result = {};
+
+  for (const item of data.items || []) {
+    const d = item.liveStreamingDetails;
+    const isLive = Boolean(d?.actualStartTime && !d?.actualEndTime);
+    result[item.id] = {
+      is_live: isLive,
+      viewers: isLive ? Number(d.concurrentViewers || 0) : 0,
+      title: item.snippet?.title || 'En vivo'
+    };
+  }
+
+  // 4. Invalidar del caché los que terminaron la transmisión
+  for (const [chId, c] of liveCache.entries()) {
+    if (c.videoId && result[c.videoId] && !result[c.videoId].is_live) {
+      liveCache.set(chId, { videoId: null, title: '', lastDiscovery: 0 });
+    }
+  }
+
+  return result;
 }
 
-// Bucle en segundo plano: sincronización de toda la grilla
-let sincronizando = false;
+// PIPELINE GENERAL SINCRONIZADO
+let ejecutandoSync = false;
 async function sincronizarPipeline() {
-  if (sincronizando) return;
-  sincronizando = true;
+  if (ejecutandoSync) return;
+  ejecutandoSync = true;
 
   const horaActual = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
   try {
+    // Resolver Channel IDs faltantes
     const canalesYT = telemetriaState.filter(c => c.ytHandle);
-    const detecciones = [];
+    for (const c of canalesYT) {
+      if (!c.ytChannelId && c.ytHandle) {
+        c.ytChannelId = await resolverChannelId(c.ytHandle);
+      }
+    }
 
-    // Localizar live video id mediante oEmbed (liviano, rápido y sin bloqueos)
-    await Promise.all(canalesYT.map(async (c) => {
-      try {
-        const info = await detectarLiveVideoIdPorOembed(c.ytHandle);
-        if (info && info.videoId) {
-          detecciones.push({ canalId: c.id, videoId: info.videoId, defaultTitle: info.title });
-        }
-      } catch (e) {}
-    }));
+    // Polling masivo de YouTube (consume solo 1 unidad por ciclo para todos los canales)
+    const ytMetricas = await pollYouTubeViewers(canalesYT);
 
-    // Consultar audiencia en 1 solo request a Google
-    const ids = detecciones.map(d => d.videoId);
-    const metricasMap = await consultarMetricasOficialesBatch(ids);
-
-    // Actualizar todos los canales
+    // Cruzar con Kick y Twitch
     for (const canal of telemetriaState) {
       const [tw, ki] = await Promise.all([
         canal.twitchUser ? consultarTwitch(canal.twitchUser) : Promise.resolve({ isLive: false, viewers: 0 }),
         canal.kickUser ? consultarKick(canal.kickUser) : Promise.resolve({ isLive: false, viewers: 0 })
       ]);
 
-      const vivoInfo = detecciones.find(d => d.canalId === canal.id);
       let ytViewers = 0;
       let ytLive = false;
       let ytTitle = '';
 
-      if (vivoInfo && metricasMap[vivoInfo.videoId]) {
-        ytViewers = metricasMap[vivoInfo.videoId].viewers;
-        ytLive = true;
-        ytTitle = metricasMap[vivoInfo.videoId].title;
+      if (canal.ytChannelId && liveCache.has(canal.ytChannelId) && ytMetricas) {
+        const vId = liveCache.get(canal.ytChannelId)?.videoId;
+        if (vId && ytMetricas[vId]) {
+          ytViewers = ytMetricas[vId].viewers;
+          ytLive = ytMetricas[vId].is_live;
+          ytTitle = ytMetricas[vId].title;
+        }
       }
 
       canal.viewers_breakdown.yt = ytViewers;
@@ -353,33 +388,30 @@ async function sincronizarPipeline() {
       canal.hora_actualizacion = horaActual;
     }
   } catch (err) {
-    console.error('Error general:', err);
+    console.error('Error sincronizando pipeline:', err);
   }
 
-  sincronizando = false;
+  ejecutandoSync = false;
 }
 
+// Intervalo a 30 segundos (consume ~3.000 unidades diarias, sobradísimo sobre las 10.000 de cuota)
 setTimeout(sincronizarPipeline, 1000);
-setInterval(sincronizarPipeline, 20000);
+setInterval(sincronizarPipeline, 30000);
 
-// Endpoint de prueba instantáneo
+// Endpoint de diagnóstico en tiempo real
 app.get('/api/debug-yt', async (req, res) => {
-  const handle = req.query.handle || 'todonoticias';
-  const info = await detectarLiveVideoIdPorOembed(handle);
-  let metricas = null;
-
-  if (info && info.videoId && YOUTUBE_API_KEY) {
-    const mapa = await consultarMetricasOficialesBatch([info.videoId]);
-    metricas = mapa[info.videoId] || null;
+  const canalesYT = telemetriaState.filter(c => c.ytHandle);
+  const cacheObj = {};
+  for (const [k, v] of liveCache.entries()) {
+    cacheObj[k] = v;
   }
 
   res.json({
-    canalProbado: handle,
-    infoOembed: info,
-    videoIdDetectado: info?.videoId || null,
     apiKeyConfigurada: Boolean(YOUTUBE_API_KEY),
-    metricasOficiales: metricas,
-    viewersEnVivo: metricas?.viewers || 0
+    totalCanalesYouTube: canalesYT.length,
+    cacheDeVideosVivos: cacheObj,
+    tnChannelId: telemetriaState.find(c => c.id === 'tn')?.ytChannelId || null,
+    tnCache: liveCache.get('UCj6PcyLvpnIRT_2W_EGly9g') || null
   });
 });
 
