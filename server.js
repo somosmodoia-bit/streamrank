@@ -78,16 +78,16 @@ const CANALES = [
   { id: 'dgo', nombre: 'DGO en Vivo', categoria: 'entretenimiento', ytHandle: 'DGO_Latam' },
   { id: 'telefe', nombre: 'Telefe Streams', categoria: 'entretenimiento', ytHandle: 'telefe' },
   { id: 'eltrece', nombre: 'eltrece', categoria: 'entretenimiento', ytHandle: 'eltrece' },
-  { id: 'americatv', nombre: 'América TV', categoria: 'entretenimiento', ytHandle: 'americatv' },
+  { id: 'americatv', nombre: 'América TV', categoria: 'entretenimiento', ytHandle: 'americatvoficial', ytChannelId: 'UCHAgps_pNYnQHkB9FGCSozQ' },
   { id: 'urbanaplay', nombre: 'Urbana Play', categoria: 'entretenimiento', ytHandle: 'UrbanaPlayFM', ytChannelId: 'UCC1kfsMJko54AqxtcFECt-A', twitchUser: 'urbanaplayfm' },
 
   // 2. Deportes
-  { id: 'programa412', nombre: '412 Fútbol (Davoo & Cobra)', categoria: 'deportes', ytHandle: 'elprograma412' },
+  { id: 'programa412', nombre: '412 Fútbol (Davoo & Cobra)', categoria: 'deportes', ytHandle: 'programa412', ytChannelId: 'UCD2w1rGcJc99akNKluz_FDw' },
   { id: 'azzstream', nombre: 'AZZ Stream (Azzaro)', categoria: 'deportes', ytHandle: 'somosazz', ytChannelId: 'UCgLBmUFPO8JtZ1nPIBQGMlQ' },
-  { id: 'picadotv', nombre: 'Picado TV', categoria: 'deportes', ytHandle: 'picadotv' },
+  { id: 'picadotv', nombre: 'Picado TV', categoria: 'deportes', ytHandle: 'picadotvok', ytChannelId: 'UC9ghrLcpy0FxDFssie-siwQ' },
   { id: 'carrozza', nombre: 'Pablo Carrozza', categoria: 'deportes', ytHandle: 'carrozzaoficial', ytChannelId: 'UCkJ9KX7nw-4rpyuVCRy2R-g' },
   { id: 'tycsports', nombre: 'TyC Sports', categoria: 'deportes', ytHandle: 'tycsports' },
-  { id: 'dsports', nombre: 'DSports', categoria: 'deportes', ytHandle: 'dsports' },
+  { id: 'dsports', nombre: 'DSports', categoria: 'deportes', ytHandle: 'dsportsok', ytChannelId: 'UCWSsHdxrwVLlOSdPJ44y9sw' },
   { id: 'espnarg', nombre: 'ESPN Argentina', categoria: 'deportes', ytHandle: 'espn' },
   { id: 'tntsportsarg', nombre: 'TNT Sports Argentina', categoria: 'deportes', ytHandle: 'TNTSportsAR' },
 
@@ -108,7 +108,7 @@ const CANALES = [
   { id: 'bullmarket', nombre: 'Bull Market Brokers', categoria: 'finanzas', ytHandle: 'somosbullmarket', ytChannelId: 'UCXgsCoIhEUIwWvGK_JDY21w' },
   { id: 'joveninversor', nombre: 'Joven Inversor', categoria: 'finanzas', ytHandle: 'JovenInversor', ytChannelId: 'UCnOWLhk15P-gUV7RdehAI2Q' },
   { id: 'elcronista', nombre: 'El Cronista TV', categoria: 'finanzas', ytHandle: 'Cronista_ar', ytChannelId: 'UCZi6C9-a4fYKiBoIuEJ80ZA' },
-  { id: 'ambitofinanciero', nombre: 'Ámbito Financiero', categoria: 'finanzas', ytHandle: 'AmbitoCom' },
+  { id: 'ambitofinanciero', nombre: 'Ámbito Financiero', categoria: 'finanzas', ytHandle: 'ambito_financiero', ytChannelId: 'UCXKphgduQN0dXiz_ioRTfeA' },
   { id: 'canale', nombre: 'Canal E', categoria: 'finanzas', ytHandle: 'canaldeeconomia', ytChannelId: 'UCW53kA_WXKWVxJbpHrTOBfw', ytVideoId: 'svekeJWi27o' },
 
   // 5. Noticias & Actualidad
