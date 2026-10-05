@@ -10,13 +10,32 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// API Key de Google (sanitizada: sin comillas, espacios ni saltos de línea)
+// API Key de Google (sanitizada)
 const YOUTUBE_API_KEY = (process.env.YOUTUBE_API_KEY || '').trim().replace(/['"\r\n\s]/g, '');
 
-// Frecuencia optimizada: medición cada 30 segundos
+// Frecuencias de sondeo
 const YT_POLL_MS = Number(process.env.YT_POLL_MS) || 30 * 1000;          // viewers cada 30s
-const YT_RSS_MS = Number(process.env.YT_RSS_MS) || 3 * 60 * 1000;        // detector rápido vía RSS
-const YT_DEEP_MS = Number(process.env.YT_DEEP_MS) || 45 * 60 * 1000;     // descubrimiento profundo
+const YT_RSS_MS = Number(process.env.YT_RSS_MS) || 2 * 60 * 1000;        // detector rápido cada 2 min
+const YT_DEEP_MS = Number(process.env.YT_DEEP_MS) || 20 * 60 * 1000;     // barrido general cada 20 min
+
+// Funciones auxiliares para asegurar hora oficial de Argentina (GMT-3)
+const TZ_ARG = 'America/Argentina/Buenos_Aires';
+function obtenerHoraArg() {
+  return new Date().toLocaleTimeString('es-AR', {
+    timeZone: TZ_ARG,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+}
+function obtenerFechaArg() {
+  return new Date().toLocaleDateString('es-AR', {
+    timeZone: TZ_ARG,
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short'
+  });
+}
 
 app.use(cors());
 app.use(express.json());
@@ -124,6 +143,7 @@ const CANALES = [
   { id: 'infobae', nombre: 'Infobae en Vivo', categoria: 'noticias', ytHandle: 'infobae' },
   { id: 'elobservador', nombre: 'El Observador 107.9', categoria: 'noticias', ytHandle: 'ElObservador107.9', ytChannelId: 'UC-rI_XNppHJO-Ga4RW_CDKw' }
 ];
+
 const publicPath = path.resolve(__dirname, 'public');
 const logosDir = path.join(publicPath, 'logos');
 
@@ -131,7 +151,7 @@ if (!fs.existsSync(logosDir)) {
   fs.mkdirSync(logosDir, { recursive: true });
 }
 
-const horaBase = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+const horaBase = obtenerHoraArg();
 
 const telemetriaState = CANALES.map((c) => {
   const handle = '@' + (c.ytHandle || c.twitchUser || c.kickUser || c.id);
@@ -205,7 +225,7 @@ async function consultarTwitch(user) {
   return { isLive: false, viewers: 0 };
 }
 
-// ───────────────────────── 3. YouTube (API oficial, barata) ─────────────────────────
+// ───────────────────────── 3. YouTube (API oficial) ─────────────────────────
 const YT_API = 'https://www.googleapis.com/youtube/v3';
 
 const ytRuntime = new Map();
@@ -292,7 +312,6 @@ async function resolverTodos() {
   });
 }
 
-// RESTAURADA: Expresión regular correcta para capturar videoId
 async function idsDesdeRSS(channelId, max) {
   try {
     const r = await fetch('https://www.youtube.com/feeds/videos.xml?channel_id=' + channelId, {
@@ -354,6 +373,7 @@ async function verificarVideos(ids) {
   return out;
 }
 
+// Descubrimiento blindado: si el RSS falla o viene vacío, recurre directo a la Playlist
 async function descubrir({ playlist }) {
   const candidatos = [...ytRuntime.values()].filter((rt) => rt.channelId && !rt.videoId);
   const porCanal = new Map();
@@ -368,7 +388,8 @@ async function descubrir({ playlist }) {
     info.rssIds = rss.ids.length;
     ids.push(...rss.ids);
 
-    if (playlist) {
+    // BLINDAJE: si el RSS no trajo nada o es ciclo profundo, leemos la playlist UULV
+    if (playlist || ids.length === 0) {
       try {
         const pl = await idsDesdePlaylist(rt);
         info.playlist = pl.fuente;
@@ -460,7 +481,7 @@ async function sincronizarPipeline() {
   if (ejecutandoSync) return;
   ejecutandoSync = true;
 
-  const horaActual = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  const horaActual = obtenerHoraArg();
 
   try {
     for (const canal of telemetriaState) {
@@ -583,8 +604,8 @@ app.get('/api/ranking-categorias', (req, res) => {
 
     res.json({
       status: 'success',
-      timestamp: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
-      fecha: new Date().toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' }),
+      timestamp: obtenerHoraArg(),
+      fecha: obtenerFechaArg(),
       categorias
     });
   } catch (err) {
