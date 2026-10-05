@@ -104,25 +104,25 @@ const CANALES = [
   { id: 'goncho', nombre: 'Goncho Banzas', categoria: 'streamers', twitchUser: 'goncho' },
   { id: 'gregorossello', nombre: 'Grego Rossello', categoria: 'streamers', ytHandle: 'GregoRossello1' },
 
-  // 4. Economía & Finanzas
-  { id: 'bullmarket', nombre: 'Bull Market Brokers', categoria: 'finanzas', ytChannelId: 'UC7Hx4xBMuw_PvVUliihHEcQ' },
-  { id: 'joveninversor', nombre: 'Joven Inversor', categoria: 'finanzas', ytChannelId: 'UCnOWLhk15P-gUV7RdehAI2Q' },
-  { id: 'elcronista', nombre: 'El Cronista TV', categoria: 'finanzas', ytChannelId: 'UCXgsCoIhEUIwWvGK_JDY21w' },
+// 4. Economía & Finanzas
+  { id: 'bullmarket', nombre: 'Bull Market Brokers', categoria: 'finanzas', ytChannelId: 'UCXgsCoIhEUIwWvGK_JDY21w' },
+  { id: 'joveninversor', nombre: 'Joven Inversor', categoria: 'finanzas', ytHandle: 'JovenInversor' },
+  { id: 'elcronista', nombre: 'El Cronista TV', categoria: 'finanzas', ytHandle: 'cronista' },
   { id: 'ambitofinanciero', nombre: 'Ámbito Financiero', categoria: 'finanzas', ytHandle: 'AmbitoCom' },
-  { id: 'canale', nombre: 'Canal E', categoria: 'finanzas', ytChannelId: 'UCW53kA_WXKWVxJbpHrTOBfw' },
+  { id: 'canale', nombre: 'Canal E', categoria: 'finanzas', ytHandle: 'canale' },
 
- // 5. Noticias & Actualidad
+  // 5. Noticias & Actualidad
   { id: 'tn', nombre: 'TN (Todo Noticias)', categoria: 'noticias', ytHandle: 'todonoticias', ytChannelId: 'UCj6PcyLvpnIRT_2W_mwa9Aw' },
   { id: 'c5n', nombre: 'C5N', categoria: 'noticias', ytHandle: 'c5n', ytChannelId: 'UCFgk2Q2mVO1BklRQhSv6p0w' },
-  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytChannelId: 'UCba3hst5UmF3CYJnbyW82Tw' },
+  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytChannelId: 'UCba3hpU7EFBSk817y9qZkiA' },
   { id: 'telefenoticias', nombre: 'Telefe Noticias', categoria: 'noticias', ytHandle: 'telefenoticias' },
-  { id: 'telenueve', nombre: 'Telenueve / El Nueve', categoria: 'noticias', ytChannelId: 'UC6pJGaMdx5Ter_8zYbLoRgA' },
-  { id: 'neura', nombre: 'Neura Media / Troncal', categoria: 'noticias', ytChannelId: 'UC-rI_XNppHJO-Ga4RW_CDKw', twitchUser: 'neuramedia' },
-  { id: 'carajostream', nombre: 'Carajo Stream', categoria: 'noticias', ytChannelId: 'UCZi6C9-a4fYKiBoIuEJ80ZA' },
-  { id: 'eldestape', nombre: 'El Destape', categoria: 'noticias', ytChannelId: 'UC4mdhKZXjrKoq5aVG6juHEg' },
+  { id: 'telenueve', nombre: 'Telenueve / El Nueve', categoria: 'noticias', ytChannelId: 'UCgmyiPyB_-v5e9ef7Xi1HPw' },
+  { id: 'neura', nombre: 'Neura Media / Troncal', categoria: 'noticias', ytChannelId: 'UC-40U87JsevMIMn7PMw4jPw', twitchUser: 'neuramedia' },
+  { id: 'carajostream', nombre: 'Carajo Stream', categoria: 'noticias', ytHandle: 'carajostream' },
+  { id: 'eldestape', nombre: 'El Destape', categoria: 'noticias', ytChannelId: 'UC5wAqJ9NF0fpGH9dVf3h6HA' },
   { id: 'a24', nombre: 'A24', categoria: 'noticias', ytHandle: 'A24com' },
   { id: 'infobae', nombre: 'Infobae en Vivo', categoria: 'noticias', ytHandle: 'infobae' },
-  { id: 'elobservador', nombre: 'El Observador 107.9', categoria: 'noticias', ytChannelId: 'UC-40U87JsevMIMn7PMw4jPw' }
+  { id: 'elobservador', nombre: 'El Observador 107.9', categoria: 'noticias', ytChannelId: 'UC-rI_XNppHJO-Ga4RW_CDKw' }
 ];
 const publicPath = path.resolve(__dirname, 'public');
 const logosDir = path.join(publicPath, 'logos');
