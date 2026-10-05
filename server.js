@@ -295,4 +295,251 @@ async function resolverTodos() {
 
 async function idsDesdeRSS(channelId, max) {
   try {
-    const r = await fetch('
+    const r = await fetch('https://www.youtube.com/feeds/videos.xml?channel_id=' + channelId, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36' },
+      signal: AbortSignal.timeout(6000)
+    });
+    if (!r.ok) return { ids: [], status: r.status };
+    const xml = await r.text();
+    const ids = [...xml.matchAll(/([^<]+)<\/yt:videoId>/g)].map((m) => m[1]).slice(0, max);
+    return { ids, status: r.status };
+  } catch (e) {
+    return { ids: [], status: 'ERR ' + e.message };
+  }
+}
+
+async function idsDesdePlaylist(rt) {
+  const base = rt.channelId.slice(2);
+  const leer = async (prefijo, max) => {
+    const d = await ytFetch('playlistItems', {
+      part: 'contentDetails',
+      playlistId: prefijo + base,
+      maxResults: String(max)
+    });
+    return (d && d.items ? d.items : []).map((i) => i.contentDetails && i.contentDetails.videoId).filter(Boolean);
+  };
+
+  if (rt.uulv !== false) {
+    try {
+      const ids = await leer('UULV', 50);
+      rt.uulv = true;
+      if (ids.length) return { ids, fuente: 'UULV' };
+    } catch (e) {
+      if (e.status === 404 || e.status === 400) rt.uulv = false;
+      else throw e;
+    }
+  }
+  const ids = await leer('UU', 15);
+  return { ids, fuente: 'UU' };
+}
+
+async function verificarVideos(ids) {
+  const out = new Map();
+  const unicos = [...new Set(ids)];
+  for (let i = 0; i < unicos.length; i += 50) {
+    const d = await ytFetch('videos', {
+      part: 'snippet,liveStreamingDetails',
+      id: unicos.slice(i, i + 50).join(',')
+    });
+    for (const it of (d && d.items ? d.items : [])) {
+      const l = it.liveStreamingDetails;
+      const live = Boolean(l && l.actualStartTime && !l.actualEndTime);
+      out.set(it.id, {
+        live,
+        viewers: live ? Number(l.concurrentViewers || 0) : 0,
+        title: (it.snippet && it.snippet.title) || 'En vivo'
+      });
+    }
+  }
+  return out;
+}
+
+async function descubrir({ playlist }) {
+  const candidatos = [...ytRuntime.values()].filter((rt) => rt.channelId && !rt.videoId);
+  const porCanal = new Map();
+
+  await enLotes(candidatos, 5, async (rt) => {
+    const info = { cuando: new Date().toISOString() };
+    const ids = [];
+    if (rt.fixedVideoId) ids.push(rt.fixedVideoId);
+
+    const rss = await idsDesdeRSS(rt.channelId, playlist ? 15 : 5);
+    info.rssStatus = rss.status;
+    info.rssIds = rss.ids.length;
+    ids.push(...rss.ids);
+
+    if (playlist) {
+      try {
+        const pl = await idsDesdePlaylist(rt);
+        info.playlist = pl.fuente;
+        info.playlistIds = pl.ids.length;
+        ids.push(...pl.ids);
+      } catch (e) {
+        info.playlistError = e.message;
+      }
+    }
+    info.candidatos = [...new Set(ids)].length;
+    rt.ultimoDescubrimiento = info;
+    porCanal.set(rt.canalId, [...new Set(ids)]);
+  });
+
+  const todos = [...porCanal.values()].flat();
+  if (!todos.length) return;
+
+  const resultados = await verificarVideos(todos);
+  for (const [canalId, ids] of porCanal) {
+    const rt = ytRuntime.get(canalId);
+    const vivos = ids
+      .map((id) => ({ id, ...resultados.get(id) }))
+      .filter((v) => v.live)
+      .sort((a, b) => b.viewers - a.viewers);
+    if (vivos.length) {
+      rt.videoId = vivos[0].id;
+      rt.title = vivos[0].title;
+      rt.live = true;
+      rt.viewers = vivos[0].viewers;
+      rt.updatedAt = Date.now();
+    }
+  }
+}
+
+async function pollYouTube() {
+  const activos = [...ytRuntime.values()].filter((rt) => rt.videoId);
+  if (!activos.length) return;
+
+  const res = await verificarVideos(activos.map((rt) => rt.videoId));
+  for (const rt of activos) {
+    const m = res.get(rt.videoId);
+    if (m && m.live) {
+      rt.live = true;
+      rt.viewers = m.viewers;
+      rt.title = m.title;
+    } else {
+      if (!rt.fixedVideoId) {
+        rt.videoId = null;
+      }
+      rt.live = false;
+      rt.viewers = 0;
+      rt.title = '';
+    }
+    rt.updatedAt = Date.now();
+  }
+}
+
+const enCurso = {};
+async function correr(nombre, fn) {
+  if (enCurso[nombre]) return;
+  enCurso[nombre] = true;
+  try {
+    await fn();
+  } catch (e) {
+    console.error('[yt:' + nombre + ']', e.message);
+  } finally {
+    enCurso[nombre] = false;
+  }
+}
+
+async function iniciarYouTube() {
+  if (!YOUTUBE_API_KEY) {
+    console.error('[yt] FALTA la variable YOUTUBE_API_KEY en Render');
+    return;
+  }
+  await correr('resolver', resolverTodos);
+  await correr('deep', () => descubrir({ playlist: true }));
+  await correr('poll', pollYouTube);
+
+  setInterval(() => correr('poll', pollYouTube), YT_POLL_MS);
+  setInterval(() => correr('rss', () => descubrir({ playlist: false })), YT_RSS_MS);
+  setInterval(() => correr('deep', () => descubrir({ playlist: true })), YT_DEEP_MS);
+  setInterval(() => correr('resolver', resolverTodos), 6 * 60 * 60 * 1000);
+}
+
+// ───────────────────────── Pipeline Twitch / Kick + cruce con YouTube ─────────────────────────
+let ejecutandoSync = false;
+async function sincronizarPipeline() {
+  if (ejecutandoSync) return;
+  ejecutandoSync = true;
+
+  const horaActual = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+
+  try {
+    for (const canal of telemetriaState) {
+      const [tw, ki] = await Promise.all([
+        canal.twitchUser ? consultarTwitch(canal.twitchUser) : Promise.resolve({ isLive: false, viewers: 0 }),
+        canal.kickUser ? consultarKick(canal.kickUser) : Promise.resolve({ isLive: false, viewers: 0 })
+      ]);
+
+      let ytViewers = 0;
+      let ytLive = false;
+      let ytTitle = '';
+
+      const rt = ytRuntime.get(canal.id);
+      if (rt) {
+        if (rt.channelId) canal.ytChannelId = rt.channelId;
+        const fresco = rt.live && Date.now() - rt.updatedAt < 5 * 60 * 1000;
+        if (fresco) {
+          ytLive = true;
+          ytViewers = rt.viewers;
+          ytTitle = rt.title;
+        }
+      }
+
+      canal.viewers_breakdown = { yt: ytViewers, tw: tw.viewers, ki: ki.viewers };
+      canal.plataformas_live = { yt: ytLive, tw: tw.isLive, ki: ki.isLive };
+      canal.viewers = ytViewers + tw.viewers + ki.viewers;
+      canal.is_live = ytLive || tw.isLive || ki.isLive;
+      canal.title = canal.is_live ? (ytTitle || tw.title || ki.title || 'En vivo') : 'Señal en espera';
+      canal.hora_actualizacion = horaActual;
+    }
+  } catch (err) {
+    console.error('Error sincronizando pipeline:', err);
+  } finally {
+    ejecutandoSync = false;
+  }
+}
+
+setTimeout(sincronizarPipeline, 1000);
+setInterval(sincronizarPipeline, 30000);
+iniciarYouTube();
+
+// ───────────────────────── Diagnóstico ─────────────────────────
+app.get('/api/debug-yt', async (req, res) => {
+  const salida = {
+    apiKeyConfigurada: Boolean(YOUTUBE_API_KEY),
+    apiKeyLargo: YOUTUBE_API_KEY.length,
+    cuota: { ...ytStats, pausadoHasta: ytStats.bloqueadoHasta ? new Date(ytStats.bloqueadoHasta).toISOString() : null },
+    canales: [...ytRuntime.values()].map((rt) => ({
+      id: rt.canalId,
+      handle: rt.handle,
+      channelId: rt.channelId,
+      resueltoDesdeHandle: rt.resueltoDesdeHandle,
+      resolveError: rt.resolveError,
+      videoIdCacheado: rt.videoId,
+      live: rt.live,
+      viewers: rt.viewers,
+      actualizado: rt.updatedAt ? new Date(rt.updatedAt).toISOString() : null,
+      uulvSoportado: rt.uulv,
+      ultimoDescubrimiento: rt.ultimoDescubrimiento
+    }))
+  };
+
+  if (req.query.test) {
+    try {
+      const d = await ytFetch('channels', { part: 'id', forHandle: '@todonoticias' });
+      salida.test = { ok: true, respuesta: d };
+    } catch (e) {
+      salida.test = { ok: false, error: e.message };
+    }
+  }
+
+  if (req.query.rss) {
+    const tn = ytRuntime.get('tn');
+    const r = await idsDesdeRSS(tn && tn.channelId ? tn.channelId : '', 5);
+    salida.rssTest = { channelId: tn && tn.channelId, ...r };
+  }
+
+  res.json(salida);
+});
+
+// ───────────────────────── Auth y endpoints principales ─────────────────────────
+function
