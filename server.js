@@ -65,16 +65,16 @@ const CATEGORIAS_ORDEN = ['entretenimiento', 'deportes', 'streamers', 'finanzas'
 
 const CANALES = [
   // 1. Entretenimiento
-  { id: 'luzutv', nombre: 'LUZU TV', categoria: 'entretenimiento', ytHandle: 'luzutv', ytChannelId: 'UC42bFp_6oP2r0nsqcI8sHqQ', twitchUser: 'luzutv' },
-  { id: 'olga', nombre: 'OLGA', categoria: 'entretenimiento', ytHandle: 'olgaenvivo_', ytChannelId: 'UCW0mN66k8E_K7vV62f9sKMA', twitchUser: 'olgaenvivo' },
-  { id: 'blender', nombre: 'Blender', categoria: 'entretenimiento', ytChannelId: 'UCgLBmUFPO8JtZ1nPIBQGMlQ', twitchUser: 'somosblender' },
-  { id: 'gelatina', nombre: 'Gelatina', categoria: 'entretenimiento', ytHandle: 'somosgelatina', ytChannelId: 'UC37e4m0z6s3V6EaT3G4R8fQ', twitchUser: 'somosgelatina' },
-  { id: 'vorterix', nombre: 'Vorterix', categoria: 'entretenimiento', ytHandle: 'vorterixoficial', ytChannelId: 'UC7fS5E3iV7f7K_e7y3Lz5rA', twitchUser: 'vorterixoficial' },
+  { id: 'luzutv', nombre: 'LUZU TV', categoria: 'entretenimiento', ytHandle: 'luzutv', twitchUser: 'luzutv' },
+  { id: 'olga', nombre: 'OLGA', categoria: 'entretenimiento', ytHandle: 'olgaenvivo_', twitchUser: 'olgaenvivo' },
+  { id: 'blender', nombre: 'Blender', categoria: 'entretenimiento', ytHandle: 'somosblender', twitchUser: 'somosblender' },
+  { id: 'gelatina', nombre: 'Gelatina', categoria: 'entretenimiento', ytHandle: 'somosgelatina', twitchUser: 'somosgelatina' },
+  { id: 'vorterix', nombre: 'Vorterix', categoria: 'entretenimiento', ytHandle: 'vorterixoficial', twitchUser: 'vorterixoficial' },
   { id: 'bondilive', nombre: 'Bondi Live', categoria: 'entretenimiento', ytHandle: 'bondi_liveok' },
   { id: 'lacasastreaming', nombre: 'La Casa Streaming', categoria: 'entretenimiento', ytHandle: 'somoslacasa' },
   { id: 'unpocoderuido', nombre: 'Un Poco de Ruido', categoria: 'entretenimiento', ytHandle: 'unpocoderuido' },
   { id: 'republicaz', nombre: 'República Z', categoria: 'entretenimiento', ytHandle: 'republicaz' },
-  { id: 'posdata', nombre: 'Posdata', categoria: 'entretenimiento', ytChannelId: 'UC5wAqJ9NF0fpGH9dVf3h6HA' },
+  { id: 'posdata', nombre: 'Posdata', categoria: 'entretenimiento', ytHandle: 'posdatastream' },
   { id: 'dgo', nombre: 'DGO en Vivo', categoria: 'entretenimiento', ytHandle: 'DGO_Latam' },
   { id: 'telefe', nombre: 'Telefe Streams', categoria: 'entretenimiento', ytHandle: 'telefe' },
   { id: 'eltrece', nombre: 'eltrece', categoria: 'entretenimiento', ytHandle: 'eltrece' },
@@ -83,9 +83,9 @@ const CANALES = [
 
   // 2. Deportes
   { id: 'programa412', nombre: '412 Fútbol (Davoo & Cobra)', categoria: 'deportes', ytHandle: 'elprograma412' },
-  { id: 'azzstream', nombre: 'AZZ Stream (Azzaro)', categoria: 'deportes', ytChannelId: 'UCUT4NmGqjrVpKf2JyiS_bbA' },
+  { id: 'azzstream', nombre: 'AZZ Stream (Azzaro)', categoria: 'deportes', ytHandle: 'FlavioAzzaroOficial' },
   { id: 'picadotv', nombre: 'Picado TV', categoria: 'deportes', ytHandle: 'picadotv' },
-  { id: 'carrozza', nombre: 'Pablo Carrozza', categoria: 'deportes', ytChannelId: 'UCkJ9KX7nw-4rpyuVCRy2R-g' },
+  { id: 'carrozza', nombre: 'Pablo Carrozza', categoria: 'deportes', ytHandle: 'carrozzapablo' },
   { id: 'tycsports', nombre: 'TyC Sports', categoria: 'deportes', ytHandle: 'tycsports' },
   { id: 'dsports', nombre: 'DSports', categoria: 'deportes', ytHandle: 'dsports' },
   { id: 'espnarg', nombre: 'ESPN Argentina', categoria: 'deportes', ytHandle: 'espn' },
@@ -105,26 +105,25 @@ const CANALES = [
   { id: 'gregorossello', nombre: 'Grego Rossello', categoria: 'streamers', ytHandle: 'GregoRossello1' },
 
   // 4. Economía & Finanzas
-  { id: 'bullmarket', nombre: 'Bull Market Brokers', categoria: 'finanzas', ytChannelId: 'UC7Hx4xBMuw_PvVUliihHEcQ' },
+  { id: 'bullmarket', nombre: 'Bull Market Brokers', categoria: 'finanzas', ytHandle: 'bullmarket' },
   { id: 'joveninversor', nombre: 'Joven Inversor', categoria: 'finanzas', ytHandle: 'JovenInversor' },
-  { id: 'elcronista', nombre: 'El Cronista TV', categoria: 'finanzas', ytChannelId: 'UCXgsCoIhEUIwWvGK_JDY21w' },
+  { id: 'elcronista', nombre: 'El Cronista TV', categoria: 'finanzas', ytHandle: 'cronista' },
   { id: 'ambitofinanciero', nombre: 'Ámbito Financiero', categoria: 'finanzas', ytHandle: 'AmbitoCom' },
-  { id: 'canale', nombre: 'Canal E', categoria: 'finanzas', ytChannelId: 'UCW53kA_WXKWVxJbpHrTOBfw' },
+  { id: 'canale', nombre: 'Canal E', categoria: 'finanzas', ytHandle: 'canale' },
 
   // 5. Noticias & Actualidad
   { id: 'tn', nombre: 'TN (Todo Noticias)', categoria: 'noticias', ytHandle: 'todonoticias', ytChannelId: 'UCj6PcyLvpnIRT_2W_mwa9Aw' },
   { id: 'c5n', nombre: 'C5N', categoria: 'noticias', ytHandle: 'c5n', ytChannelId: 'UCFgk2Q2mVO1BklRQhSv6p0w' },
-  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytChannelId: 'UCba3hpU7EFBSk817y9qZkiA' },
+  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytHandle: 'LNmas' },
   { id: 'telefenoticias', nombre: 'Telefe Noticias', categoria: 'noticias', ytHandle: 'telefenoticias' },
-  { id: 'telenueve', nombre: 'Telenueve / El Nueve', categoria: 'noticias', ytChannelId: 'UC6pJGaMdx5Ter_8zYbLoRgA' },
-  { id: 'neura', nombre: 'Neura Media / Troncal', categoria: 'noticias', ytChannelId: 'UC-rI_XNppHJO-Ga4RW_CDKw', twitchUser: 'neuramedia' },
-  { id: 'carajostream', nombre: 'Carajo Stream', categoria: 'noticias', ytChannelId: 'UCZi6C9-a4fYKiBoIuEJ80ZA' },
-  { id: 'eldestape', nombre: 'El Destape', categoria: 'noticias', ytChannelId: 'UC4mdhKZXjrKoq5aVG6juHEg' },
+  { id: 'telenueve', nombre: 'Telenueve / El Nueve', categoria: 'noticias', ytHandle: 'telenueve' },
+  { id: 'neura', nombre: 'Neura Media / Troncal', categoria: 'noticias', ytHandle: 'neuramedia', twitchUser: 'neuramedia' },
+  { id: 'carajostream', nombre: 'Carajo Stream', categoria: 'noticias', ytHandle: 'carajostream' },
+  { id: 'eldestape', nombre: 'El Destape', categoria: 'noticias', ytHandle: 'eldestape' },
   { id: 'a24', nombre: 'A24', categoria: 'noticias', ytHandle: 'A24com' },
   { id: 'infobae', nombre: 'Infobae en Vivo', categoria: 'noticias', ytHandle: 'infobae' },
-  { id: 'elobservador', nombre: 'El Observador 107.9', categoria: 'noticias', ytChannelId: 'UC-40U87JsevMIMn7PMw4jPw' }
+  { id: 'elobservador', nombre: 'El Observador 107.9', categoria: 'noticias', ytHandle: 'ElObservador1079' }
 ];
-
 const publicPath = path.resolve(__dirname, 'public');
 const logosDir = path.join(publicPath, 'logos');
 
@@ -293,6 +292,7 @@ async function resolverTodos() {
   });
 }
 
+// RESTAURADA: Expresión regular correcta para capturar videoId
 async function idsDesdeRSS(channelId, max) {
   try {
     const r = await fetch('https://www.youtube.com/feeds/videos.xml?channel_id=' + channelId, {
@@ -542,4 +542,132 @@ app.get('/api/debug-yt', async (req, res) => {
 });
 
 // ───────────────────────── Auth y endpoints principales ─────────────────────────
-function
+function validarToken(req) {
+  const envTokens = (process.env.VALID_TOKENS || '').split(',').map((t) => t.trim()).filter(Boolean);
+  if (envTokens.length === 0) return true;
+
+  const authHeader = req.headers.authorization;
+  let token = null;
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7).trim();
+  } else if (req.query.token) {
+    token = String(req.query.token).trim();
+  }
+
+  return token ? envTokens.includes(token) : false;
+}
+
+app.get('/api/ranking-categorias', (req, res) => {
+  try {
+    const categorias = CATEGORIAS_ORDEN.map((catKey) => {
+      const meta = CATEGORIAS_CONFIG[catKey];
+
+      const canales = telemetriaState
+        .filter((c) => c.categoria === catKey)
+        .sort((a, b) => b.viewers - a.viewers);
+
+      const lider = canales.find((c) => c.is_live && c.viewers > 0) || null;
+
+      return {
+        id: catKey,
+        nombre: meta.nombre,
+        banner: meta.banner,
+        bannerColor: meta.bannerColor,
+        borderColor: meta.borderColor,
+        lider,
+        total_canales: canales.length,
+        canales
+      };
+    });
+
+    res.json({
+      status: 'success',
+      timestamp: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+      fecha: new Date().toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' }),
+      categorias
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Error interno en telemetría' });
+  }
+});
+
+app.get('/api/dataset-ai', (req, res) => {
+  res.json({
+    status: 'ok',
+    total_canales: telemetriaState.length,
+    timestamp: new Date().toISOString(),
+    canales: telemetriaState
+  });
+});
+
+const csvCampo = (v) => '"' + String(v != null ? v : '').replace(/"/g, '""') + '"';
+
+app.get('/api/descargar-analytics', (req, res) => {
+  if (!validarToken(req)) {
+    return res.status(401).json({ error: 'Clave institucional inválida o no provista' });
+  }
+
+  const canalId = req.query.canal || 'todos';
+  const periodo = req.query.periodo || 'hoy';
+  const formato = req.query.formato || 'json';
+
+  let datosFiltrados = telemetriaState;
+  if (canalId !== 'todos') {
+    datosFiltrados = telemetriaState.filter((c) => c.id === canalId);
+  }
+
+  if (formato === 'csv') {
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="streamrank_' + canalId + '_' + periodo + '.csv"');
+    let csv = 'Canal,Categoria,Handle,Viewers_Total,YouTube,Twitch,Kick,Estado,Titulo,Ultima_Actualizacion\n';
+    datosFiltrados.forEach((c) => {
+      csv += [
+        csvCampo(c.nombre),
+        csvCampo(c.categoria),
+        csvCampo(c.handle),
+        c.viewers,
+        c.viewers_breakdown.yt,
+        c.viewers_breakdown.tw,
+        c.viewers_breakdown.ki,
+        csvCampo(c.is_live ? 'EN VIVO' : 'OFFLINE'),
+        csvCampo(c.title),
+        csvCampo(c.hora_actualizacion)
+      ].join(',') + '\n';
+    });
+    return res.send(csv);
+  }
+
+  const exportPayload = {
+    metadata: {
+      fuente: 'StreamRank Argentina',
+      alcance: canalId,
+      periodo: periodo,
+      timestamp: new Date().toISOString(),
+      formato: 'AI_Semantic_Dataset'
+    },
+    instrucciones_ia: {
+      rol: 'Sos un auditor senior de medios y métricas de streaming en Argentina.',
+      tarea: 'Respondé las dudas del usuario basándote exclusivamente en la telemetría adjunta.'
+    },
+    canales: datosFiltrados
+  };
+
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="streamrank_' + canalId + '_' + periodo + '.json"');
+  return res.json(exportPayload);
+});
+
+app.get('/modoia', (req, res) => {
+  res.redirect(301, 'https://modoia.online');
+});
+
+app.use(express.static(publicPath));
+
+app.use((req, res) => {
+  res.sendFile(path.join(publicPath, 'index.html'));
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log('[StreamRank ARG] Servidor activo en puerto ' + PORT);
+});
