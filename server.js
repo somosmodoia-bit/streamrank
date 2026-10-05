@@ -67,14 +67,14 @@ const CANALES = [
   // 1. Entretenimiento
   { id: 'luzutv', nombre: 'LUZU TV', categoria: 'entretenimiento', ytHandle: 'luzutv', twitchUser: 'luzutv' },
   { id: 'olga', nombre: 'OLGA', categoria: 'entretenimiento', ytHandle: 'olgaenvivo_', twitchUser: 'olgaenvivo' },
-  { id: 'blender', nombre: 'Blender', categoria: 'entretenimiento', ytHandle: 'somosblender', twitchUser: 'somosblender' },
+  { id: 'blender', nombre: 'Blender', categoria: 'entretenimiento', ytChannelId: 'UCgLBmUFPO8JtZ1nPIBQGMlQ', twitchUser: 'somosblender' },
   { id: 'gelatina', nombre: 'Gelatina', categoria: 'entretenimiento', ytHandle: 'somosgelatina', twitchUser: 'somosgelatina' },
   { id: 'vorterix', nombre: 'Vorterix', categoria: 'entretenimiento', ytHandle: 'vorterixoficial', twitchUser: 'vorterixoficial' },
   { id: 'bondilive', nombre: 'Bondi Live', categoria: 'entretenimiento', ytHandle: 'bondi_liveok' },
   { id: 'lacasastreaming', nombre: 'La Casa Streaming', categoria: 'entretenimiento', ytHandle: 'somoslacasa' },
   { id: 'unpocoderuido', nombre: 'Un Poco de Ruido', categoria: 'entretenimiento', ytHandle: 'unpocoderuido' },
   { id: 'republicaz', nombre: 'República Z', categoria: 'entretenimiento', ytHandle: 'republicaz' },
-  { id: 'posdata', nombre: 'Posdata', categoria: 'entretenimiento', ytHandle: 'posdatastream' },
+  { id: 'posdata', nombre: 'Posdata', categoria: 'entretenimiento', ytChannelId: 'UC5wAqJ9NF0fpGH9dVf3h6HA' },
   { id: 'dgo', nombre: 'DGO en Vivo', categoria: 'entretenimiento', ytHandle: 'DGO_Latam' },
   { id: 'telefe', nombre: 'Telefe Streams', categoria: 'entretenimiento', ytHandle: 'telefe' },
   { id: 'eltrece', nombre: 'eltrece', categoria: 'entretenimiento', ytHandle: 'eltrece' },
@@ -83,9 +83,9 @@ const CANALES = [
 
   // 2. Deportes
   { id: 'programa412', nombre: '412 Fútbol (Davoo & Cobra)', categoria: 'deportes', ytHandle: 'elprograma412' },
-  { id: 'azzstream', nombre: 'AZZ Stream (Azzaro)', categoria: 'deportes', ytHandle: 'FlavioAzzaroOficial' },
+  { id: 'azzstream', nombre: 'AZZ Stream (Azzaro)', categoria: 'deportes', ytChannelId: 'UCUT4NmGqjrVpKf2JyiS_bbA' },
   { id: 'picadotv', nombre: 'Picado TV', categoria: 'deportes', ytHandle: 'picadotv' },
-  { id: 'carrozza', nombre: 'Pablo Carrozza', categoria: 'deportes', ytHandle: 'carrozzapablo' },
+  { id: 'carrozza', nombre: 'Pablo Carrozza', categoria: 'deportes', ytChannelId: 'UCkJ9KX7nw-4rpyuVCRy2R-g' },
   { id: 'tycsports', nombre: 'TyC Sports', categoria: 'deportes', ytHandle: 'tycsports' },
   { id: 'dsports', nombre: 'DSports', categoria: 'deportes', ytHandle: 'dsports' },
   { id: 'espnarg', nombre: 'ESPN Argentina', categoria: 'deportes', ytHandle: 'espn' },
@@ -105,24 +105,24 @@ const CANALES = [
   { id: 'gregorossello', nombre: 'Grego Rossello', categoria: 'streamers', ytHandle: 'GregoRossello1' },
 
   // 4. Economía & Finanzas
-  { id: 'bullmarket', nombre: 'Bull Market Brokers', categoria: 'finanzas', ytHandle: 'bullmarket' },
+  { id: 'bullmarket', nombre: 'Bull Market Brokers', categoria: 'finanzas', ytChannelId: 'UC7Hx4xBMuw_PvVUliihHEcQ' },
   { id: 'joveninversor', nombre: 'Joven Inversor', categoria: 'finanzas', ytHandle: 'JovenInversor' },
-  { id: 'elcronista', nombre: 'El Cronista TV', categoria: 'finanzas', ytHandle: 'cronista' },
+  { id: 'elcronista', nombre: 'El Cronista TV', categoria: 'finanzas', ytChannelId: 'UCXgsCoIhEUIwWvGK_JDY21w' },
   { id: 'ambitofinanciero', nombre: 'Ámbito Financiero', categoria: 'finanzas', ytHandle: 'AmbitoCom' },
-  { id: 'canale', nombre: 'Canal E', categoria: 'finanzas', ytHandle: 'canale' },
+  { id: 'canale', nombre: 'Canal E', categoria: 'finanzas', ytChannelId: 'UCW53kA_WXKWVxJbpHrTOBfw' },
 
   // 5. Noticias & Actualidad
   { id: 'tn', nombre: 'TN (Todo Noticias)', categoria: 'noticias', ytHandle: 'todonoticias', ytChannelId: 'UCj6PcyLvpnIRT_2W_mwa9Aw' },
   { id: 'c5n', nombre: 'C5N', categoria: 'noticias', ytHandle: 'c5n', ytChannelId: 'UCFgk2Q2mVO1BklRQhSv6p0w' },
-  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytHandle: 'LNmas' },
+  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytChannelId: 'UCba3hpU7EFBSk817y9qZkiA' },
   { id: 'telefenoticias', nombre: 'Telefe Noticias', categoria: 'noticias', ytHandle: 'telefenoticias' },
-  { id: 'telenueve', nombre: 'Telenueve / El Nueve', categoria: 'noticias', ytHandle: 'telenueve' },
-  { id: 'neura', nombre: 'Neura Media / Troncal', categoria: 'noticias', ytHandle: 'neuramedia', twitchUser: 'neuramedia' },
-  { id: 'carajostream', nombre: 'Carajo Stream', categoria: 'noticias', ytHandle: 'carajostream' },
-  { id: 'eldestape', nombre: 'El Destape', categoria: 'noticias', ytHandle: 'eldestape' },
+  { id: 'telenueve', nombre: 'Telenueve / El Nueve', categoria: 'noticias', ytChannelId: 'UC6pJGaMdx5Ter_8zYbLoRgA' },
+  { id: 'neura', nombre: 'Neura Media / Troncal', categoria: 'noticias', ytChannelId: 'UC-rI_XNppHJO-Ga4RW_CDKw', twitchUser: 'neuramedia' },
+  { id: 'carajostream', nombre: 'Carajo Stream', categoria: 'noticias', ytChannelId: 'UCZi6C9-a4fYKiBoIuEJ80ZA' },
+  { id: 'eldestape', nombre: 'El Destape', categoria: 'noticias', ytChannelId: 'UC4mdhKZXjrKoq5aVG6juHEg' },
   { id: 'a24', nombre: 'A24', categoria: 'noticias', ytHandle: 'A24com' },
   { id: 'infobae', nombre: 'Infobae en Vivo', categoria: 'noticias', ytHandle: 'infobae' },
-  { id: 'elobservador', nombre: 'El Observador 107.9', categoria: 'noticias', ytHandle: 'ElObservador1079' }
+  { id: 'elobservador', nombre: 'El Observador 107.9', categoria: 'noticias', ytChannelId: 'UC-40U87JsevMIMn7PMw4jPw' }
 ];
 const publicPath = path.resolve(__dirname, 'public');
 const logosDir = path.join(publicPath, 'logos');
