@@ -65,11 +65,11 @@ const CATEGORIAS_ORDEN = ['entretenimiento', 'deportes', 'streamers', 'finanzas'
 
 const CANALES = [
   // 1. Entretenimiento
-  { id: 'luzutv', nombre: 'LUZU TV', categoria: 'entretenimiento', ytHandle: 'luzutv', twitchUser: 'luzutv' },
-  { id: 'olga', nombre: 'OLGA', categoria: 'entretenimiento', ytHandle: 'olgaenvivo_', twitchUser: 'olgaenvivo' },
+  { id: 'luzutv', nombre: 'LUZU TV', categoria: 'entretenimiento', ytChannelId: 'UC42bFp_6oP2r0nsqcI8sHqQ', twitchUser: 'luzutv' },
+  { id: 'olga', nombre: 'OLGA', categoria: 'entretenimiento', ytChannelId: 'UCW0mN66k8E_K7vV62f9sKMA', twitchUser: 'olgaenvivo' },
   { id: 'blender', nombre: 'Blender', categoria: 'entretenimiento', ytChannelId: 'UCgLBmUFPO8JtZ1nPIBQGMlQ', twitchUser: 'somosblender' },
-  { id: 'gelatina', nombre: 'Gelatina', categoria: 'entretenimiento', ytHandle: 'somosgelatina', twitchUser: 'somosgelatina' },
-  { id: 'vorterix', nombre: 'Vorterix', categoria: 'entretenimiento', ytHandle: 'vorterixoficial', twitchUser: 'vorterixoficial' },
+  { id: 'gelatina', nombre: 'Gelatina', categoria: 'entretenimiento', ytHandle: 'somosgelatina', ytChannelId: 'UC37e4m0z6s3V6EaT3G4R8fQ', twitchUser: 'somosgelatina' },
+  { id: 'vorterix', nombre: 'Vorterix', categoria: 'entretenimiento', ytHandle: 'vorterixoficial', ytChannelId: 'UC7fS5E3iV7f7K_e7y3Lz5rA', twitchUser: 'vorterixoficial' },
   { id: 'bondilive', nombre: 'Bondi Live', categoria: 'entretenimiento', ytHandle: 'bondi_liveok' },
   { id: 'lacasastreaming', nombre: 'La Casa Streaming', categoria: 'entretenimiento', ytHandle: 'somoslacasa' },
   { id: 'unpocoderuido', nombre: 'Un Poco de Ruido', categoria: 'entretenimiento', ytHandle: 'unpocoderuido' },
@@ -114,7 +114,7 @@ const CANALES = [
   // 5. Noticias & Actualidad
   { id: 'tn', nombre: 'TN (Todo Noticias)', categoria: 'noticias', ytHandle: 'todonoticias', ytChannelId: 'UCj6PcyLvpnIRT_2W_mwa9Aw' },
   { id: 'c5n', nombre: 'C5N', categoria: 'noticias', ytHandle: 'c5n', ytChannelId: 'UCFgk2Q2mVO1BklRQhSv6p0w' },
-  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytChannelId: 'UCba3hpU7EFBSk817y9qZkiA' },
+  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytChannelId: 'UCba3hst5UmF3CYJnbyW82Tw' },
   { id: 'telefenoticias', nombre: 'Telefe Noticias', categoria: 'noticias', ytHandle: 'telefenoticias' },
   { id: 'telenueve', nombre: 'Telenueve / El Nueve', categoria: 'noticias', ytChannelId: 'UC6pJGaMdx5Ter_8zYbLoRgA' },
   { id: 'neura', nombre: 'Neura Media / Troncal', categoria: 'noticias', ytChannelId: 'UC-rI_XNppHJO-Ga4RW_CDKw', twitchUser: 'neuramedia' },
@@ -124,6 +124,7 @@ const CANALES = [
   { id: 'infobae', nombre: 'Infobae en Vivo', categoria: 'noticias', ytHandle: 'infobae' },
   { id: 'elobservador', nombre: 'El Observador 107.9', categoria: 'noticias', ytChannelId: 'UC-40U87JsevMIMn7PMw4jPw' }
 ];
+
 const publicPath = path.resolve(__dirname, 'public');
 const logosDir = path.join(publicPath, 'logos');
 
@@ -205,7 +206,7 @@ async function consultarTwitch(user) {
   return { isLive: false, viewers: 0 };
 }
 
-// ───────────────────────── 3. YouTube (API oficial, barata) ─────────────────────────
+// ───────────────────────── 3. YouTube (API oficial, económica en cuota) ─────────────────────────
 const YT_API = 'https://www.googleapis.com/youtube/v3';
 
 const ytRuntime = new Map();
@@ -215,7 +216,7 @@ for (const c of CANALES) {
     canalId: c.id,
     handle: c.ytHandle || null,
     channelId: c.ytChannelId || null,
-    resueltoDesdeHandle: false,
+    resueltoDesdeHandle: Boolean(c.ytChannelId),
     resolveError: null,
     fixedVideoId: c.ytVideoId || null,
     uulv: undefined,
@@ -273,7 +274,7 @@ async function enLotes(items, n, fn) {
 }
 
 async function resolverTodos() {
-  const pendientes = [...ytRuntime.values()].filter((rt) => rt.handle && !rt.resueltoDesdeHandle);
+  const pendientes = [...ytRuntime.values()].filter((rt) => rt.handle && !rt.channelId && !rt.resueltoDesdeHandle);
   await enLotes(pendientes, 5, async (rt) => {
     try {
       const h = rt.handle.startsWith('@') ? rt.handle : '@' + rt.handle;
@@ -292,7 +293,7 @@ async function resolverTodos() {
   });
 }
 
-// RESTAURADA: Expresión regular correcta para capturar videoId
+// Extractor de Video IDs por feed RSS
 async function idsDesdeRSS(channelId, max) {
   try {
     const r = await fetch('https://www.youtube.com/feeds/videos.xml?channel_id=' + channelId, {
