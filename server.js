@@ -63,7 +63,9 @@ const CATEGORIAS_CONFIG = {
 
 const CATEGORIAS_ORDEN = ['entretenimiento', 'deportes', 'streamers', 'finanzas', 'noticias'];
 
-// Lista completa con ytVideoId directos para las señales continuas 24/7
+// NOTA: ytChannelId es solo un "plan B". El server resuelve el ID real a partir de ytHandle.
+// OPCIONAL: ytVideoId = ID de un directo 24/7 (lo sacás de la URL youtube.com/watch?v=XXXX cuando
+// abrís el directo del canal). Es la forma más segura para TN, C5N, LN+, etc.
 const CANALES = [
   // 1. Entretenimiento
   { id: 'luzutv', nombre: 'LUZU TV', categoria: 'entretenimiento', ytHandle: 'luzutv', ytChannelId: 'UC42bFp_6oP2r0nsqcI8sHqQ', twitchUser: 'luzutv' },
@@ -112,10 +114,10 @@ const CANALES = [
   { id: 'ambitofinanciero', nombre: 'Ámbito Financiero', categoria: 'finanzas', ytHandle: 'ambitofinanciero' },
   { id: 'canale', nombre: 'Canal E', categoria: 'finanzas', ytHandle: 'canaleoficial' },
 
-  // 5. Noticias & Actualidad (con ytVideoId fijos)
-  { id: 'tn', nombre: 'TN (Todo Noticias)', categoria: 'noticias', ytHandle: 'todonoticias', ytChannelId: 'UCj6PcyLvpnIRT_2W_EGly9g', ytVideoId: 'cb12KmMMDJA' },
-  { id: 'c5n', nombre: 'C5N', categoria: 'noticias', ytHandle: 'c5n', ytChannelId: 'UCFgk2Q2mVO1BklRQhSv6p0w', ytVideoId: 'fOyd_WSZ33I' },
-  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytHandle: 'lanacionmas', ytChannelId: 'UCba3hst5UmF3CYJnbyW82Tw', ytVideoId: 'F2o1sQdZJm0' },
+  // 5. Noticias & Actualidad
+  { id: 'tn', nombre: 'TN (Todo Noticias)', categoria: 'noticias', ytHandle: 'todonoticias', ytChannelId: 'UCj6PcyLvpnIRT_2W_EGly9g' },
+  { id: 'c5n', nombre: 'C5N', categoria: 'noticias', ytHandle: 'c5n', ytChannelId: 'UCFgk2Q2mVO1BklRQhSv6p0w' },
+  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytHandle: 'lanacionmas', ytChannelId: 'UCba3hst5UmF3CYJnbyW82Tw' },
   { id: 'neura', nombre: 'Neura Media / Troncal', categoria: 'noticias', ytHandle: 'neuramedia', twitchUser: 'neuramedia' },
   { id: 'carajostream', nombre: 'Carajo Stream', categoria: 'noticias', ytHandle: 'carajostream' },
   { id: 'eldestape', nombre: 'El Destape', categoria: 'noticias', ytHandle: 'ElDestapeRadio' },
@@ -208,18 +210,19 @@ async function consultarTwitch(user) {
 // ───────────────────────── 3. YouTube (API oficial, barata) ─────────────────────────
 const YT_API = 'https://www.googleapis.com/youtube/v3';
 
+// Estado en memoria por canal de YouTube
 const ytRuntime = new Map();
 for (const c of CANALES) {
   if (!c.ytHandle && !c.ytChannelId) continue;
   ytRuntime.set(c.id, {
     canalId: c.id,
     handle: c.ytHandle || null,
-    channelId: c.ytChannelId || null,
+    channelId: c.ytChannelId || null,   // se pisa con el ID real resuelto desde el handle
     resueltoDesdeHandle: false,
     resolveError: null,
     fixedVideoId: c.ytVideoId || null,
-    uulv: undefined,
-    videoId: c.ytVideoId || null,
+    uulv: undefined,                    // undefined = sin probar, true/false = soportado o no
+    videoId: null,
     title: '',
     live: false,
     viewers: 0,
@@ -228,6 +231,7 @@ for (const c of CANALES) {
   });
 }
 
+// Contador estimado de cuota (se resetea a medianoche hora del Pacífico, como Google)
 const ytStats = { unidades: 0, dia: '', ultimoError: null, bloqueadoHasta: 0 };
 function diaPT() {
   return new Date().toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles' });
@@ -242,7 +246,7 @@ async function ytFetch(endpoint, params, costo = 1) {
   if (!YOUTUBE_API_KEY) throw new Error('YOUTUBE_API_KEY no está configurada');
   if (Date.now() < ytStats.bloqueadoHasta) throw new Error('Cuota agotada: YouTube en pausa');
 
-  const url = new URL(`\({YT_API}/\){endpoint}`);
+  const url = new URL(`${YT_API}/${endpoint}`);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   url.searchParams.set('key', YOUTUBE_API_KEY);
 
@@ -254,7 +258,7 @@ async function ytFetch(endpoint, params, costo = 1) {
 
   if (!r.ok) {
     const reason = json?.error?.errors?.[0]?.reason || json?.error?.status || '';
-    const err = new Error(`\({endpoint} HTTP\){r.status} \({reason}\){json?.error?.message || ''}`.trim());
+    const err = new Error(`${endpoint} HTTP ${r.status} ${reason} ${json?.error?.message || ''}`.trim());
     err.status = r.status;
     err.reason = reason;
     if (r.status !== 404) ytStats.ultimoError = { cuando: new Date().toISOString(), mensaje: err.message };
@@ -272,6 +276,7 @@ async function enLotes(items, n, fn) {
   }
 }
 
+// handle -> channelId (1 unidad, una sola vez por canal)
 async function resolverTodos() {
   const pendientes = [...ytRuntime.values()].filter((rt) => rt.handle && !rt.resueltoDesdeHandle);
   await enLotes(pendientes, 5, async (rt) => {
@@ -292,6 +297,7 @@ async function resolverTodos() {
   });
 }
 
+// RSS: 0 unidades. Devuelve los videoIds más recientes del canal
 async function idsDesdeRSS(channelId, max) {
   try {
     const r = await fetch(`https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`, {
@@ -300,13 +306,14 @@ async function idsDesdeRSS(channelId, max) {
     });
     if (!r.ok) return { ids: [], status: r.status };
     const xml = await r.text();
-    const ids = [...xml.matchAll(/([^<]+)<\/yt:videoId>/g)].map((m) => m[1]).slice(0, max);
+    const ids = [...xml.matchAll(/<yt:videoId>([^<]+)<\/yt:videoId>/g)].map((m) => m[1]).slice(0, max);
     return { ids, status: r.status };
   } catch (e) {
     return { ids: [], status: `ERR ${e.message}` };
   }
 }
 
+// Playlist de directos (UULV) y, si no existe, uploads (UU): 1 unidad por llamada
 async function idsDesdePlaylist(rt) {
   const base = rt.channelId.slice(2);
   const leer = async (prefijo, max) => {
@@ -320,7 +327,7 @@ async function idsDesdePlaylist(rt) {
 
   if (rt.uulv !== false) {
     try {
-      const ids = await leer('UULV', 5);
+      const ids = await leer('UULV', 50);
       rt.uulv = true;
       if (ids.length) return { ids, fuente: 'UULV' };
     } catch (e) {
@@ -332,6 +339,7 @@ async function idsDesdePlaylist(rt) {
   return { ids, fuente: 'UU' };
 }
 
+// Verifica videoIds en lotes de 50 (1 unidad por lote)
 async function verificarVideos(ids) {
   const out = new Map();
   const unicos = [...new Set(ids)];
@@ -353,6 +361,7 @@ async function verificarVideos(ids) {
   return out;
 }
 
+// Busca directos en canales que hoy no tienen uno cacheado
 async function descubrir({ playlist }) {
   const candidatos = [...ytRuntime.values()].filter((rt) => rt.channelId && !rt.videoId);
   const porCanal = new Map();
@@ -402,6 +411,7 @@ async function descubrir({ playlist }) {
   }
 }
 
+// Mide viewers de todos los directos cacheados con UNA llamada (por cada 50)
 async function pollYouTube() {
   const activos = [...ytRuntime.values()].filter((rt) => rt.videoId);
   if (!activos.length) return;
@@ -414,10 +424,8 @@ async function pollYouTube() {
       rt.viewers = m.viewers;
       rt.title = m.title;
     } else {
-      // Si tiene fixedVideoId no se anula para siempre, sino que reintenta
-      if (!rt.fixedVideoId) {
-        rt.videoId = null;
-      }
+      // terminó (o fue borrado): liberar para que se redescubra
+      rt.videoId = null;
       rt.live = false;
       rt.viewers = 0;
       rt.title = '';
@@ -426,6 +434,7 @@ async function pollYouTube() {
   }
 }
 
+// Ejecuta tareas sin solaparse y SIN tragarse los errores
 const enCurso = {};
 async function correr(nombre, fn) {
   if (enCurso[nombre]) return;
@@ -476,6 +485,7 @@ async function sincronizarPipeline() {
       const rt = ytRuntime.get(canal.id);
       if (rt) {
         if (rt.channelId) canal.ytChannelId = rt.channelId;
+        // Si el último dato de YouTube es muy viejo (API caída), no mostramos números inventados
         const fresco = rt.live && Date.now() - rt.updatedAt < 5 * 60 * 1000;
         if (fresco) {
           ytLive = true;
@@ -503,6 +513,9 @@ setInterval(sincronizarPipeline, 30000);
 iniciarYouTube();
 
 // ───────────────────────── Diagnóstico ─────────────────────────
+// /api/debug-yt            -> estado de todos los canales de YouTube
+// /api/debug-yt?test=1     -> prueba real contra la API (muestra el error exacto de Google)
+// /api/debug-yt?rss=1      -> prueba si el RSS de YouTube responde desde Render
 app.get('/api/debug-yt', async (req, res) => {
   const salida = {
     apiKeyConfigurada: Boolean(YOUTUBE_API_KEY),
@@ -619,7 +632,7 @@ app.get('/api/descargar-analytics', (req, res) => {
 
   if (formato === 'csv') {
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="streamrank_\({canalId}_\){periodo}.csv"`);
+    res.setHeader('Content-Disposition', `attachment; filename="streamrank_${canalId}_${periodo}.csv"`);
     let csv = 'Canal,Categoria,Handle,Viewers_Total,YouTube,Twitch,Kick,Estado,Titulo,Ultima_Actualizacion\n';
     datosFiltrados.forEach((c) => {
       csv += [
@@ -654,7 +667,7 @@ app.get('/api/descargar-analytics', (req, res) => {
   };
 
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Content-Disposition', `attachment; filename="streamrank_\({canalId}_\){periodo}.json"`);
+  res.setHeader('Content-Disposition', `attachment; filename="streamrank_${canalId}_${periodo}.json"`);
   return res.json(exportPayload);
 });
 
@@ -664,6 +677,7 @@ app.get('/modoia', (req, res) => {
 
 app.use(express.static(publicPath));
 
+// Fallback SPA (funciona igual en Express 4 y 5)
 app.use((req, res) => {
   res.sendFile(path.join(publicPath, 'index.html'));
 });
