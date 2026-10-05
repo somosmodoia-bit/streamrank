@@ -13,10 +13,10 @@ const PORT = process.env.PORT || 10000;
 // API Key de Google (sanitizada: sin comillas, espacios ni saltos de línea)
 const YOUTUBE_API_KEY = (process.env.YOUTUBE_API_KEY || '').trim().replace(/['"\r\n\s]/g, '');
 
-// Intervalos de YouTube (ajustables por variables de entorno en Render)
-const YT_POLL_MS = Number(process.env.YT_POLL_MS) || 60 * 1000;          // viewers (1 unidad por 50 videos)
-const YT_RSS_MS = Number(process.env.YT_RSS_MS) || 3 * 60 * 1000;        // detector rápido vía RSS (casi gratis)
-const YT_DEEP_MS = Number(process.env.YT_DEEP_MS) || 45 * 60 * 1000;     // descubrimiento profundo vía playlists
+// Frecuencia optimizada: medición cada 30 segundos
+const YT_POLL_MS = Number(process.env.YT_POLL_MS) || 30 * 1000;          // viewers cada 30s
+const YT_RSS_MS = Number(process.env.YT_RSS_MS) || 3 * 60 * 1000;        // detector rápido vía RSS
+const YT_DEEP_MS = Number(process.env.YT_DEEP_MS) || 45 * 60 * 1000;     // descubrimiento profundo
 
 app.use(cors());
 app.use(express.json());
@@ -63,35 +63,32 @@ const CATEGORIAS_CONFIG = {
 
 const CATEGORIAS_ORDEN = ['entretenimiento', 'deportes', 'streamers', 'finanzas', 'noticias'];
 
-// NOTA: ytChannelId es solo un "plan B". El server resuelve el ID real a partir de ytHandle.
-// OPCIONAL: ytVideoId = ID de un directo 24/7 (lo sacás de la URL youtube.com/watch?v=XXXX cuando
-// abrís el directo del canal). Es la forma más segura para TN, C5N, LN+, etc.
 const CANALES = [
   // 1. Entretenimiento
   { id: 'luzutv', nombre: 'LUZU TV', categoria: 'entretenimiento', ytHandle: 'luzutv', twitchUser: 'luzutv' },
   { id: 'olga', nombre: 'OLGA', categoria: 'entretenimiento', ytHandle: 'olgaenvivo_', twitchUser: 'olgaenvivo' },
-  { id: 'blender', nombre: 'Blender', categoria: 'entretenimiento', ytChannelId: 'UCgBqYd47mYf4sY4U1zM_lYg', twitchUser: 'somosblender' },
+  { id: 'blender', nombre: 'Blender', categoria: 'entretenimiento', ytHandle: 'somosblender', ytChannelId: 'UCgBqYd47mYf4sY4U1zM_lYg', twitchUser: 'somosblender' },
   { id: 'gelatina', nombre: 'Gelatina', categoria: 'entretenimiento', ytHandle: 'somosgelatina', twitchUser: 'somosgelatina' },
   { id: 'vorterix', nombre: 'Vorterix', categoria: 'entretenimiento', ytHandle: 'vorterixoficial', twitchUser: 'vorterixoficial' },
   { id: 'bondilive', nombre: 'Bondi Live', categoria: 'entretenimiento', ytHandle: 'bondi_liveok' },
-  { id: 'lacasastreaming', nombre: 'La Casa Streaming', categoria: 'entretenimiento', ytChannelId: 'UCRvP8dG3zZ1Xn_Wl1a1Gf1w' },
-  { id: 'unpocoderuido', nombre: 'Un Poco de Ruido', categoria: 'entretenimiento', ytChannelId: 'UC_7yJbJk3kZzQj_V9T9b0PA' },
+  { id: 'lacasastreaming', nombre: 'La Casa Streaming', categoria: 'entretenimiento', ytHandle: 'somoslacasa' },
+  { id: 'unpocoderuido', nombre: 'Un Poco de Ruido', categoria: 'entretenimiento', ytHandle: 'unpocoderuido' },
   { id: 'republicaz', nombre: 'República Z', categoria: 'entretenimiento', ytHandle: 'republicaz' },
-  { id: 'posdata', nombre: 'Posdata', categoria: 'entretenimiento', ytChannelId: 'UCk_V5-Z9d9B6u6Xj7Y_4w-A' },
-  { id: 'dgo', nombre: 'DGO en Vivo', categoria: 'entretenimiento', ytChannelId: 'UCe1kpNidffw8QO0hF-k9Zpg' },
+  { id: 'posdata', nombre: 'Posdata', categoria: 'entretenimiento', ytHandle: 'posdata' },
+  { id: 'dgo', nombre: 'DGO en Vivo', categoria: 'entretenimiento', ytHandle: 'directvla' },
   { id: 'telefe', nombre: 'Telefe Streams', categoria: 'entretenimiento', ytHandle: 'telefe' },
   { id: 'eltrece', nombre: 'eltrece', categoria: 'entretenimiento', ytHandle: 'eltrece' },
-  { id: 'americatv', nombre: 'América TV', categoria: 'entretenimiento', ytChannelId: 'UCxL28WpQkL6gNq9lq1Y7Fvw' },
+  { id: 'americatv', nombre: 'América TV', categoria: 'entretenimiento', ytHandle: 'AmericaTV' },
   { id: 'urbanaplay', nombre: 'Urbana Play', categoria: 'entretenimiento', ytHandle: 'UrbanaPlayFM', twitchUser: 'urbanaplayfm' },
 
   // 2. Deportes
-  { id: 'programa412', nombre: '412 Fútbol (Davoo & Cobra)', categoria: 'deportes', ytChannelId: 'UCJb4u4G_Fp6_GqB_9u7aG-A' },
-  { id: 'azzstream', nombre: 'AZZ Stream (Azzaro)', categoria: 'deportes', ytChannelId: 'UC1w7-zK_z8W8V1v8n1_4zGA' },
+  { id: 'programa412', nombre: '412 Fútbol (Davoo & Cobra)', categoria: 'deportes', ytHandle: 'elprograma412' },
+  { id: 'azzstream', nombre: 'AZZ Stream (Azzaro)', categoria: 'deportes', ytHandle: 'FlavioAzzarook' },
   { id: 'picadotv', nombre: 'Picado TV', categoria: 'deportes', ytHandle: 'picadotv' },
-  { id: 'carrozza', nombre: 'Pablo Carrozza', categoria: 'deportes', ytChannelId: 'UC5JbF7rY4k8Z9zX9Y7v_2wQ' },
+  { id: 'carrozza', nombre: 'Pablo Carrozza', categoria: 'deportes', ytHandle: 'PabloCarrozza' },
   { id: 'tycsports', nombre: 'TyC Sports', categoria: 'deportes', ytHandle: 'tycsports' },
-  { id: 'dsports', nombre: 'DSports', categoria: 'deportes', ytChannelId: 'UC7K3B8Wv6pX0Q8L_3zY1xqw' },
-  { id: 'espnarg', nombre: 'ESPN Argentina', categoria: 'deportes', ytChannelId: 'UCYq_8L7B9V7-5z9V_4w_z9Q' },
+  { id: 'dsports', nombre: 'DSports', categoria: 'deportes', ytHandle: 'DSportsRadio' },
+  { id: 'espnarg', nombre: 'ESPN Argentina', categoria: 'deportes', ytHandle: 'espn' },
   { id: 'tntsportsarg', nombre: 'TNT Sports Argentina', categoria: 'deportes', ytHandle: 'TNTSportsAR' },
 
   // 3. Streamers
@@ -108,23 +105,24 @@ const CANALES = [
   { id: 'gregorossello', nombre: 'Grego Rossello', categoria: 'streamers', ytHandle: 'GregoRossello1' },
 
   // 4. Economía & Finanzas
-  { id: 'bullmarket', nombre: 'Bull Market Brokers', categoria: 'finanzas', ytChannelId: 'UCu6M1iR1sV9kP1kF6_zQ4pA' },
+  { id: 'bullmarket', nombre: 'Bull Market Brokers', categoria: 'finanzas', ytHandle: 'BullMarketBrokersOficial' },
   { id: 'joveninversor', nombre: 'Joven Inversor', categoria: 'finanzas', ytHandle: 'JovenInversor' },
-  { id: 'elcronista', nombre: 'El Cronista TV', categoria: 'finanzas', ytChannelId: 'UCe5jUGh5l_H_g_wzYvNqNkB' },
-  { id: 'ambitofinanciero', nombre: 'Ámbito Financiero', categoria: 'finanzas', ytChannelId: 'UC6Id-7plehPeuR0M0BHRJgA' },
-  { id: 'canale', nombre: 'Canal E', categoria: 'finanzas', ytChannelId: 'UCJ_7vV8w-3l8B8L_6k_zQ4A' },
+  { id: 'elcronista', nombre: 'El Cronista TV', categoria: 'finanzas', ytHandle: 'cronistacom' },
+  { id: 'ambitofinanciero', nombre: 'Ámbito Financiero', categoria: 'finanzas', ytHandle: 'AmbitoCom' },
+  { id: 'canale', nombre: 'Canal E', categoria: 'finanzas', ytHandle: 'CanalE' },
 
   // 5. Noticias & Actualidad
   { id: 'tn', nombre: 'TN (Todo Noticias)', categoria: 'noticias', ytHandle: 'todonoticias', ytChannelId: 'UCj6PcyLvpnIRT_2W_mwa9Aw', ytVideoId: 'cb12KmMMDJA' },
-  { id: 'c5n', nombre: 'C5N', categoria: 'noticias', ytHandle: 'c5n', ytChannelId: 'UCFgk2Q2mVO1BklRQhSv6p0w', ytVideoId: 'fOyd_WSZ33I' },
-  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytHandle: 'lanacionmasOficial', ytChannelId: 'UCba3hst5UmF3CYJnbyW82Tw' },
+  { id: 'c5n', nombre: 'C5N', categoria: 'noticias', ytHandle: 'c5n' },
+  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytHandle: 'lanacionmasOficial' },
   { id: 'neura', nombre: 'Neura Media / Troncal', categoria: 'noticias', ytHandle: 'neuramedia', twitchUser: 'neuramedia' },
   { id: 'carajostream', nombre: 'Carajo Stream', categoria: 'noticias', ytHandle: 'carajostream' },
-  { id: 'eldestape', nombre: 'El Destape', categoria: 'noticias', ytChannelId: 'UCe_4vL_7jX7_5z8V9kP1kFA' },
-  { id: 'a24', nombre: 'A24', categoria: 'noticias', ytHandle: 'A24com', ytVideoId: 'J6nBiIp-W_o' },
+  { id: 'eldestape', nombre: 'El Destape', categoria: 'noticias', ytHandle: 'eldestape' },
+  { id: 'a24', nombre: 'A24', categoria: 'noticias', ytHandle: 'A24com' },
   { id: 'infobae', nombre: 'Infobae en Vivo', categoria: 'noticias', ytHandle: 'infobae' },
   { id: 'elobservador', nombre: 'El Observador 107.9', categoria: 'noticias', ytHandle: 'ElObservador1079' }
 ];
+
 const publicPath = path.resolve(__dirname, 'public');
 const logosDir = path.join(publicPath, 'logos');
 
@@ -165,7 +163,7 @@ async function consultarKick(user) {
     });
     if (!res.ok) return { isLive: false, viewers: 0 };
     const data = await res.json();
-    if (data?.livestream?.is_live) {
+    if (data && data.livestream && data.livestream.is_live) {
       return {
         isLive: true,
         viewers: parseInt(data.livestream.viewer_count || 0, 10),
@@ -194,7 +192,7 @@ async function consultarTwitch(user) {
     });
     if (!res.ok) return { isLive: false, viewers: 0 };
     const data = await res.json();
-    const stream = data?.data?.user?.stream;
+    const stream = data && data.data && data.data.user && data.data.user.stream;
     if (stream) {
       return {
         isLive: true,
@@ -209,19 +207,18 @@ async function consultarTwitch(user) {
 // ───────────────────────── 3. YouTube (API oficial, barata) ─────────────────────────
 const YT_API = 'https://www.googleapis.com/youtube/v3';
 
-// Estado en memoria por canal de YouTube
 const ytRuntime = new Map();
 for (const c of CANALES) {
   if (!c.ytHandle && !c.ytChannelId) continue;
   ytRuntime.set(c.id, {
     canalId: c.id,
     handle: c.ytHandle || null,
-    channelId: c.ytChannelId || null,   // se pisa con el ID real resuelto desde el handle
+    channelId: c.ytChannelId || null,
     resueltoDesdeHandle: false,
     resolveError: null,
     fixedVideoId: c.ytVideoId || null,
-    uulv: undefined,                    // undefined = sin probar, true/false = soportado o no
-    videoId: null,
+    uulv: undefined,
+    videoId: c.ytVideoId || null,
     title: '',
     live: false,
     viewers: 0,
@@ -230,7 +227,6 @@ for (const c of CANALES) {
   });
 }
 
-// Contador estimado de cuota (se resetea a medianoche hora del Pacífico, como Google)
 const ytStats = { unidades: 0, dia: '', ultimoError: null, bloqueadoHasta: 0 };
 function diaPT() {
   return new Date().toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles' });
@@ -256,7 +252,7 @@ async function ytFetch(endpoint, params, costo = 1) {
   try { json = JSON.parse(texto); } catch (e) {}
 
   if (!r.ok) {
-    const reason = json?.error?.errors?.[0]?.reason || json?.error?.status || '';
+    const reason = (json && json.error && json.error.errors && json.error.errors[0] && json.error.errors[0].reason) || (json && json.error && json.error.status) || '';
     const err = new Error([endpoint, 'HTTP', r.status, reason, (json && json.error && json.error.message) || ''].join(' ').trim());
     err.status = r.status;
     err.reason = reason;
@@ -275,14 +271,13 @@ async function enLotes(items, n, fn) {
   }
 }
 
-// handle -> channelId (1 unidad, una sola vez por canal)
 async function resolverTodos() {
   const pendientes = [...ytRuntime.values()].filter((rt) => rt.handle && !rt.resueltoDesdeHandle);
   await enLotes(pendientes, 5, async (rt) => {
     try {
       const h = rt.handle.startsWith('@') ? rt.handle : '@' + rt.handle;
       const data = await ytFetch('channels', { part: 'id', forHandle: h });
-      const id = data?.items?.[0]?.id;
+      const id = data && data.items && data.items[0] && data.items[0].id;
       if (id) {
         rt.channelId = id;
         rt.resueltoDesdeHandle = true;
@@ -296,7 +291,6 @@ async function resolverTodos() {
   });
 }
 
-// RSS: 0 unidades. Devuelve los videoIds más recientes del canal
 async function idsDesdeRSS(channelId, max) {
   try {
     const r = await fetch('https://www.youtube.com/feeds/videos.xml?channel_id=' + channelId, {
@@ -305,14 +299,13 @@ async function idsDesdeRSS(channelId, max) {
     });
     if (!r.ok) return { ids: [], status: r.status };
     const xml = await r.text();
-    const ids = [...xml.matchAll(/<yt:videoId>([^<]+)<\/yt:videoId>/g)].map((m) => m[1]).slice(0, max);
+    const ids = [...xml.matchAll(/([^<]+)<\/yt:videoId>/g)].map((m) => m[1]).slice(0, max);
     return { ids, status: r.status };
   } catch (e) {
     return { ids: [], status: 'ERR ' + e.message };
   }
 }
 
-// Playlist de directos (UULV) y, si no existe, uploads (UU): 1 unidad por llamada
 async function idsDesdePlaylist(rt) {
   const base = rt.channelId.slice(2);
   const leer = async (prefijo, max) => {
@@ -321,7 +314,7 @@ async function idsDesdePlaylist(rt) {
       playlistId: prefijo + base,
       maxResults: String(max)
     });
-    return (d.items || []).map((i) => i.contentDetails?.videoId).filter(Boolean);
+    return (d && d.items ? d.items : []).map((i) => i.contentDetails && i.contentDetails.videoId).filter(Boolean);
   };
 
   if (rt.uulv !== false) {
@@ -338,7 +331,6 @@ async function idsDesdePlaylist(rt) {
   return { ids, fuente: 'UU' };
 }
 
-// Verifica videoIds en lotes de 50 (1 unidad por lote)
 async function verificarVideos(ids) {
   const out = new Map();
   const unicos = [...new Set(ids)];
@@ -347,20 +339,19 @@ async function verificarVideos(ids) {
       part: 'snippet,liveStreamingDetails',
       id: unicos.slice(i, i + 50).join(',')
     });
-    for (const it of d.items || []) {
+    for (const it of (d && d.items ? d.items : [])) {
       const l = it.liveStreamingDetails;
-      const live = Boolean(l?.actualStartTime && !l?.actualEndTime);
+      const live = Boolean(l && l.actualStartTime && !l.actualEndTime);
       out.set(it.id, {
         live,
         viewers: live ? Number(l.concurrentViewers || 0) : 0,
-        title: it.snippet?.title || 'En vivo'
+        title: (it.snippet && it.snippet.title) || 'En vivo'
       });
     }
   }
   return out;
 }
 
-// Busca directos en canales que hoy no tienen uno cacheado
 async function descubrir({ playlist }) {
   const candidatos = [...ytRuntime.values()].filter((rt) => rt.channelId && !rt.videoId);
   const porCanal = new Map();
@@ -410,7 +401,6 @@ async function descubrir({ playlist }) {
   }
 }
 
-// Mide viewers de todos los directos cacheados con UNA llamada (por cada 50)
 async function pollYouTube() {
   const activos = [...ytRuntime.values()].filter((rt) => rt.videoId);
   if (!activos.length) return;
@@ -423,8 +413,9 @@ async function pollYouTube() {
       rt.viewers = m.viewers;
       rt.title = m.title;
     } else {
-      // terminó (o fue borrado): liberar para que se redescubra
-      rt.videoId = null;
+      if (!rt.fixedVideoId) {
+        rt.videoId = null;
+      }
       rt.live = false;
       rt.viewers = 0;
       rt.title = '';
@@ -433,7 +424,6 @@ async function pollYouTube() {
   }
 }
 
-// Ejecuta tareas sin solaparse y SIN tragarse los errores
 const enCurso = {};
 async function correr(nombre, fn) {
   if (enCurso[nombre]) return;
@@ -484,7 +474,6 @@ async function sincronizarPipeline() {
       const rt = ytRuntime.get(canal.id);
       if (rt) {
         if (rt.channelId) canal.ytChannelId = rt.channelId;
-        // Si el último dato de YouTube es muy viejo (API caída), no mostramos números inventados
         const fresco = rt.live && Date.now() - rt.updatedAt < 5 * 60 * 1000;
         if (fresco) {
           ytLive = true;
@@ -512,9 +501,6 @@ setInterval(sincronizarPipeline, 30000);
 iniciarYouTube();
 
 // ───────────────────────── Diagnóstico ─────────────────────────
-// /api/debug-yt            -> estado de todos los canales de YouTube
-// /api/debug-yt?test=1     -> prueba real contra la API (muestra el error exacto de Google)
-// /api/debug-yt?rss=1      -> prueba si el RSS de YouTube responde desde Render
 app.get('/api/debug-yt', async (req, res) => {
   const salida = {
     apiKeyConfigurada: Boolean(YOUTUBE_API_KEY),
@@ -546,8 +532,8 @@ app.get('/api/debug-yt', async (req, res) => {
 
   if (req.query.rss) {
     const tn = ytRuntime.get('tn');
-    const r = await idsDesdeRSS(tn?.channelId || '', 5);
-    salida.rssTest = { channelId: tn?.channelId, ...r };
+    const r = await idsDesdeRSS(tn && tn.channelId ? tn.channelId : '', 5);
+    salida.rssTest = { channelId: tn && tn.channelId, ...r };
   }
 
   res.json(salida);
@@ -613,7 +599,7 @@ app.get('/api/dataset-ai', (req, res) => {
   });
 });
 
-const csvCampo = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+const csvCampo = (v) => '"' + String(v != null ? v : '').replace(/"/g, '""') + '"';
 
 app.get('/api/descargar-analytics', (req, res) => {
   if (!validarToken(req)) {
@@ -676,7 +662,6 @@ app.get('/modoia', (req, res) => {
 
 app.use(express.static(publicPath));
 
-// Fallback SPA (funciona igual en Express 4 y 5)
 app.use((req, res) => {
   res.sendFile(path.join(publicPath, 'index.html'));
 });
