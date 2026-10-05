@@ -111,12 +111,12 @@ const CANALES = [
   { id: 'ambitofinanciero', nombre: 'Ámbito Financiero', categoria: 'finanzas', ytChannelId: 'UC6Id-7plehPeuR0M0BHRJgA' },
   { id: 'canale', nombre: 'Canal E', categoria: 'finanzas', ytChannelId: 'UCJ_7vV8w-3l8B8L_6k_zQ4A' },
 
- // 5. Noticias & Actualidad
+  // 5. Noticias & Actualidad
   { id: 'tn', nombre: 'TN (Todo Noticias)', categoria: 'noticias', ytHandle: 'todonoticias', ytChannelId: 'UCj6PcyLvpnIRT_2W_mwa9Aw', ytVideoId: 'cb12KmMMDJA' },
   { id: 'c5n', nombre: 'C5N', categoria: 'noticias', ytHandle: 'c5n', ytChannelId: 'UCFgk2Q2mVO1BklRQhSv6p0w', ytVideoId: 'fOyd_WSZ33I' },
   { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytChannelId: 'UCba3hst5UmF3CYJnbyW82Tw' },
-  { id: 'telefenoticias', nombre: 'Telefe Noticias', categoria: 'noticias', ytChannelId: 'UCp0l_X5R9g2d3j9y5sQ1v_A', ytHandle: 'telefenoticias' },
-  { id: 'telenueve', nombre: 'Telenueve / El Nueve', categoria: 'noticias', ytChannelId: 'UCRvP8dG3zZ1Xn_Wl1a1Gf1x', ytHandle: 'telenueve' },
+  { id: 'telefenoticias', nombre: 'Telefe Noticias', categoria: 'noticias', ytHandle: 'telefenoticias' },
+  { id: 'telenueve', nombre: 'Telenueve / El Nueve', categoria: 'noticias', ytHandle: 'telenueve' },
   { id: 'neura', nombre: 'Neura Media / Troncal', categoria: 'noticias', ytHandle: 'neuramedia', twitchUser: 'neuramedia' },
   { id: 'carajostream', nombre: 'Carajo Stream', categoria: 'noticias', ytHandle: 'carajostream' },
   { id: 'eldestape', nombre: 'El Destape', categoria: 'noticias', ytChannelId: 'UCe_4vL_7jX7_5z8V9kP1kFA' },
@@ -124,6 +124,7 @@ const CANALES = [
   { id: 'infobae', nombre: 'Infobae en Vivo', categoria: 'noticias', ytHandle: 'infobae' },
   { id: 'elobservador', nombre: 'El Observador 107.9', categoria: 'noticias', ytHandle: 'ElObservador1079' }
 ];
+
 const publicPath = path.resolve(__dirname, 'public');
 const logosDir = path.join(publicPath, 'logos');
 
@@ -292,6 +293,7 @@ async function resolverTodos() {
   });
 }
 
+// RESTAURADA: Expresión regular correcta para capturar videoId
 async function idsDesdeRSS(channelId, max) {
   try {
     const r = await fetch('https://www.youtube.com/feeds/videos.xml?channel_id=' + channelId, {
