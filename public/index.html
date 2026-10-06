@@ -289,10 +289,11 @@
     </div>
   </div>
 
-  <!-- Modal de Versus visual HTML -->
+  <!-- Modal de Versus -->
   <div id="vsModal" class="fixed inset-0 z-[100] hidden bg-black/90 backdrop-blur-sm overflow-y-auto">
     <div class="flex items-center justify-center min-h-screen p-4">
       <div class="bg-[#050811] border border-slate-700 rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col overflow-hidden relative">
+        <!-- Top controls -->
         <div class="p-3 border-b border-slate-800 flex flex-col md:flex-row gap-3 items-center justify-between bg-slate-900/80">
           <div class="flex-1 w-full min-w-0">
             <label class="text-[10px] text-slate-400 font-mono mb-1 block uppercase tracking-wider">Contendiente A</label>
@@ -306,47 +307,68 @@
           <button onclick="cerrarVersus()" class="w-full md:w-auto text-slate-400 hover:text-white px-4 py-2 border border-slate-700 rounded-lg hover:bg-slate-800 transition text-sm">✕ Cerrar</button>
         </div>
 
-        <div class="p-4 md:p-5 relative overflow-hidden bg-gradient-to-b from-[#0b1120] to-[#050811]" id="vsCaptureAreaVisual">
+        <!-- Área de captura (Placa de Redes) -->
+        <div class="p-4 md:p-5 relative overflow-hidden bg-gradient-to-b from-[#0b1120] to-[#050811]" id="vsCaptureArea">
           <div class="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiMwNTA4MTEiPjwvaGVpZ2h0PjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiMxZTI5M2IiPjwvc3ZnPg==')] opacity-40 pointer-events-none"></div>
           
+          <!-- Encabezado de Placa (STREAM verde, RANK ARG blanco) -->
           <div class="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
             <div>
               <div class="flex items-center space-x-2 mb-1">
-                <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#22c55e] border border-[#22c55e]/30"></span>
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#00ff88] border border-[#00ff88]/30"></span>
                 <h2 class="flex items-baseline tracking-widest leading-none" style="font-family: 'Outfit', sans-serif;">
-                  <span class="text-[#22c55e] font-black text-lg md:text-xl">STREAM</span>
+                  <span class="text-[#00ff88] font-black text-lg md:text-xl">STREAM</span>
                   <span class="text-white font-black text-lg md:text-xl">RANK</span>
                   <span class="text-white font-black text-sm md:text-base ml-1.5">ARG</span>
                 </h2>
               </div>
-              <span class="font-mono text-xs sm:text-sm font-semibold text-[#22c55e]/90 tracking-widest uppercase" id="vsTimestamp"></span>
+              <span class="font-mono text-xs sm:text-sm font-semibold text-[#00ff88]/90 tracking-widest uppercase" id="vsTimestamp">Batalla de Audiencias Oficial</span>
             </div>
-            <div id="vsPlaqueBadge"></div>
+            <div id="vsPlaqueBadge">
+              <!-- Se completa por JS -->
+            </div>
           </div>
 
-          <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-            <div id="vsCardA"></div>
-            <div class="flex absolute inset-0 items-center justify-center pointer-events-none z-20">
-              <div class="w-10 h-10 md:w-14 md:h-14 rounded-full bg-[#050811] border-2 border-slate-700 flex items-center justify-center shadow-[0_0_30px_rgba(0,0,0,0.8)]">
-                <span class="text-[#22c55e] font-black italic text-sm md:text-xl tracking-wider">VS</span>
+          <!-- Tarjetas de Contendientes y Divisor Central RESPONSIVE -->
+          <div class="relative z-10 flex flex-col md:grid md:grid-cols-2 gap-3 md:gap-4">
+            
+            <!-- Contendiente A (Ganador) -->
+            <div id="vsCardA" class="w-full"></div>
+            
+            <!-- VS Circle Center (Fluido en Mobile) -->
+            <div class="flex md:hidden items-center justify-center -my-3 z-20 relative pointer-events-none">
+              <div class="w-10 h-10 rounded-full bg-[#050811] border-2 border-slate-700 flex items-center justify-center shadow-[0_0_30px_rgba(0,0,0,0.8)]">
+                <span class="text-[#00ff88] font-black italic text-sm tracking-wider">VS</span>
               </div>
             </div>
-            <div id="vsCardB"></div>
+
+            <!-- Contendiente B -->
+            <div id="vsCardB" class="w-full"></div>
+
+            <!-- VS Circle Center (Absoluto en Desktop) -->
+            <div class="hidden md:flex absolute inset-0 items-center justify-center pointer-events-none z-20">
+              <div class="w-14 h-14 rounded-full bg-[#050811] border-2 border-slate-700 flex items-center justify-center shadow-[0_0_30px_rgba(0,0,0,0.8)]">
+                <span class="text-[#00ff88] font-black italic text-xl tracking-wider">VS</span>
+              </div>
+            </div>
+
           </div>
 
+          <!-- Barra Comparativa (Progreso) -->
           <div class="relative z-10 mt-4 md:mt-5">
             <div class="flex justify-between mb-2 text-[11px] font-mono font-bold tracking-widest uppercase">
-              <span class="text-[#22c55e]" id="vsPctA">50%</span>
+              <span class="text-matrix" id="vsPctA">50%</span>
               <span class="text-slate-500 hidden sm:block">Dominio de Audiencia</span>
-              <span class="text-[#3b82f6]" id="vsPctB">50%</span>
+              <span class="text-blue-400" id="vsPctB">50%</span>
             </div>
             <div class="flex h-3 rounded-full overflow-hidden bg-slate-800 w-full shadow-inner">
-              <div id="vsBarA" class="bg-[#22c55e] transition-all duration-500" style="width: 50%;"></div>
-              <div id="vsBarB" class="bg-[#3b82f6] transition-all duration-500" style="width: 50%;"></div>
+              <div id="vsBarA" class="bg-matrix transition-all duration-500" style="width: 50%;"></div>
+              <div id="vsBarB" class="bg-blue-500 transition-all duration-500" style="width: 50%;"></div>
             </div>
           </div>
         </div>
 
+        <!-- Pie y Botón Descargar -->
         <div class="p-3 border-t border-slate-800 bg-slate-900/80 flex justify-center">
           <button id="btnDescargarPlaca" onclick="descargarPlaca()" class="bg-[#00ff88]/10 hover:bg-[#00ff88] hover:text-black text-[#00ff88] px-6 py-2.5 rounded-xl border border-[#00ff88]/40 text-sm font-bold uppercase transition shadow-[0_0_15px_rgba(0,255,136,0.15)] flex items-center gap-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
@@ -571,6 +593,7 @@
 
         if (query && canalesFiltrados.length === 0) return;
 
+        // Limpieza de nombres de categorías
         let catNombreReal = cat.nombre;
         if (cat.nombre.includes("Entretenimiento")) catNombreReal = "Entretenimiento";
         else if (cat.nombre.includes("Deportes")) catNombreReal = "Deportes";
@@ -578,6 +601,7 @@
         else if (cat.nombre.includes("Economía") || cat.nombre.includes("Finanzas")) catNombreReal = "Economía & Finanzas";
         else if (cat.nombre.includes("Noticias") || cat.nombre.includes("Actualidad")) catNombreReal = "Noticias & Actualidad";
 
+        // Mapeo a Iconos SVG minimalistas
         let catIconoSVG = '';
         switch(catNombreReal) {
           case 'Entretenimiento': catIconoSVG = '<svg class="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125Z"/></svg>'; break;
@@ -648,7 +672,7 @@
       });
     }
 
-    function renderContenderVisual(c, esGanador, textColorClass, barClass) {
+    function renderContender(c, esGanador, textColorClass, barClass) {
       const hnd = (c.yt || c.tw || c.ki || c.handle || '').replace('@', '');
       const ini = (c.nombre || 'SR').substring(0, 2).toUpperCase();
       
@@ -666,11 +690,11 @@
               <img src="/logos/${c.id}.jpg" crossorigin="anonymous" alt="${c.nombre || ''}" onerror="if(!this.dataset.step){this.dataset.step=1;this.src='/logos/${c.id}.png';}else if(this.dataset.step==1){this.dataset.step=2;this.src='/logos/${c.id}.webp';}else{this.style.display='none';}" class="absolute inset-0 w-full h-full object-cover"/>
            </div>
            <div class="min-w-0">
-              <h3 class="font-black text-white text-base md:text-lg" style="font-family: 'Outfit', sans-serif; line-height: 1.3 !important; padding-bottom: 4px;">${c.nombre || ''}</h3>
-              <span class="text-[10px] md:text-xs text-slate-400 font-mono block" style="line-height: 1.3 !important; padding-bottom: 4px;">@${hnd}</span>
+              <h3 class="font-black text-white text-base md:text-lg truncate leading-tight" style="font-family: 'Outfit', sans-serif; line-height: 1.3 !important; padding-bottom: 4px;">${c.nombre || ''}</h3>
+              <span class="text-[10px] md:text-xs text-slate-400 font-mono truncate block mt-0.5">@${hnd}</span>
            </div>
         </div>
-        <p class="text-[10px] md:text-xs text-slate-300 mb-3 italic opacity-80" style="line-height: 1.3 !important; padding-bottom: 4px;">"${c.title || 'Transmisión sin título'}"</p>
+        <p class="text-[10px] md:text-xs text-slate-300 mb-3 italic line-clamp-2 min-h-[28px] md:min-h-[32px] opacity-80" style="line-height: 1.3 !important; padding-bottom: 4px;">"${c.title || 'Transmisión sin título'}"</p>
         <div class="mt-auto">
            <div class="text-[9px] md:text-[10px] text-slate-500 uppercase font-mono tracking-widest mb-1">Audiencia Total</div>
            <div class="text-2xl md:text-3xl font-black font-mono ${textColorClass} drop-shadow-md">${(c.viewers||0).toLocaleString('es-AR')}</div>
@@ -725,16 +749,15 @@
       let selectedA = canales.find(c => c.id === selA.value) || canales[0];
       let selectedB = canales.find(c => c.id === selB.value) || canales[1] || canales[0];
       
-      let cA, cB;
-      if ((selectedB.viewers || 0) > (selectedA.viewers || 0)) {
-        cA = selectedB;
-        cB = selectedA;
-        selA.value = cA.id;
-        selB.value = cB.id;
-      } else {
-        cA = selectedA;
-        cB = selectedB;
-      }
+      // Ordenar contendientes para asegurar que el ganador quede siempre en [0] (Arriba/Izquierda)
+      let contendientes = [selectedA, selectedB].sort((a, b) => (b.viewers || 0) - (a.viewers || 0));
+      
+      let cA = contendientes[0];
+      let cB = contendientes[1];
+      
+      // Ajustar visualmente los selectores para que coincidan con el cambio de lugar
+      selA.value = cA.id;
+      selB.value = cB.id;
       
       const viewersA = cA.viewers || 0;
       const viewersB = cB.viewers || 0;
@@ -749,9 +772,9 @@
       
       if ((statusA.isLive && !statusA.isRerun) || (statusB.isLive && !statusB.isRerun)) {
         plaqueBadgeHtml = `
-          <div class="flex items-center gap-1.5 bg-[#22c55e]/10 border border-[#22c55e]/30 px-2.5 py-1 rounded-md">
-            <span class="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse"></span>
-            <span class="text-[#22c55e] font-semibold font-mono text-xs tracking-wider uppercase">EN DIRECTO</span>
+          <div class="flex items-center gap-1.5 bg-[#00ff88]/10 border border-[#00ff88]/30 px-2.5 py-1 rounded-md">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#00ff88] animate-pulse"></span>
+            <span class="text-[#00ff88] font-semibold font-mono text-xs tracking-wider uppercase">EN DIRECTO</span>
           </div>`;
       } else if (statusA.isLive || statusB.isLive) {
         plaqueBadgeHtml = `
@@ -767,8 +790,8 @@
       }
       document.getElementById('vsPlaqueBadge').innerHTML = plaqueBadgeHtml;
       
-      document.getElementById('vsCardA').innerHTML = renderContenderVisual(cA, viewersA >= viewersB && total > 0, 'text-[#22c55e]', 'bg-[#22c55e]');
-      document.getElementById('vsCardB').innerHTML = renderContenderVisual(cB, viewersB > viewersA && total > 0, 'text-[#3b82f6]', 'bg-[#3b82f6]');
+      document.getElementById('vsCardA').innerHTML = renderContender(cA, viewersA >= viewersB && total > 0, 'text-matrix', 'bg-matrix');
+      document.getElementById('vsCardB').innerHTML = renderContender(cB, viewersB > viewersA && total > 0, 'text-blue-400', 'bg-blue-500');
       
       document.getElementById('vsBarA').style.width = pctA + '%';
       document.getElementById('vsBarB').style.width = pctB + '%';
@@ -795,323 +818,53 @@
       document.getElementById('vsModal').classList.add('hidden');
     }
 
-    /* GENERADOR DE PLACAS NATIVO (CANVAS 2D) PARA RESOLUCIÓN PERFECTA Y SIN DESFASAJES */
     async function descargarPlaca() {
-        const btn = document.getElementById('btnDescargarPlaca');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = 'Generando Placa HD...';
-        btn.disabled = true;
+      const btn = document.getElementById('btnDescargarPlaca');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = 'Generando...';
+      btn.disabled = true;
 
-        try {
-            await document.fonts.ready;
-            
-            const canales = getTodosLosCanales();
-            const idA = document.getElementById('vsSelectA').value;
-            const idB = document.getElementById('vsSelectB').value;
-            
-            let c1 = canales.find(c => c.id === idA) || canales[0];
-            let c2 = canales.find(c => c.id === idB) || canales[1] || canales[0];
+      try {
+        const area = document.getElementById('vsCaptureArea');
+        const canvas = await html2canvas(area, {
+           useCORS: true,
+           backgroundColor: '#050811',
+           scale: 2,
+           logging: false,
+           onclone: (clonedDoc) => {
+             const target = clonedDoc.getElementById('vsCaptureArea');
+             if (target) {
+               target.style.transform = 'none';
+               target.style.width = '700px';
+               target.style.margin = '0 auto';
+               
+               // Forzar layout de desktop para la captura (que tiene 700px)
+               const grid = target.querySelector('.grid-cols-1.md\\:grid-cols-2');
+               if (grid) {
+                 grid.className = 'relative z-10 grid grid-cols-2 gap-4';
+               }
 
-            if ((c2.viewers || 0) > (c1.viewers || 0)) {
-                let temp = c1; c1 = c2; c2 = temp;
-            }
-
-            const canvas = document.createElement('canvas');
-            canvas.width = 1200;
-            canvas.height = 675;
-            const ctx = canvas.getContext('2d');
-
-            // 1. Fondo Oscuro
-            ctx.fillStyle = '#080b11';
-            ctx.fillRect(0, 0, 1200, 675);
-
-            // Funciones auxiliares
-            const roundRect = (ctx, x, y, width, height, radius, fill, stroke, strokeWidth = 1) => {
-                ctx.beginPath();
-                ctx.moveTo(x + radius, y);
-                ctx.lineTo(x + width - radius, y);
-                ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-                ctx.lineTo(x + width, y + height - radius);
-                ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-                ctx.lineTo(x + radius, y + height);
-                ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-                ctx.lineTo(x, y + radius);
-                ctx.quadraticCurveTo(x, y, x + radius, y);
-                ctx.closePath();
-                if (fill) { ctx.fillStyle = fill; ctx.fill(); }
-                if (stroke) { ctx.lineWidth = strokeWidth; ctx.strokeStyle = stroke; ctx.stroke(); }
-            };
-
-            const drawSvg = (ctx, pathData, x, y, scale, color) => {
-                ctx.save();
-                ctx.translate(x, y);
-                ctx.scale(scale, scale);
-                const p = new Path2D(pathData);
-                ctx.fillStyle = color;
-                ctx.fill(p);
-                ctx.restore();
-            };
-
-            const ytPath = "M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z";
-            const twPath = "M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z";
-            const kiPath = "M3 3h5v5.5h3V5h5V3h5v7h-5v2h-3v2h3v2h5v7h-5v-2h-5v-3.5H8V21H3V3z";
-
-            const truncateText = (ctx, text, maxWidth) => {
-                if (!text) return '';
-                if (ctx.measureText(text).width <= maxWidth) return text;
-                let str = text;
-                while (ctx.measureText(str + '...').width > maxWidth && str.length > 0) {
-                    str = str.slice(0, -1);
-                }
-                return str + '...';
-            };
-
-            const loadImg = (url) => new Promise((resolve) => {
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                img.onload = () => resolve(img);
-                img.onerror = () => resolve(null);
-                img.src = url;
-                setTimeout(() => resolve(null), 1500); // 1.5s timeout
-            });
-
-            // 2. Encabezado
-            ctx.font = '900 36px Outfit';
-            ctx.fillStyle = '#22c55e';
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'top';
-            ctx.fillText('STREAM', 65, 50);
-            const w1 = ctx.measureText('STREAM').width;
-            
-            ctx.fillStyle = '#ffffff';
-            ctx.fillText('RANK', 65 + w1 + 5, 50);
-            const w2 = ctx.measureText('RANK').width;
-            
-            ctx.font = '900 24px Outfit';
-            ctx.fillText('ARG', 65 + w1 + 5 + w2 + 8, 58);
-
-            const timestampText = document.getElementById('vsTimestamp').innerText;
-            ctx.font = 'bold 16px monospace';
-            ctx.fillStyle = '#22c55e';
-            ctx.fillText(timestampText, 65, 95);
-
-            // Badge Estado
-            const st1 = getStatus(c1), st2 = getStatus(c2);
-            let badgeTxt = 'SEÑAL EN ESPERA', badgeColor = '#64748b', badgeBg = 'rgba(30,41,59,0.6)', badgeStroke = '#334155';
-            if((st1.isLive && !st1.isRerun) || (st2.isLive && !st2.isRerun)) { 
-                badgeTxt = 'EN DIRECTO'; badgeColor = '#22c55e'; badgeBg = 'rgba(34,197,94,0.1)'; badgeStroke = 'rgba(34,197,94,0.3)';
-            } else if (st1.isLive || st2.isLive) {
-                badgeTxt = 'TRANSMITIENDO'; badgeColor = '#fbbf24'; badgeBg = 'rgba(245,158,11,0.1)'; badgeStroke = 'rgba(245,158,11,0.3)';
-            }
-            
-            ctx.font = 'bold 14px monospace';
-            const badgeW = ctx.measureText(badgeTxt).width + 50;
-            roundRect(ctx, 1200 - 65 - badgeW, 55, badgeW, 36, 6, badgeBg, badgeStroke, 2);
-            
-            ctx.fillStyle = badgeColor;
-            ctx.beginPath();
-            ctx.arc(1200 - 65 - badgeW + 20, 73, 5, 0, Math.PI*2);
-            ctx.fill();
-            
-            ctx.fillText(badgeTxt, 1200 - 65 - badgeW + 35, 65);
-
-            // 3. Tarjetas Horizontales (Ganador a la izq, Segundo a la der)
-            const drawCard = async (c, isWinner, startX) => {
-                const y = 150;
-                const w = 520;
-                const h = 390;
-                
-                // Card Bg
-                roundRect(ctx, startX, y, w, h, 20, 'rgba(15,23,42,0.8)', isWinner ? '#eab308' : '#1e293b', isWinner ? 3 : 2);
-
-                if (isWinner) {
-                    ctx.font = '40px sans-serif';
-                    ctx.fillText('👑', startX + w - 60, y - 25);
-                }
-
-                // Avatar
-                const r = 40;
-                const cx = startX + 70;
-                const cy = y + 70;
-                
-                // Intento .jpg, luego .png (simplificado para el Canvas)
-                let img = await loadImg(`/logos/${c.id}.jpg`);
-                if (!img) img = await loadImg(`/logos/${c.id}.png`);
-
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(cx, cy, r, 0, Math.PI * 2);
-                ctx.clip();
-                if (img) {
-                    ctx.drawImage(img, cx - r, cy - r, r * 2, r * 2);
-                } else {
-                    ctx.fillStyle = '#1e293b';
-                    ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
-                    ctx.fillStyle = '#94a3b8';
-                    ctx.font = 'bold 32px sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    const ini = (c.nombre || 'SR').substring(0, 2).toUpperCase();
-                    ctx.fillText(ini, cx, cy);
-                }
-                ctx.restore();
-                
-                // Avatar border
-                ctx.beginPath();
-                ctx.arc(cx, cy, r, 0, Math.PI * 2);
-                ctx.strokeStyle = '#334155';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-
-                // Nombre y Handle
-                ctx.textAlign = 'left';
-                ctx.textBaseline = 'alphabetic';
-                ctx.font = '900 32px Outfit';
-                ctx.fillStyle = '#ffffff';
-                const nameTrunc = truncateText(ctx, c.nombre || '', 350);
-                ctx.fillText(nameTrunc, startX + 130, y + 60);
-
-                ctx.font = '600 18px monospace';
-                ctx.fillStyle = '#94a3b8';
-                const hnd = (c.yt || c.tw || c.ki || c.handle || '').replace('@', '');
-                ctx.fillText('@' + hnd, startX + 130, y + 90);
-
-                // Titulo del stream
-                ctx.font = 'italic 18px Outfit';
-                ctx.fillStyle = '#cbd5e1';
-                const titleTrunc = truncateText(ctx, c.title || 'Transmisión sin título', 440);
-                ctx.fillText(`"${titleTrunc}"`, startX + 30, y + 150);
-
-                // Audiencia Total
-                ctx.font = 'bold 16px monospace';
-                ctx.fillStyle = '#64748b';
-                ctx.fillText('AUDIENCIA TOTAL', startX + 30, y + 210);
-
-                ctx.font = '900 72px monospace';
-                ctx.fillStyle = isWinner ? '#22c55e' : '#94a3b8';
-                ctx.fillText((c.viewers || 0).toLocaleString('es-AR'), startX + 30, y + 280);
-
-                // Linea separadora
-                ctx.beginPath();
-                ctx.moveTo(startX + 30, y + 310);
-                ctx.lineTo(startX + w - 30, y + 310);
-                ctx.strokeStyle = '#1e293b';
-                ctx.lineWidth = 1;
-                ctx.stroke();
-
-                // Plataformas (YT, TW, KI)
-                const pY = y + 325;
-                const pW = 145;
-                const pH = 45;
-                
-                const drawPlat = (px, svgPath, val, color) => {
-                    roundRect(ctx, px, pY, pW, pH, 8, '#050811', '#1e293b', 1);
-                    const isActive = val > 0 && val !== 'off';
-                    drawSvg(ctx, svgPath, px + 20, pY + 10, 1, isActive ? color : '#475569');
-                    ctx.font = 'bold 18px monospace';
-                    ctx.fillStyle = '#e2e8f0';
-                    ctx.textAlign = 'right';
-                    ctx.fillText(isActive ? val.toLocaleString('es-AR') : '0', px + pW - 20, pY + 28);
-                    ctx.textAlign = 'left';
-                };
-
-                const brk = c.plataformas_live || {};
-                drawPlat(startX + 30, ytPath, brk.yt || 0, '#ef4444');
-                drawPlat(startX + 30 + pW + 10, twPath, brk.tw || 0, '#a855f7');
-                drawPlat(startX + 30 + (pW + 10)*2, kiPath, brk.ki || 0, '#22c55e');
-            };
-
-            await drawCard(c1, true, 55);
-            await drawCard(c2, false, 625);
-
-            // 4. Circulo VS Central
-            ctx.beginPath();
-            ctx.arc(600, 345, 45, 0, Math.PI * 2);
-            ctx.fillStyle = '#050811';
-            ctx.fill();
-            ctx.lineWidth = 4;
-            ctx.strokeStyle = '#22c55e';
-            ctx.stroke();
-
-            ctx.font = '900 36px Outfit';
-            ctx.fillStyle = '#22c55e';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('VS', 600, 345);
-
-            // 5. Barra de dominio
-            const viewers1 = c1.viewers || 0;
-            const viewers2 = c2.viewers || 0;
-            const total = viewers1 + viewers2;
-            const pct1 = total > 0 ? (viewers1 / total) * 100 : 50;
-            const pct2 = total > 0 ? (viewers2 / total) * 100 : 50;
-
-            const bY = 580;
-            ctx.font = 'bold 14px monospace';
-            ctx.textBaseline = 'alphabetic';
-            ctx.fillStyle = '#22c55e';
-            ctx.textAlign = 'left';
-            ctx.fillText(pct1.toFixed(1) + '%', 55, bY);
-            
-            ctx.fillStyle = '#3b82f6';
-            ctx.textAlign = 'right';
-            ctx.fillText(pct2.toFixed(1) + '%', 1145, bY);
-            
-            ctx.fillStyle = '#64748b';
-            ctx.textAlign = 'center';
-            ctx.fillText('DOMINIO DE AUDIENCIA', 600, bY);
-
-            // Fondo barra
-            roundRect(ctx, 55, bY + 15, 1090, 20, 10, '#1e293b', null, 0);
-            
-            // Llenado izquierdo (verde)
-            ctx.save();
-            ctx.beginPath();
-            ctx.moveTo(55 + 10, bY + 15);
-            ctx.lineTo(55 + (1090 * (pct1/100)), bY + 15);
-            ctx.lineTo(55 + (1090 * (pct1/100)), bY + 15 + 20);
-            ctx.lineTo(55 + 10, bY + 15 + 20);
-            ctx.quadraticCurveTo(55, bY + 15 + 20, 55, bY + 15 + 10);
-            ctx.quadraticCurveTo(55, bY + 15, 55 + 10, bY + 15);
-            ctx.closePath();
-            ctx.clip();
-            ctx.fillStyle = '#22c55e';
-            ctx.fillRect(55, bY + 15, 1090, 20);
-            ctx.restore();
-
-            // Llenado derecho (azul) - simple overlay starting from the split
-            ctx.save();
-            ctx.beginPath();
-            ctx.moveTo(55 + (1090 * (pct1/100)), bY + 15);
-            ctx.lineTo(55 + 1090 - 10, bY + 15);
-            ctx.quadraticCurveTo(55 + 1090, bY + 15, 55 + 1090, bY + 15 + 10);
-            ctx.quadraticCurveTo(55 + 1090, bY + 15 + 20, 55 + 1090 - 10, bY + 15 + 20);
-            ctx.lineTo(55 + (1090 * (pct1/100)), bY + 15 + 20);
-            ctx.closePath();
-            ctx.clip();
-            ctx.fillStyle = '#3b82f6';
-            ctx.fillRect(55 + (1090 * (pct1/100)), bY + 15, 1090, 20);
-            ctx.restore();
-
-            // 6. Pie de página
-            ctx.font = '14px monospace';
-            ctx.fillStyle = '#475569';
-            ctx.textAlign = 'center';
-            ctx.fillText('streamrank.modoia.online', 600, 650);
-
-            // Exportar
-            const link = document.createElement('a');
-            link.download = `streamrank_versus_${Date.now()}.png`;
-            link.href = canvas.toDataURL('image/png', 1.0);
-            link.click();
-            
-        } catch (err) {
-            console.error("Error al generar la placa:", err);
-            alert("Ocurrió un error al generar la imagen. Por favor, intentá nuevamente.");
-        } finally {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }
+               // Ajustar tamaño del circulo VS
+               const vsCircle = target.querySelector('#vsCircleCenter');
+               if (vsCircle) {
+                 vsCircle.className = "absolute top-1/2 left-1/2 w-14 h-14 rounded-full bg-[#050811] border-2 border-slate-700 flex items-center justify-center shadow-[0_0_30px_rgba(0,0,0,0.8)] z-20 pointer-events-none";
+                 vsCircle.style.marginTop = "-28px";
+                 vsCircle.style.marginLeft = "-28px";
+               }
+             }
+           }
+        });
+        const link = document.createElement('a');
+        link.download = `streamrank_versus_${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch (err) {
+        console.error("Error al generar la placa:", err);
+        alert("Ocurrió un error al generar la imagen. Por favor, intentá nuevamente.");
+      } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
     }
 
     function filtrarCanales() { renderizarCatalogo(); }
