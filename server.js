@@ -10,15 +10,12 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// API Key de Google (sanitizada)
+// API Key de Google (opcional o de respaldo)
 const YOUTUBE_API_KEY = (process.env.YOUTUBE_API_KEY || '').trim().replace(/['"\r\n\s]/g, '');
 
-// Frecuencias de sondeo
-const YT_POLL_MS = Number(process.env.YT_POLL_MS) || 30 * 1000;          // viewers cada 30s
-const YT_RSS_MS = Number(process.env.YT_RSS_MS) || 2 * 60 * 1000;        // detector rápido cada 2 min
-const YT_DEEP_MS = Number(process.env.YT_DEEP_MS) || 20 * 60 * 1000;     // barrido general cada 20 min
+const YT_POLL_MS = Number(process.env.YT_POLL_MS) || 25 * 1000;          // viewers cada 25s
+const YT_DISCOVER_MS = Number(process.env.YT_DISCOVER_MS) || 60 * 1000;  // detección cada 60s
 
-// Funciones auxiliares para asegurar hora oficial de Argentina (GMT-3)
 const TZ_ARG = 'America/Argentina/Buenos_Aires';
 function obtenerHoraArg() {
   return new Date().toLocaleTimeString('es-AR', {
@@ -95,8 +92,8 @@ const CANALES = [
   { id: 'republicaz', nombre: 'República Z', categoria: 'entretenimiento', ytHandle: 'republicaz' },
   { id: 'posdata', nombre: 'Posdata', categoria: 'entretenimiento', ytHandle: 'posdata_ar', ytChannelId: 'UC7Hx4xBMuw_PvVUliihHEcQ' },
   { id: 'dgo', nombre: 'DGO en Vivo', categoria: 'entretenimiento', ytHandle: 'DGO_Latam' },
-  { id: 'telefe', nombre: 'Telefe Streams', categoria: 'entretenimiento', ytHandle: 'telefe' },
-  { id: 'eltrece', nombre: 'eltrece', categoria: 'entretenimiento', ytHandle: 'eltrece' },
+  { id: 'telefe', nombre: 'Telefe Streams', categoria: 'entretenimiento', ytHandle: 'telefe', ytChannelId: 'UCtr5xY_4s6D5m_V8Q8o3p0w' },
+  { id: 'eltrece', nombre: 'eltrece', categoria: 'entretenimiento', ytHandle: 'eltrece', ytChannelId: 'UCnhXpUj5e_Z_m4qQk8p4kzw' },
   { id: 'americatv', nombre: 'América TV', categoria: 'entretenimiento', ytHandle: 'americatvoficial', ytChannelId: 'UCHAgps_pNYnQHkB9FGCSozQ' },
   { id: 'urbanaplay', nombre: 'Urbana Play', categoria: 'entretenimiento', ytHandle: 'UrbanaPlayFM', ytChannelId: 'UCC1kfsMJko54AqxtcFECt-A', twitchUser: 'urbanaplayfm' },
 
@@ -105,10 +102,10 @@ const CANALES = [
   { id: 'azzstream', nombre: 'AZZ Stream (Azzaro)', categoria: 'deportes', ytHandle: 'somosazz', ytChannelId: 'UCgLBmUFPO8JtZ1nPIBQGMlQ' },
   { id: 'picadotv', nombre: 'Picado TV', categoria: 'deportes', ytHandle: 'picadotvok', ytChannelId: 'UC9ghrLcpy0FxDFssie-siwQ' },
   { id: 'carrozza', nombre: 'Pablo Carrozza', categoria: 'deportes', ytHandle: 'carrozzaoficial', ytChannelId: 'UCkJ9KX7nw-4rpyuVCRy2R-g' },
-  { id: 'tycsports', nombre: 'TyC Sports', categoria: 'deportes', ytHandle: 'tycsports' },
+  { id: 'tycsports', nombre: 'TyC Sports', categoria: 'deportes', ytHandle: 'tycsports', ytChannelId: 'UCde8a1Bv3hK8x_xK1w8GZ6Q' },
   { id: 'dsports', nombre: 'DSports', categoria: 'deportes', ytHandle: 'dsportsok', ytChannelId: 'UCWSsHdxrwVLlOSdPJ44y9sw' },
-  { id: 'espnarg', nombre: 'ESPN Argentina', categoria: 'deportes', ytHandle: 'espn' },
-  { id: 'tntsportsarg', nombre: 'TNT Sports Argentina', categoria: 'deportes', ytHandle: 'TNTSportsAR' },
+  { id: 'espnarg', nombre: 'ESPN Argentina', categoria: 'deportes', ytHandle: 'espn', ytChannelId: 'UCqE_Wz-qHqK2N5qJ6g14m5Q' },
+  { id: 'tntsportsarg', nombre: 'TNT Sports Argentina', categoria: 'deportes', ytHandle: 'TNTSportsAR', ytChannelId: 'UC8v5a4eZf6sV1QjGvD2R25w' },
 
   // 3. Streamers
   { id: 'davoo', nombre: 'Davoo Xeneize', categoria: 'streamers', twitchUser: 'davooxeneize', kickUser: 'davooxeneize' },
@@ -128,13 +125,13 @@ const CANALES = [
   { id: 'joveninversor', nombre: 'Joven Inversor', categoria: 'finanzas', ytHandle: 'JovenInversor', ytChannelId: 'UCnOWLhk15P-gUV7RdehAI2Q' },
   { id: 'elcronista', nombre: 'El Cronista TV', categoria: 'finanzas', ytHandle: 'Cronista_ar', ytChannelId: 'UCZi6C9-a4fYKiBoIuEJ80ZA' },
   { id: 'ambitofinanciero', nombre: 'Ámbito Financiero', categoria: 'finanzas', ytHandle: 'ambito_financiero', ytChannelId: 'UCXKphgduQN0dXiz_ioRTfeA' },
-  { id: 'canale', nombre: 'Canal E', categoria: 'finanzas', ytHandle: 'canaldeeconomia', ytChannelId: 'UCW53kA_WXKWVxJbpHrTOBfw', ytVideoId: 'svekeJWi27o' },
+  { id: 'canale', nombre: 'Canal E', categoria: 'finanzas', ytHandle: 'canaldeeconomia', ytChannelId: 'UCW53kA_WXKWVxJbpHrTOBfw' },
 
   // 5. Noticias & Actualidad
   { id: 'tn', nombre: 'TN (Todo Noticias)', categoria: 'noticias', ytHandle: 'todonoticias', ytChannelId: 'UCj6PcyLvpnIRT_2W_mwa9Aw' },
   { id: 'c5n', nombre: 'C5N', categoria: 'noticias', ytHandle: 'c5n', ytChannelId: 'UCFgk2Q2mVO1BklRQhSv6p0w' },
-  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytHandle: 'lanacion', ytChannelId: 'UCba3hpU7EFBSk817y9qZkiA', ytVideoId: 'FEWZjXJ7M0c' },
-  { id: 'telefenoticias', nombre: 'Telefe Noticias', categoria: 'noticias', ytHandle: 'telefenoticias' },
+  { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytHandle: 'lanacion', ytChannelId: 'UCba3hpU7EFBSk817y9qZkiA' },
+  { id: 'telefenoticias', nombre: 'Telefe Noticias', categoria: 'noticias', ytHandle: 'telefenoticias', ytChannelId: 'UCz_0Xgq_Q8kO5lR_n8Nf_wQ' },
   { id: 'telenueve', nombre: 'Telenueve / El Nueve', categoria: 'noticias', ytHandle: 'TelenueveC9', ytChannelId: 'UC2Q91pxDF0BPf0eK44pgYMw' },
   { id: 'neura', nombre: 'Neura Media / Troncal', categoria: 'noticias', ytHandle: 'NeuraMedia', ytChannelId: 'UC-40U87JsevMIMn7PMw4jPw', twitchUser: 'neuramedia' },
   { id: 'carajostream', nombre: 'Carajo Stream', categoria: 'noticias', ytHandle: 'carajostream', ytChannelId: 'UC4mdhKZXjrKoq5aVG6juHEg' },
@@ -179,7 +176,7 @@ async function consultarKick(user) {
   if (!user) return { isLive: false, viewers: 0 };
   try {
     const res = await fetch('https://kick.com/api/v1/channels/' + user, {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
       signal: AbortSignal.timeout(3500)
     });
     if (!res.ok) return { isLive: false, viewers: 0 };
@@ -225,9 +222,7 @@ async function consultarTwitch(user) {
   return { isLive: false, viewers: 0 };
 }
 
-// ───────────────────────── 3. YouTube (API oficial) ─────────────────────────
-const YT_API = 'https://www.googleapis.com/youtube/v3';
-
+// ───────────────────────── 3. YouTube Motor Híbrido ─────────────────────────
 const ytRuntime = new Map();
 for (const c of CANALES) {
   if (!c.ytHandle && !c.ytChannelId) continue;
@@ -235,252 +230,160 @@ for (const c of CANALES) {
     canalId: c.id,
     handle: c.ytHandle || null,
     channelId: c.ytChannelId || null,
-    resueltoDesdeHandle: false,
-    resolveError: null,
-    fixedVideoId: c.ytVideoId || null,
-    uulv: undefined,
-    videoId: c.ytVideoId || null,
+    videoId: null,
     title: '',
     live: false,
     viewers: 0,
-    updatedAt: 0,
-    ultimoDescubrimiento: null
+    updatedAt: 0
   });
 }
 
-const ytStats = { unidades: 0, dia: '', ultimoError: null, bloqueadoHasta: 0 };
-function diaPT() {
-  return new Date().toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles' });
-}
-function sumarUnidades(n) {
-  const hoy = diaPT();
-  if (ytStats.dia !== hoy) { ytStats.dia = hoy; ytStats.unidades = 0; }
-  ytStats.unidades += n;
-}
+// Fallback por scraping directo del /live sin consumir cuota
+async function scrapearLiveDirecto(handle) {
+  try {
+    const cleanHandle = handle.replace('@', '');
+    const res = await fetch(`https://www.youtube.com/@${cleanHandle}/live`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+        'Accept-Language': 'es-419,es;q=0.9,en;q=0.8'
+      },
+      signal: AbortSignal.timeout(5000),
+      redirect: 'follow'
+    });
 
-async function ytFetch(endpoint, params, costo = 1) {
-  if (!YOUTUBE_API_KEY) throw new Error('YOUTUBE_API_KEY no está configurada');
-  if (Date.now() < ytStats.bloqueadoHasta) throw new Error('Cuota agotada: YouTube en pausa');
+    if (!res.ok) return null;
+    const html = await res.text();
 
-  const url = new URL(YT_API + '/' + endpoint);
-  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-  url.searchParams.set('key', YOUTUBE_API_KEY);
+    const isLive = html.includes('"isLive":true') || html.includes('"isLiveStream":true');
+    if (!isLive) return null;
 
-  sumarUnidades(costo);
-  const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
-  const texto = await r.text();
-  let json = null;
-  try { json = JSON.parse(texto); } catch (e) {}
+    const vidMatch = html.match(/"videoId":"([^"]{11})"/);
+    const videoId = vidMatch ? vidMatch[1] : null;
 
-  if (!r.ok) {
-    const reason = (json && json.error && json.error.errors && json.error.errors[0] && json.error.errors[0].reason) || (json && json.error && json.error.status) || '';
-    const err = new Error([endpoint, 'HTTP', r.status, reason, (json && json.error && json.error.message) || ''].join(' ').trim());
-    err.status = r.status;
-    err.reason = reason;
-    if (r.status !== 404) ytStats.ultimoError = { cuando: new Date().toISOString(), mensaje: err.message };
-    if (r.status === 403 && /quota/i.test(reason)) {
-      ytStats.bloqueadoHasta = Date.now() + 30 * 60 * 1000;
+    let viewers = 0;
+    const vcMatch = html.match(/"viewCount":\{"runs":\[\{"text":"([^"]+)"\}/) || html.match(/"videoViewCountRenderer":\{"viewCount":\{"simpleText":"([^"]+)"\}/);
+    if (vcMatch && vcMatch[1]) {
+      viewers = parseInt(vcMatch[1].replace(/[^0-9]/g, ''), 10) || 0;
     }
-    throw err;
-  }
-  return json;
-}
 
-async function enLotes(items, n, fn) {
-  for (let i = 0; i < items.length; i += n) {
-    await Promise.all(items.slice(i, i + n).map(fn));
+    let title = '';
+    const tMatch = html.match(/(.*?)<\/title>/);
+    if (tMatch && tMatch[1]) {
+      title = tMatch[1].replace('- YouTube', '').trim();
+    }
+
+    return { videoId, isLive: true, viewers, title };
+  } catch (err) {
+    return null;
   }
 }
 
-async function resolverTodos() {
-  const pendientes = [...ytRuntime.values()].filter((rt) => rt.handle && !rt.resueltoDesdeHandle);
-  await enLotes(pendientes, 5, async (rt) => {
-    try {
-      const h = rt.handle.startsWith('@') ? rt.handle : '@' + rt.handle;
-      const data = await ytFetch('channels', { part: 'id', forHandle: h });
-      const id = data && data.items && data.items[0] && data.items[0].id;
-      if (id) {
-        rt.channelId = id;
-        rt.resueltoDesdeHandle = true;
-        rt.resolveError = null;
-      } else {
-        rt.resolveError = 'Handle ' + h + ' no encontrado en YouTube (revisá el nombre)';
-      }
-    } catch (e) {
-      rt.resolveError = e.message;
-    }
-  });
-}
-
-async function idsDesdeRSS(channelId, max) {
+async function idsDesdeRSS(channelId, max = 5) {
   try {
     const r = await fetch('https://www.youtube.com/feeds/videos.xml?channel_id=' + channelId, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36' },
-      signal: AbortSignal.timeout(6000)
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      signal: AbortSignal.timeout(5000)
     });
-    if (!r.ok) return { ids: [], status: r.status };
+    if (!r.ok) return [];
     const xml = await r.text();
-    const ids = [...xml.matchAll(/([^<]+)<\/yt:videoId>/g)].map((m) => m[1]).slice(0, max);
-    return { ids, status: r.status };
+    return [...xml.matchAll(/([^<]+)<\/yt:videoId>/g)].map((m) => m[1]).slice(0, max);
   } catch (e) {
-    return { ids: [], status: 'ERR ' + e.message };
+    return [];
   }
-}
-
-async function idsDesdePlaylist(rt) {
-  const base = rt.channelId.slice(2);
-  const leer = async (prefijo, max) => {
-    const d = await ytFetch('playlistItems', {
-      part: 'contentDetails',
-      playlistId: prefijo + base,
-      maxResults: String(max)
-    });
-    return (d && d.items ? d.items : []).map((i) => i.contentDetails && i.contentDetails.videoId).filter(Boolean);
-  };
-
-  if (rt.uulv !== false) {
-    try {
-      const ids = await leer('UULV', 50);
-      rt.uulv = true;
-      if (ids.length) return { ids, fuente: 'UULV' };
-    } catch (e) {
-      if (e.status === 404 || e.status === 400) rt.uulv = false;
-      else throw e;
-    }
-  }
-  const ids = await leer('UU', 15);
-  return { ids, fuente: 'UU' };
 }
 
 async function verificarVideos(ids) {
   const out = new Map();
+  if (!YOUTUBE_API_KEY || !ids.length) return out;
   const unicos = [...new Set(ids)];
+  
   for (let i = 0; i < unicos.length; i += 50) {
-    const d = await ytFetch('videos', {
-      part: 'snippet,liveStreamingDetails',
-      id: unicos.slice(i, i + 50).join(',')
-    });
-    for (const it of (d && d.items ? d.items : [])) {
-      const l = it.liveStreamingDetails;
-      const live = Boolean(l && l.actualStartTime && !l.actualEndTime);
-      out.set(it.id, {
-        live,
-        viewers: live ? Number(l.concurrentViewers || 0) : 0,
-        title: (it.snippet && it.snippet.title) || 'En vivo'
-      });
-    }
+    try {
+      const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=\({unicos.slice(i, i + 50).join(',')}&key=\){YOUTUBE_API_KEY}`;
+      const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
+      if (!r.ok) continue;
+      const d = await r.json();
+      for (const it of (d && d.items ? d.items : [])) {
+        const l = it.liveStreamingDetails;
+        const live = Boolean(l && l.actualStartTime && !l.actualEndTime);
+        out.set(it.id, {
+          live,
+          viewers: live ? Number(l.concurrentViewers || 0) : 0,
+          title: (it.snippet && it.snippet.title) || 'En vivo'
+        });
+      }
+    } catch (e) {}
   }
   return out;
 }
 
-// Descubrimiento blindado: si el RSS falla o viene vacío, recurre directo a la Playlist
-async function descubrir({ playlist }) {
-  const candidatos = [...ytRuntime.values()].filter((rt) => rt.channelId && !rt.videoId);
-  const porCanal = new Map();
-
-  await enLotes(candidatos, 5, async (rt) => {
-    const info = { cuando: new Date().toISOString() };
-    const ids = [];
-    if (rt.fixedVideoId) ids.push(rt.fixedVideoId);
-
-    const rss = await idsDesdeRSS(rt.channelId, playlist ? 15 : 5);
-    info.rssStatus = rss.status;
-    info.rssIds = rss.ids.length;
-    ids.push(...rss.ids);
-
-    // BLINDAJE: si el RSS no trajo nada o es ciclo profundo, leemos la playlist UULV
-    if (playlist || ids.length === 0) {
-      try {
-        const pl = await idsDesdePlaylist(rt);
-        info.playlist = pl.fuente;
-        info.playlistIds = pl.ids.length;
-        ids.push(...pl.ids);
-      } catch (e) {
-        info.playlistError = e.message;
+// Sondeo periódico ultra-rápido de YouTube
+async function actualizarYouTube() {
+  for (const rt of ytRuntime.values()) {
+    try {
+      // 1. Si tenemos video activo y API Key, sondeamos su métrica
+      if (rt.videoId && YOUTUBE_API_KEY) {
+        const res = await verificarVideos([rt.videoId]);
+        const data = res.get(rt.videoId);
+        if (data && data.live) {
+          rt.live = true;
+          rt.viewers = data.viewers;
+          rt.title = data.title;
+          rt.updatedAt = Date.now();
+          continue;
+        }
       }
-    }
-    info.candidatos = [...new Set(ids)].length;
-    rt.ultimoDescubrimiento = info;
-    porCanal.set(rt.canalId, [...new Set(ids)]);
-  });
 
-  const todos = [...porCanal.values()].flat();
-  if (!todos.length) return;
-
-  const resultados = await verificarVideos(todos);
-  for (const [canalId, ids] of porCanal) {
-    const rt = ytRuntime.get(canalId);
-    const vivos = ids
-      .map((id) => ({ id, ...resultados.get(id) }))
-      .filter((v) => v.live)
-      .sort((a, b) => b.viewers - a.viewers);
-    if (vivos.length) {
-      rt.videoId = vivos[0].id;
-      rt.title = vivos[0].title;
-      rt.live = true;
-      rt.viewers = vivos[0].viewers;
-      rt.updatedAt = Date.now();
-    }
-  }
-}
-
-async function pollYouTube() {
-  const activos = [...ytRuntime.values()].filter((rt) => rt.videoId);
-  if (!activos.length) return;
-
-  const res = await verificarVideos(activos.map((rt) => rt.videoId));
-  for (const rt of activos) {
-    const m = res.get(rt.videoId);
-    if (m && m.live) {
-      rt.live = true;
-      rt.viewers = m.viewers;
-      rt.title = m.title;
-    } else {
-      if (!rt.fixedVideoId) {
-        rt.videoId = null;
+      // 2. Si no tiene video o la API falló, chequeo rápido vía RSS
+      if (rt.channelId && YOUTUBE_API_KEY) {
+        const ids = await idsDesdeRSS(rt.channelId, 3);
+        if (ids.length) {
+          const res = await verificarVideos(ids);
+          const vivo = ids.map(id => ({ id, ...res.get(id) })).find(v => v.live);
+          if (vivo) {
+            rt.videoId = vivo.id;
+            rt.title = vivo.title;
+            rt.live = true;
+            rt.viewers = vivo.viewers;
+            rt.updatedAt = Date.now();
+            continue;
+          }
+        }
       }
+
+      // 3. Respaldo definitivo infalible: /live directo
+      if (rt.handle) {
+        const scraped = await scrapearLiveDirecto(rt.handle);
+        if (scraped && scraped.isLive) {
+          rt.videoId = scraped.videoId || rt.videoId;
+          rt.title = scraped.title || rt.title;
+          rt.live = true;
+          rt.viewers = scraped.viewers > 0 ? scraped.viewers : rt.viewers;
+          rt.updatedAt = Date.now();
+          continue;
+        }
+      }
+
+      // Si ningún método detectó vivo:
       rt.live = false;
       rt.viewers = 0;
-      rt.title = '';
+      rt.videoId = null;
+      rt.updatedAt = Date.now();
+
+    } catch (err) {
+      console.warn(`[YT-Update] Error en ${rt.canalId}:`, err.message);
     }
-    rt.updatedAt = Date.now();
+
+    // Pequeño delay de 250ms entre canales para no alertar a YouTube
+    await new Promise(r => setTimeout(r, 250));
   }
 }
 
-const enCurso = {};
-async function correr(nombre, fn) {
-  if (enCurso[nombre]) return;
-  enCurso[nombre] = true;
-  try {
-    await fn();
-  } catch (e) {
-    console.error('[yt:' + nombre + ']', e.message);
-  } finally {
-    enCurso[nombre] = false;
-  }
-}
-
-async function iniciarYouTube() {
-  if (!YOUTUBE_API_KEY) {
-    console.error('[yt] FALTA la variable YOUTUBE_API_KEY en Render');
-    return;
-  }
-  await correr('resolver', resolverTodos);
-  await correr('deep', () => descubrir({ playlist: true }));
-  await correr('poll', pollYouTube);
-
-  setInterval(() => correr('poll', pollYouTube), YT_POLL_MS);
-  setInterval(() => correr('rss', () => descubrir({ playlist: false })), YT_RSS_MS);
-  setInterval(() => correr('deep', () => descubrir({ playlist: true })), YT_DEEP_MS);
-  setInterval(() => correr('resolver', resolverTodos), 6 * 60 * 60 * 1000);
-}
-
-// ───────────────────────── Pipeline Twitch / Kick + cruce con YouTube ─────────────────────────
+// ───────────────────────── Sincronizador Maestro ─────────────────────────
 let ejecutandoSync = false;
 async function sincronizarPipeline() {
   if (ejecutandoSync) return;
   ejecutandoSync = true;
-
   const horaActual = obtenerHoraArg();
 
   try {
@@ -495,14 +398,10 @@ async function sincronizarPipeline() {
       let ytTitle = '';
 
       const rt = ytRuntime.get(canal.id);
-      if (rt) {
-        if (rt.channelId) canal.ytChannelId = rt.channelId;
-        const fresco = rt.live && Date.now() - rt.updatedAt < 5 * 60 * 1000;
-        if (fresco) {
-          ytLive = true;
-          ytViewers = rt.viewers;
-          ytTitle = rt.title;
-        }
+      if (rt && rt.live) {
+        ytLive = true;
+        ytViewers = rt.viewers;
+        ytTitle = rt.title;
       }
 
       canal.viewers_breakdown = { yt: ytViewers, tw: tw.viewers, ki: ki.viewers };
@@ -519,71 +418,21 @@ async function sincronizarPipeline() {
   }
 }
 
-setTimeout(sincronizarPipeline, 1000);
-setInterval(sincronizarPipeline, 30000);
-iniciarYouTube();
+// Iniciar bucles de telemetría
+setInterval(actualizarYouTube, YT_POLL_MS);
+setInterval(sincronizarPipeline, 10000);
 
-// ───────────────────────── Diagnóstico ─────────────────────────
-app.get('/api/debug-yt', async (req, res) => {
-  const salida = {
-    apiKeyConfigurada: Boolean(YOUTUBE_API_KEY),
-    apiKeyLargo: YOUTUBE_API_KEY.length,
-    cuota: { ...ytStats, pausadoHasta: ytStats.bloqueadoHasta ? new Date(ytStats.bloqueadoHasta).toISOString() : null },
-    canales: [...ytRuntime.values()].map((rt) => ({
-      id: rt.canalId,
-      handle: rt.handle,
-      channelId: rt.channelId,
-      resueltoDesdeHandle: rt.resueltoDesdeHandle,
-      resolveError: rt.resolveError,
-      videoIdCacheado: rt.videoId,
-      live: rt.live,
-      viewers: rt.viewers,
-      actualizado: rt.updatedAt ? new Date(rt.updatedAt).toISOString() : null,
-      uulvSoportado: rt.uulv,
-      ultimoDescubrimiento: rt.ultimoDescubrimiento
-    }))
-  };
+// Primer barrido inmediato
+setTimeout(async () => {
+  await actualizarYouTube();
+  await sincronizarPipeline();
+}, 1000);
 
-  if (req.query.test) {
-    try {
-      const d = await ytFetch('channels', { part: 'id', forHandle: '@todonoticias' });
-      salida.test = { ok: true, respuesta: d };
-    } catch (e) {
-      salida.test = { ok: false, error: e.message };
-    }
-  }
-
-  if (req.query.rss) {
-    const tn = ytRuntime.get('tn');
-    const r = await idsDesdeRSS(tn && tn.channelId ? tn.channelId : '', 5);
-    salida.rssTest = { channelId: tn && tn.channelId, ...r };
-  }
-
-  res.json(salida);
-});
-
-// ───────────────────────── Auth y endpoints principales ─────────────────────────
-function validarToken(req) {
-  const envTokens = (process.env.VALID_TOKENS || '').split(',').map((t) => t.trim()).filter(Boolean);
-  if (envTokens.length === 0) return true;
-
-  const authHeader = req.headers.authorization;
-  let token = null;
-
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    token = authHeader.substring(7).trim();
-  } else if (req.query.token) {
-    token = String(req.query.token).trim();
-  }
-
-  return token ? envTokens.includes(token) : false;
-}
-
+// ───────────────────────── Endpoints API ─────────────────────────
 app.get('/api/ranking-categorias', (req, res) => {
   try {
     const categorias = CATEGORIAS_ORDEN.map((catKey) => {
       const meta = CATEGORIAS_CONFIG[catKey];
-
       const canales = telemetriaState
         .filter((c) => c.categoria === catKey)
         .sort((a, b) => b.viewers - a.viewers);
@@ -625,10 +474,6 @@ app.get('/api/dataset-ai', (req, res) => {
 const csvCampo = (v) => '"' + String(v != null ? v : '').replace(/"/g, '""') + '"';
 
 app.get('/api/descargar-analytics', (req, res) => {
-  if (!validarToken(req)) {
-    return res.status(401).json({ error: 'Clave institucional inválida o no provista' });
-  }
-
   const canalId = req.query.canal || 'todos';
   const periodo = req.query.periodo || 'hoy';
   const formato = req.query.formato || 'json';
