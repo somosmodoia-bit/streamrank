@@ -18,7 +18,7 @@ const YT_POLL_MS = Number(process.env.YT_POLL_MS) || 30 * 1000;          // view
 const YT_RSS_MS = Number(process.env.YT_RSS_MS) || 2 * 60 * 1000;        // detector rápido cada 2 min
 const YT_DEEP_MS = Number(process.env.YT_DEEP_MS) || 10 * 60 * 1000;     // barrido general cada 10 min
 
-// Funciones auxiliares para asegurar hora oficial de Argentina (GMT-3)
+// Funciones auxiliares para hora oficial de Argentina (GMT-3)
 const TZ_ARG = 'America/Argentina/Buenos_Aires';
 function obtenerHoraArg() {
   return new Date().toLocaleTimeString('es-AR', {
@@ -84,7 +84,7 @@ const CATEGORIAS_ORDEN = ['entretenimiento', 'deportes', 'streamers', 'finanzas'
 
 const CANALES = [
   // 1. Entretenimiento
-  { id: 'luzutv', nombre: 'LUZU TV', categoria: 'entretenimiento', ytHandle: 'luzutv', ytChannelId: 'UCTHaNTsP7hsVgBxARZTuajw', twitchUser: 'luzu_tv' },
+  { id: 'luzutv', nombre: 'LUZU TV', categoria: 'entretenimiento', ytHandle: 'luzutv', twitchUser: 'luzu_tv' },
   { id: 'olga', nombre: 'OLGA', categoria: 'entretenimiento', ytHandle: 'olgaenvivo_', ytChannelId: 'UC7mJ2EDXFomeDIRFu5FtEbA', twitchUser: 'olgaenvivo' },
   { id: 'blender', nombre: 'Blender', categoria: 'entretenimiento', ytHandle: 'estoesblender', ytChannelId: 'UC6pJGaMdx5Ter_8zYbLoRgA', twitchUser: 'somosblender' },
   { id: 'gelatina', nombre: 'Gelatina', categoria: 'entretenimiento', ytHandle: 'somosgelatina', ytChannelId: 'UCWSfXECGo1qK_H7SXRaUSMg', twitchUser: 'somosgelatina' },
@@ -226,7 +226,7 @@ async function consultarTwitch(user) {
   return { isLive: false, viewers: 0 };
 }
 
-// ───────────────────────── 3. YouTube (API oficial + Detector rápido /live) ─────────────────────────
+// ───────────────────────── 3. YouTube (API oficial) ─────────────────────────
 const YT_API = 'https://www.googleapis.com/youtube/v3';
 
 const ytRuntime = new Map();
@@ -236,7 +236,7 @@ for (const c of CANALES) {
     canalId: c.id,
     handle: c.ytHandle || null,
     channelId: c.ytChannelId || null,
-    resueltoDesdeHandle: Boolean(c.ytChannelId),
+    resueltoDesdeHandle: false,
     resolveError: null,
     fixedVideoId: c.ytVideoId || null,
     uulv: undefined,
@@ -313,22 +313,15 @@ async function resolverTodos() {
   });
 }
 
-// Rescate canónico directo sin gastar cuota de API
-async function idDesdeLiveUrl(rt) {
+async function idsDesdeRSS(channelId, max) {
   try {
-    const destino = rt.handle
-      ? (rt.handle.startsWith('@') ? rt.handle : '@' + rt.handle)
-      : (rt.channelId ? 'channel/' + rt.channelId : null);
-    if (!destino) return null;
-
-    const res = await fetch('https://www.youtube.com/' + destino + '/live', {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-      redirect: 'follow',
-      signal: AbortSignal.timeout(4500)
+    const r = await fetch('https://www.youtube.com/feeds/videos.xml?channel_id=' + channelId, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36' },
+      signal: AbortSignal.timeout(6000)
     });
-    if (!res.ok) return null;
-    const html = await res.text();
-    const matchCanonical = html.match(//g)].map((m) => m[1]).slice(0, max);
+    if (!r.ok) return { ids: [], status: r.status };
+    const xml = await r.text();
+    const ids = [...xml.matchAll(/([^<]+)<\/yt:videoId>/g)].map((m) => m[1]).slice(0, max);
     return { ids, status: r.status };
   } catch (e) {
     return { ids: [], status: 'ERR ' + e.message };
@@ -382,7 +375,7 @@ async function verificarVideos(ids) {
 }
 
 async function descubrir({ playlist }) {
-  const candidatos = [...ytRuntime.values()].filter((rt) => (rt.channelId || rt.handle) && !rt.videoId);
+  const candidatos = [...ytRuntime.values()].filter((rt) => rt.channelId && !rt.videoId);
   const porCanal = new Map();
 
   await enLotes(candidatos, 5, async (rt) => {
@@ -390,20 +383,12 @@ async function descubrir({ playlist }) {
     const ids = [];
     if (rt.fixedVideoId) ids.push(rt.fixedVideoId);
 
-    // 1. Rescate canónico directo
-    const liveDirecto = await idDesdeLiveUrl(rt);
-    if (liveDirecto) ids.push(liveDirecto);
+    const rss = await idsDesdeRSS(rt.channelId, playlist ? 15 : 5);
+    info.rssStatus = rss.status;
+    info.rssIds = rss.ids.length;
+    ids.push(...rss.ids);
 
-    // 2. RSS
-    if (rt.channelId) {
-      const rss = await idsDesdeRSS(rt.channelId, playlist ? 15 : 5);
-      info.rssStatus = rss.status;
-      info.rssIds = rss.ids.length;
-      ids.push(...rss.ids);
-    }
-
-    // 3. Playlist
-    if ((playlist || ids.length === 0) && rt.channelId) {
+    if (playlist || ids.length === 0) {
       try {
         const pl = await idsDesdePlaylist(rt);
         info.playlist = pl.fuente;
@@ -456,11 +441,6 @@ async function pollYouTube() {
       rt.live = false;
       rt.viewers = 0;
       rt.title = '';
-      idDesdeLiveUrl(rt).then((nuevoId) => {
-        if (nuevoId && nuevoId !== rt.videoId) {
-          rt.videoId = nuevoId;
-        }
-      });
     }
     rt.updatedAt = Date.now();
   }
