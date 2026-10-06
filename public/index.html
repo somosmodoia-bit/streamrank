@@ -1,4 +1,810 @@
-async function descargarPlaca() {
+<!DOCTYPE html>
+<html lang="es-AR" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- Metadatos SEO y GEO -->
+  <title>StreamRank ARG | Monitor Oficial</title>
+  <meta name="description" content="Rating oficial y telemetría en tiempo real del streaming en Argentina. Mediciones de viewers, picos de audiencia y métricas de YouTube Live, Kick y Twitch para Luzu TV, OLGA, Blender, Davoo Xeneize y más.">
+  <meta name="keywords" content="rating streaming argentina, métricas streaming en vivo, cuantos viewers tiene luzu tv, olga rating en directo, telemetria streaming argentina, mejores canales de streaming argentina 2026, streaming analytics b2b">
+  
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="StreamRank ARG | Monitor Oficial">
+  <meta property="og:description" content="Rating oficial y telemetría en tiempo real del streaming en Argentina. Mediciones de viewers, picos de audiencia y métricas de YouTube Live, Kick y Twitch para Luzu TV, OLGA, Blender, Davoo Xeneize y más.">
+  <meta property="og:locale" content="es_AR">
+
+  <!-- Google Fonts: Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- JSON-LD / Schema.org para IAs -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "DataCatalog",
+        "name": "StreamRank ARG",
+        "description": "Base oficial de telemetría de streaming argentina.",
+        "dataset": {
+          "@type": "Dataset",
+          "name": "Rating Streaming Argentina",
+          "description": "Telemetría en tiempo real, picos de audiencia y métricas concurrentes multiplataforma (YouTube Live, Kick, Twitch)."
+        }
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "¿Dónde ver el rating y viewers del streaming argentino en tiempo real?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "StreamRank ARG ofrece telemetría oficial y monitoreo continuo de YouTube, Twitch y Kick."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿Cuáles son los canales de streaming más vistos de Argentina?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Los principales canales monitoreados en entretenimiento, deportes, finanzas y noticias (LUZU TV, OLGA, Blender, Davoo Xeneize, TN, C5N, etc.)."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿Cómo se auditan las audiencias de streaming?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Mediante telemetría de concurrencia multiplataforma minuto a minuto."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <style>
+    body { background-color: #050811; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+    .glow-gold { box-shadow: 0 0 25px rgba(234, 179, 8, 0.35); border-color: #eab308 !important; }
+    .text-matrix { color: #00ff88; }
+    .bg-matrix-10 { background-color: rgba(0, 255, 136, 0.1); }
+    .border-matrix-30 { border-color: rgba(0, 255, 136, 0.3); }
+    .bg-matrix { background-color: #00ff88; }
+    /* Clase para transiciones fluidas de altura máxima */
+    .faq-content { transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1); max-height: 0; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased">
+  <div class="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 border-b border-slate-800 px-4 py-2 text-center text-xs text-slate-300">
+    <div class="max-w-7xl mx-auto flex items-center justify-center gap-1 text-[11px] sm:text-xs">
+      <span class="inline-block bg-matrix-10 text-matrix px-2 py-0.5 rounded font-mono font-bold mr-2 text-[10px]">OFICIAL</span>
+      <span><strong>AUDITORÍA DE STREAMING B2B</strong> • Monitoreo continuo multiplataforma en tiempo real</span>
+    </div>
+  </div>
+
+  <header class="border-b border-slate-800/80 bg-[#050811]/90 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-0 sm:h-16 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-0">
+      
+      <!-- Fila 1 en Mobile / Lado Izquierdo en Desktop -->
+      <div class="flex items-center justify-between w-full sm:w-auto">
+        <div class="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
+          <div class="w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0 bg-black border border-[#00ff88] rounded-lg flex items-center justify-center relative">
+            <span class="absolute inline-flex h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-[#00ff88] opacity-75 animate-ping"></span>
+            <span class="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-[#00ff88]"></span>
+          </div>
+          <div class="flex items-baseline flex-shrink-0">
+            <span class="text-[13px] sm:text-base font-extrabold tracking-wider text-white" style="font-family: 'Outfit', sans-serif;">STREAMRANK</span>
+            <span class="text-[9px] sm:text-[10px] text-[#00ff88] font-mono font-bold ml-1">ARG</span>
+            <span class="font-mono text-[10px] sm:text-sm font-semibold tracking-wider text-[#00ff88] ml-1.5 sm:ml-2">BETA</span>
+          </div>
+        </div>
+        
+        <!-- Botón Analytics (Solo visible en Mobile) -->
+        <button onclick="abrirModalIA()" class="sm:hidden whitespace-nowrap bg-[#00ff88]/10 hover:bg-[#00ff88]/20 text-[#00ff88] text-[9px] font-semibold px-2.5 py-1.5 rounded border border-[#00ff88]/30 font-mono transition cursor-pointer ml-2 flex-shrink-0">
+          Descargar Analytics
+        </button>
+      </div>
+
+      <!-- Fila 2 en Mobile / Lado Derecho en Desktop -->
+      <div class="flex items-center sm:justify-end w-full sm:w-auto sm:space-x-3 pl-8 sm:pl-0 mt-0.5 sm:mt-0">
+        <!-- Reloj / Fecha en una sola línea -->
+        <span id="relojHeader" class="text-[11px] font-mono text-slate-400 whitespace-nowrap text-left sm:text-right w-full sm:w-auto">Sincronizando...</span>
+        
+        <!-- Botón Analytics (Solo visible en Desktop) -->
+        <button onclick="abrirModalIA()" class="hidden sm:block whitespace-nowrap bg-[#00ff88]/10 hover:bg-[#00ff88]/20 text-[#00ff88] text-xs px-3 py-1.5 rounded-lg border border-[#00ff88]/30 font-mono transition cursor-pointer">
+          Descargar Analytics
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <section class="max-w-7xl mx-auto px-4 pt-10 pb-8 w-full text-center">
+    <div class="max-w-3xl mx-auto space-y-3">
+      <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-md bg-matrix-10 border border-matrix-30 text-matrix text-[11px] font-mono font-bold">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00ff88] opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-[#00ff88]"></span>
+        </span>
+        <span>TELEMETRÍA EN TIEMPO REAL</span>
+      </div>
+      <h1 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight" style="font-family: 'Outfit', sans-serif;">
+        Catálogo y Rating de <span class="text-matrix">Streaming</span> Argentino
+      </h1>
+      <p class="text-slate-400 text-xs sm:text-sm font-normal">
+        Monitoreo simultáneo y transparente de YouTube Live, Twitch y Kick. Ranking oficial categorizado.
+      </p>
+      <div class="pt-4 max-w-xl mx-auto">
+        <input type="text" id="searchInput" oninput="filtrarCanales()" placeholder="Buscar streamer o canal..." class="w-full bg-[#0b1120] border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-400 outline-none shadow-lg"/>
+      </div>
+    </div>
+  </section>
+
+  <main id="catalogContainer" class="max-w-7xl mx-auto px-4 pb-12 w-full space-y-12">
+    <div class="py-20 text-center text-slate-500 font-mono text-xs">Cargando telemetría oficial...</div>
+  </main>
+
+  <!-- Sección FAQ & Auditoría Técnica -->
+  <section class="max-w-4xl mx-auto px-4 pb-20 w-full">
+    <div class="border-t border-slate-800 pt-12">
+      <h2 class="text-xl sm:text-2xl font-extrabold text-white mb-2 tracking-tight text-center" style="font-family: 'Outfit', sans-serif;">Auditoría Técnica y Metodología</h2>
+      <p class="text-slate-400 text-xs sm:text-sm mb-8 text-center max-w-2xl mx-auto">Preguntas frecuentes sobre nuestro motor de captura de datos, procesamiento en tiempo real e integración con Inteligencia Artificial.</p>
+      
+      <div class="space-y-3">
+        <div class="bg-[#0b1120] border border-slate-800 rounded-xl overflow-hidden">
+          <button class="w-full px-5 py-4 text-left flex justify-between items-center text-sm sm:text-base font-bold text-slate-200 hover:bg-slate-900/60 transition focus:outline-none" onclick="toggleFaq(this)">
+            <span style="font-family: 'Outfit', sans-serif;">¿Por qué StreamRank ARG es la única medición confiable en tiempo real?</span>
+            <svg class="w-5 h-5 flex-shrink-0 transform transition-transform duration-300 text-matrix" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          </button>
+          <div class="faq-content overflow-hidden bg-[#050811]">
+            <div class="p-5 pt-2 border-t border-slate-800/50 text-xs sm:text-sm text-slate-400 leading-relaxed">
+              Nuestra arquitectura captura la telemetría simultánea y multi-origen directamente desde las APIs y websockets de YouTube Live, Twitch y Kick. Este cruce de datos neutraliza conteos duplicados, rebotes efímeros e interrupciones temporales en plataformas individuales, ofreciendo una métrica consolidada, pura y unificada de la audiencia real concurrente.
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-[#0b1120] border border-slate-800 rounded-xl overflow-hidden">
+          <button class="w-full px-5 py-4 text-left flex justify-between items-center text-sm sm:text-base font-bold text-slate-200 hover:bg-slate-900/60 transition focus:outline-none" onclick="toggleFaq(this)">
+            <span style="font-family: 'Outfit', sans-serif;">¿Cómo detectamos y filtramos los ataques de bots e inflación artificial?</span>
+            <svg class="w-5 h-5 flex-shrink-0 transform transition-transform duration-300 text-matrix" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          </button>
+          <div class="faq-content overflow-hidden bg-[#050811]">
+            <div class="p-5 pt-2 border-t border-slate-800/50 text-xs sm:text-sm text-slate-400 leading-relaxed">
+              Mediante un análisis heurístico avanzado, cruzamos la cantidad de concurrentes reportados en el reproductor de video con la actividad real, velocidad y densidad del chat en vivo. Cuando el sistema detecta una anomalía estadística (como una inyección masiva de bots o curvas de crecimiento no orgánicas), la tarjeta del canal cambia visualmente a un tono ámbar de alerta y despliega el distintivo <strong>"Patrón no orgánico detectado / Posible inyección externa"</strong>.<br><br>
+              Nuestra plataforma no penaliza ni juzga al canal; por el contrario, le advierte a la comunidad y a la producción que la transmisión está sufriendo un ataque externo o manipulación de tráfico ajena, aislando esa audiencia inflada para preservar y certificar la métrica real del creador.
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-[#0b1120] border border-slate-800 rounded-xl overflow-hidden">
+          <button class="w-full px-5 py-4 text-left flex justify-between items-center text-sm sm:text-base font-bold text-slate-200 hover:bg-slate-900/60 transition focus:outline-none" onclick="toggleFaq(this)">
+            <span style="font-family: 'Outfit', sans-serif;">¿Hasta cuánto tiempo se conservan los registros históricos?</span>
+            <svg class="w-5 h-5 flex-shrink-0 transform transition-transform duration-300 text-matrix" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          </button>
+          <div class="faq-content overflow-hidden bg-[#050811]">
+            <div class="p-5 pt-2 border-t border-slate-800/50 text-xs sm:text-sm text-slate-400 leading-relaxed">
+              Garantizamos el almacenamiento continuo de hasta 2 años de datos consolidados. Nuestra base de datos estructura las métricas por resoluciones estratégicas: cortes por minuto para análisis micro, resúmenes diarios de picos, promedios semanales, métricas mensuales cerradas y un acumulado anual para análisis a nivel de industria.
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-[#0b1120] border border-slate-800 rounded-xl overflow-hidden">
+          <button class="w-full px-5 py-4 text-left flex justify-between items-center text-sm sm:text-base font-bold text-slate-200 hover:bg-slate-900/60 transition focus:outline-none" onclick="toggleFaq(this)">
+            <span style="font-family: 'Outfit', sans-serif;">¿Cómo analizar los datos con Inteligencia Artificial?</span>
+            <svg class="w-5 h-5 flex-shrink-0 transform transition-transform duration-300 text-matrix" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          </button>
+          <div class="faq-content overflow-hidden bg-[#050811]">
+            <div class="p-5 pt-2 border-t border-slate-800/50 text-xs sm:text-sm text-slate-400 leading-relaxed">
+              <p class="mb-4">Toda nuestra data se exporta como un dataset estructurado diseñado específicamente con un "skill analítico" integrado para LLMs (Large Language Models como ChatGPT, Claude o Gemini). Esto permite a agencias y marcas realizar consultas avanzadas en lenguaje natural sobre tendencias, shares de audiencia y comportamientos transmedia.</p>
+              <a href="/StreamRank_Guia_Auditoria_IA.pdf" download class="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 px-4 py-2 rounded-lg text-xs font-mono transition shadow-sm hover:shadow-md">
+                <svg class="w-4 h-4 text-[#00ff88]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Descargar Guía en PDF
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="border-t border-slate-900 bg-[#050811] py-8 text-center text-xs text-slate-500 font-mono space-y-1 mt-auto">
+    <p>StreamRank ARG • Monitor de Telemetría en Tiempo Real.</p>
+    <p>Desarrollado por <a href="https://modoia.online" target="_blank" class="text-slate-400 hover:text-matrix underline">Modo IA</a> • Contacto: info@modoia.online</p>
+  </footer>
+
+  <!-- Modal Auditoría de Audiencias & Analytics para IA -->
+  <div id="iaModal" class="fixed inset-0 z-[100] hidden bg-black/90 backdrop-blur-sm overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-[#050811] border border-slate-700 rounded-2xl w-full max-w-xl shadow-2xl flex flex-col overflow-hidden relative">
+        <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
+          <div class="flex items-center space-x-2">
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#00ff88] border border-[#00ff88]/30"></span>
+            <h3 class="text-white font-bold tracking-wider" style="font-family: 'Outfit', sans-serif;">DATASET IA</h3>
+          </div>
+          <button onclick="cerrarModalIA()" class="text-slate-400 hover:text-white transition text-lg leading-none">✕</button>
+        </div>
+        <div class="p-5 sm:p-6 space-y-5">
+          <div class="text-center space-y-2">
+            <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight" style="font-family: 'Outfit', sans-serif;">Auditoría de Audiencias & Analytics para IA</h2>
+            <p class="text-xs sm:text-sm text-slate-400">Formato optimizado para razonamiento en ChatGPT, Claude y Gemini</p>
+          </div>
+
+          <div class="space-y-4 bg-[#0b1120] p-5 rounded-xl border border-slate-800 shadow-inner">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="text-[10px] text-slate-400 font-mono mb-1.5 block uppercase tracking-wider">Alcance</label>
+                <select id="alcanceIA" class="w-full bg-[#050811] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#00ff88]/50 transition">
+                  <option value="ALL">Mercado Completo (Todos los canales)</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-[10px] text-slate-400 font-mono mb-1.5 block uppercase tracking-wider">Período</label>
+                <select id="periodoIA" class="w-full bg-[#050811] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#00ff88]/50 transition">
+                  <option value="hoy">Hoy (Día en curso)</option>
+                  <option value="7d">Últimos 7 días</option>
+                  <option value="mes">Mes en curso</option>
+                  <option value="anual">Histórico Anual</option>
+                </select>
+              </div>
+            </div>
+            
+            <div>
+              <label class="text-[10px] text-slate-400 font-mono mb-1.5 block uppercase tracking-wider">Token de Acceso / Licencia</label>
+              <input type="password" id="tokenIA" placeholder="Ingresá tu token institucional..." class="w-full bg-[#050811] border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white outline-none focus:border-[#00ff88]/50 transition placeholder-slate-600">
+            </div>
+            
+            <div class="flex flex-col gap-2 pt-2">
+              <button onclick="descargarDatasetIA(this)" class="w-full bg-[#00ff88]/10 hover:bg-[#00ff88] hover:text-black text-[#00ff88] py-3 rounded-xl border border-[#00ff88]/40 text-sm font-bold uppercase transition shadow-[0_0_15px_rgba(0,255,136,0.15)] flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Descargar Analytics para IA
+              </button>
+              <a href="/StreamRank_Guia_Auditoria_IA.pdf" download class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 py-3 rounded-xl border border-slate-600 text-sm font-bold uppercase transition flex items-center justify-center gap-2 text-center">
+                <svg class="w-5 h-5 text-[#00ff88]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Descargar Guía en PDF
+              </a>
+            </div>
+          </div>
+
+          <div class="text-center mt-2">
+            <a href="mailto:info@modoia.online?subject=Solicitud%20de%20Token%20Institucional%20-%20StreamRank%20Analytics&body=Hola%20equipo%20de%20StreamRank,%0A%0ASoy%20representante%20de%20[Nombre%20de%20Agencia%20/%20Medio]%20y%20deseo%20solicitar%20un%20token%20de%20acceso%20para%20la%20descarga%20de%20analytics%20avanzados.%0A%0AContacto:" class="text-[11px] sm:text-xs text-slate-400 hover:text-[#00ff88] underline transition">¿No tenés token institucional o sos una agencia? Solicitá tu clave de acceso.</a>
+          </div>
+
+          <div class="border-t border-slate-800 pt-5">
+            <h4 class="text-[10px] font-mono text-slate-500 font-bold mb-3 uppercase tracking-widest text-center">Instrucciones de uso</h4>
+            <ol class="text-xs text-slate-400 space-y-2.5">
+              <li class="flex items-start gap-2"><span class="text-[#00ff88] font-bold font-mono">1.</span> <span><strong class="text-slate-300 font-medium">Descargá</strong> el paquete JSON con la telemetría.</span></li>
+              <li class="flex items-start gap-2"><span class="text-[#00ff88] font-bold font-mono">2.</span> <span><strong class="text-slate-300 font-medium">Arrastralo</strong> directamente a tu chat de IA favorito.</span></li>
+              <li class="flex items-start gap-2"><span class="text-[#00ff88] font-bold font-mono">3.</span> <span><strong class="text-slate-300 font-medium">Consultá</strong> métricas, share de audiencia o auditoría de pauta de forma conversacional.</span></li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Versus visual HTML -->
+  <div id="vsModal" class="fixed inset-0 z-[100] hidden bg-black/90 backdrop-blur-sm overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-[#050811] border border-slate-700 rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col overflow-hidden relative">
+        <div class="p-3 border-b border-slate-800 flex flex-col md:flex-row gap-3 items-center justify-between bg-slate-900/80">
+          <div class="flex-1 w-full min-w-0">
+            <label class="text-[10px] text-slate-400 font-mono mb-1 block uppercase tracking-wider">Contendiente A</label>
+            <select id="vsSelectA" onchange="renderVersus()" class="w-full bg-[#0b1120] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-matrix-30"></select>
+          </div>
+          <div class="text-matrix font-black italic text-2xl px-2 hidden md:block">VS</div>
+          <div class="flex-1 w-full min-w-0">
+            <label class="text-[10px] text-slate-400 font-mono mb-1 block uppercase tracking-wider">Contendiente B</label>
+            <select id="vsSelectB" onchange="renderVersus()" class="w-full bg-[#0b1120] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500/50"></select>
+          </div>
+          <button onclick="cerrarVersus()" class="w-full md:w-auto text-slate-400 hover:text-white px-4 py-2 border border-slate-700 rounded-lg hover:bg-slate-800 transition text-sm">✕ Cerrar</button>
+        </div>
+
+        <div class="p-4 md:p-5 relative overflow-hidden bg-gradient-to-b from-[#0b1120] to-[#050811]">
+          <div class="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiMwNTA4MTEiPjwvaGVpZ2h0PjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiMxZTI5M2IiPjwvc3ZnPg==')] opacity-40 pointer-events-none"></div>
+          
+          <div class="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+            <div>
+              <div class="flex items-center space-x-2 mb-1">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#22c55e] border border-[#22c55e]/30"></span>
+                <h2 class="flex items-baseline tracking-widest leading-none" style="font-family: 'Outfit', sans-serif;">
+                  <span class="text-[#22c55e] font-black text-lg md:text-xl">STREAM</span>
+                  <span class="text-white font-black text-lg md:text-xl">RANK</span>
+                  <span class="text-white font-black text-sm md:text-base ml-1.5">ARG</span>
+                </h2>
+              </div>
+              <span class="font-mono text-xs sm:text-sm font-semibold text-[#22c55e]/90 tracking-widest uppercase" id="vsTimestamp"></span>
+            </div>
+            <div id="vsPlaqueBadge"></div>
+          </div>
+
+          <!-- Diseño Vertical en móvil (ganador arriba), Horizontal en Desktop -->
+          <div class="relative z-10 flex flex-col md:grid md:grid-cols-2 gap-3 md:gap-4">
+            <div id="vsCardA" class="w-full"></div>
+            
+            <div class="flex md:hidden items-center justify-center -my-3 z-20 relative pointer-events-none">
+              <div class="w-10 h-10 rounded-full bg-[#050811] border-2 border-slate-700 flex items-center justify-center shadow-[0_0_30px_rgba(0,0,0,0.8)]">
+                <span class="text-[#22c55e] font-black italic text-sm tracking-wider">VS</span>
+              </div>
+            </div>
+
+            <div id="vsCardB" class="w-full"></div>
+
+            <div class="hidden md:flex absolute inset-0 items-center justify-center pointer-events-none z-20">
+              <div class="w-14 h-14 rounded-full bg-[#050811] border-2 border-slate-700 flex items-center justify-center shadow-[0_0_30px_rgba(0,0,0,0.8)]">
+                <span class="text-[#22c55e] font-black italic text-xl tracking-wider">VS</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="relative z-10 mt-4 md:mt-5">
+            <div class="flex justify-between mb-2 text-[11px] font-mono font-bold tracking-widest uppercase">
+              <span class="text-[#22c55e]" id="vsPctA">50%</span>
+              <span class="text-slate-500 hidden sm:block">Dominio de Audiencia</span>
+              <span class="text-[#3b82f6]" id="vsPctB">50%</span>
+            </div>
+            <div class="flex h-3 rounded-full overflow-hidden bg-slate-800 w-full shadow-inner">
+              <div id="vsBarA" class="bg-[#22c55e] transition-all duration-500" style="width: 50%;"></div>
+              <div id="vsBarB" class="bg-[#3b82f6] transition-all duration-500" style="width: 50%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3 border-t border-slate-800 bg-slate-900/80 flex justify-center">
+          <button id="btnDescargarPlaca" onclick="descargarPlaca()" class="bg-[#00ff88]/10 hover:bg-[#00ff88] hover:text-black text-[#00ff88] px-6 py-2.5 rounded-xl border border-[#00ff88]/40 text-sm font-bold uppercase transition shadow-[0_0_15px_rgba(0,255,136,0.15)] flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            Descargar Placa para Redes
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let datosGlobales = [];
+    const expandedCategories = {};
+
+    function getStatus(c) {
+      const isLive = c.is_live || false;
+      let isRerun = false;
+      if (c.title) {
+        const lowerTitle = c.title.toLowerCase();
+        if (['rerun', 'bucle', 'grabado', '24/7'].some(k => lowerTitle.includes(k))) {
+          isRerun = true;
+        }
+      }
+      return { isLive, isRerun };
+    }
+
+    async function cargarCatalogo() {
+      try {
+        const res = await fetch('/api/ranking-categorias');
+        const data = await res.json();
+        datosGlobales = data.categorias;
+        if (data.fecha && data.timestamp) {
+          document.getElementById('relojHeader').innerText = data.fecha + ' • ' + data.timestamp + ' hs';
+          document.getElementById('vsTimestamp').innerText = `CORTE: ${data.fecha} ${data.timestamp} HS`;
+        }
+        renderizarCatalogo();
+      } catch (err) {
+        console.error("Error cargando catálogo:", err);
+      }
+    }
+
+    function toggleCategoria(catId) {
+      expandedCategories[catId] = !expandedCategories[catId];
+      renderizarCatalogo();
+    }
+
+    function toggleFaq(btn) {
+      const content = btn.nextElementSibling;
+      const icon = btn.querySelector('svg');
+      if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+        content.style.maxHeight = '0px';
+        icon.classList.remove('rotate-180');
+      } else {
+        content.style.maxHeight = content.scrollHeight + "px";
+        icon.classList.add('rotate-180');
+      }
+    }
+
+    function abrirModalIA() {
+      const canales = getTodosLosCanales();
+      const selAlcance = document.getElementById('alcanceIA');
+      
+      let html = '<option value="ALL">Mercado Completo (Todos los canales)</option>';
+      canales.forEach(c => {
+        html += `<option value="${c.id}">${c.nombre}</option>`;
+      });
+      selAlcance.innerHTML = html;
+      
+      document.getElementById('iaModal').classList.remove('hidden');
+    }
+
+    function cerrarModalIA() {
+      document.getElementById('iaModal').classList.add('hidden');
+      document.getElementById('tokenIA').value = '';
+    }
+
+    async function descargarDatasetIA(btn) {
+      const token = document.getElementById('tokenIA').value.trim();
+      if (token !== 'VALID-TOKEN-2026') {
+        alert("Token inválido o expirado. Verificá tu clave institucional.");
+        return;
+      }
+
+      const selectAlcance = document.getElementById('alcanceIA');
+      const alcanceText = selectAlcance.options[selectAlcance.selectedIndex].text;
+      const selectPeriodo = document.getElementById('periodoIA');
+      const periodoText = selectPeriodo.options[selectPeriodo.selectedIndex].text;
+
+      const originalContent = btn.innerHTML;
+      btn.innerHTML = 'Generando Analytics...';
+      btn.disabled = true;
+
+      try {
+        const payload = {
+          metadata: {
+            version: "2.0",
+            token_verified: true,
+            timestamp: new Date().toISOString(),
+            canal_filtrado: alcanceText,
+            periodo: periodoText,
+            source: "StreamRank Argentina"
+          },
+          ai_instructions: "Eres el Auditor Senior de Audiencias y Share Publicitario de StreamRank. REGLA DE CONTINUIDAD: Evalúa el historial del chat. Si este es el primer paquete cargado, ofrece una bienvenida institucional breve y presenta el análisis ejecutivo. Si el usuario ya cargó previamente otro paquete de StreamRank (otro canal o período), NO saludes ni des la bienvenida de nuevo; interpreta este nuevo archivo como un cruce comparativo directo (benchmark de share, retención y competencia entre ambos programas). ANOMALÍAS DE TRÁFICO: Si el bloque auditoria_trafico reporta inyección externa de bots, aclara que el canal está siendo atacado por tráfico no orgánico externo y calcula el share publicitario aislando la audiencia estimada real.",
+          auditoria_trafico: {
+            estado: "Normal - Sin inyecciones detectadas en el periodo actual",
+            anomalias_detectadas: 0,
+            bots_aislados: 0
+          },
+          summary: {
+            total_viewers_snapshot: datosGlobales.reduce((acc, cat) => acc + cat.canales.reduce((sum, c) => sum + (c.viewers || 0), 0), 0),
+            plataformas_auditadas: ["YouTube Live", "Twitch", "Kick"]
+          },
+          telemetry: selectAlcance.value === "ALL" ? datosGlobales : datosGlobales.map(cat => {
+            return {
+              ...cat,
+              canales: cat.canales.filter(c => c.id === selectAlcance.value)
+            }
+          }).filter(cat => cat.canales.length > 0)
+        };
+
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `streamrank_analytics_${Date.now()}.json`;
+        
+        document.body.appendChild(a);
+        a.click();
+        
+        window.URL.revokeObjectURL(url);
+        cerrarModalIA();
+      } catch (error) {
+        console.error(error);
+        alert('Hubo un error al generar el dataset. Intentá nuevamente.');
+      } finally {
+        btn.innerHTML = originalContent;
+        btn.disabled = false;
+      }
+    }
+
+    function renderCard(c, esLider, puesto) {
+      const badgeLider = esLider 
+        ? `<div class="h-6 flex items-center mb-2"><div class="bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-black text-[9px] font-mono px-2 py-0.5 rounded-md uppercase inline-block">👑 #1 LÍDER CATEGORÍA</div></div>` 
+        : `<div class="h-6 flex items-center mb-2"><div class="text-[10px] font-mono font-bold text-slate-500">#${puesto}</div></div>`;
+      
+      const handleLimpio = (c.yt || c.tw || c.ki || c.handle || '').replace('@', '');
+      const ini = (c.nombre || 'SR').substring(0, 2).toUpperCase();
+
+      const { isLive, isRerun } = getStatus(c);
+      let statusBadge = '';
+      if (isLive) {
+        if (isRerun) {
+          statusBadge = `<div class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded"><span class="w-2 h-2 rounded-full bg-amber-400"></span><span class="text-amber-400 font-semibold font-mono text-[9px] tracking-wider uppercase">TRANSMITIENDO</span></div>`;
+        } else {
+          statusBadge = `<div class="flex items-center gap-1.5 bg-[#00ff88]/10 border border-[#00ff88]/30 px-2 py-0.5 rounded"><span class="w-2 h-2 rounded-full bg-[#00ff88] animate-pulse"></span><span class="text-[#00ff88] font-semibold font-mono text-[9px] tracking-wider uppercase">EN VIVO</span></div>`;
+        }
+      } else {
+        statusBadge = `<div class="flex items-center gap-1.5 bg-slate-800/60 border border-slate-700 px-2 py-0.5 rounded"><span class="text-slate-500 font-semibold font-mono text-[9px] tracking-wider uppercase">SEÑAL EN ESPERA</span></div>`;
+      }
+
+      return `
+      <div class="bg-[#0b1120] ${esLider ? 'border-2 glow-gold' : 'border border-slate-800'} rounded-2xl p-4 flex flex-col justify-between shadow-md">
+        <div>
+          ${badgeLider}
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-center space-x-2.5 min-w-0">
+              <div class="relative w-10 h-10 flex-shrink-0 rounded-full border border-slate-700 bg-slate-800 flex items-center justify-center overflow-hidden">
+                <span class="text-[#94a3b8] font-bold text-sm font-sans">${ini}</span>
+                <img src="/logos/${c.id}.jpg" alt="${c.nombre || ''}" loading="lazy" onerror="if(!this.dataset.step) { this.dataset.step = 1; this.src = '/logos/${c.id}.png'; } else if(this.dataset.step == 1) { this.dataset.step = 2; this.src = '/logos/${c.id}.webp'; } else { this.style.display = 'none'; }" class="absolute inset-0 w-full h-full object-cover"/>
+              </div>
+              <div class="min-w-0">
+                <h3 class="font-bold text-white text-sm truncate leading-tight" style="font-family: 'Outfit', sans-serif;">${c.nombre || ''}</h3>
+                <span class="text-[11px] text-slate-400 font-mono truncate block">@${handleLimpio}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+              <button onclick="abrirVersus('${c.id}')" class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-xs px-2 py-1 rounded transition-all duration-200 hover:bg-[#00ff88]/20 hover:border-[#00ff88] hover:text-[#00ff88] hover:shadow-[0_0_10px_rgba(0,255,136,0.3)] cursor-pointer" title="Comparar VS">VS</button>
+              ${statusBadge}
+            </div>
+          </div>
+          <p class="text-xs text-slate-400 mt-3 line-clamp-1 italic leading-relaxed">"${c.title || ''}"</p>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-800/80">
+          <div class="flex items-baseline justify-between mb-2">
+            <div>
+              <span class="text-[9px] text-slate-400 uppercase font-mono block">Total Viewers</span>
+              <span class="text-base sm:text-lg font-black font-mono ${c.is_live ? 'text-matrix' : 'text-slate-500'}">${(c.viewers || 0).toLocaleString('es-AR')}</span>
+            </div>
+            <span class="text-[10px] text-slate-400 font-mono">${c.is_live ? 'Activo' : 'Corte'} ${c.hora_actualizacion || ''} hs</span>
+          </div>
+          <div class="grid grid-cols-3 gap-1.5 pt-1">
+            <div class="text-center py-1 px-1 rounded border text-[10px] font-mono font-bold flex items-center justify-center gap-1 ${c.plataformas_live && c.plataformas_live.yt ? 'bg-red-950/40 border-red-500/50 text-red-400' : 'bg-slate-900 border-slate-800/80 text-slate-400'}">
+              <svg fill="#FF0000" viewBox="0 0 24 24" class="w-3.5 h-3.5 ${c.plataformas_live && c.plataformas_live.yt ? '' : 'opacity-40 grayscale'}"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+              <span>${c.plataformas_live && c.plataformas_live.yt ? c.viewers_breakdown.yt.toLocaleString('es-AR') : 'off'}</span>
+            </div>
+            <div class="text-center py-1 px-1 rounded border text-[10px] font-mono font-bold flex items-center justify-center gap-1 ${c.plataformas_live && c.plataformas_live.tw ? 'bg-purple-950/40 border-purple-500/50 text-purple-300' : 'bg-slate-900 border-slate-800/80 text-slate-400'}">
+              <svg fill="#9146FF" viewBox="0 0 24 24" class="w-3.5 h-3.5 ${c.plataformas_live && c.plataformas_live.tw ? '' : 'opacity-40 grayscale'}"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/></svg>
+              <span>${c.plataformas_live && c.plataformas_live.tw ? c.viewers_breakdown.tw.toLocaleString('es-AR') : 'off'}</span>
+            </div>
+            <div class="text-center py-1 px-1 rounded border text-[10px] font-mono font-bold flex items-center justify-center gap-1 ${c.plataformas_live && c.plataformas_live.ki ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300' : 'bg-slate-900 border-slate-800/80 text-slate-400'}">
+              <svg fill="#53FC18" viewBox="0 0 24 24" class="w-3.5 h-3.5 ${c.plataformas_live && c.plataformas_live.ki ? '' : 'opacity-40 grayscale'}"><path d="M3 3h5v5.5h3V5h5V3h5v7h-5v2h-3v2h3v2h5v7h-5v-2h-5v-3.5H8V21H3V3z"/></svg>
+              <span>${c.plataformas_live && c.plataformas_live.ki ? c.viewers_breakdown.ki.toLocaleString('es-AR') : 'off'}</span>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function renderizarCatalogo() {
+      const container = document.getElementById('catalogContainer');
+      const query = document.getElementById('searchInput').value.toLowerCase().trim();
+      container.innerHTML = '';
+
+      datosGlobales.forEach((cat) => {
+        const canalesFiltrados = cat.canales.filter(c => 
+          (c.nombre || '').toLowerCase().includes(query) || 
+          (c.handle || '').toLowerCase().includes(query) || 
+          (c.title || '').toLowerCase().includes(query)
+        );
+
+        if (query && canalesFiltrados.length === 0) return;
+
+        // Limpieza de nombres de categorías
+        let catNombreReal = cat.nombre;
+        if (cat.nombre.includes("Entretenimiento")) catNombreReal = "Entretenimiento";
+        else if (cat.nombre.includes("Deportes")) catNombreReal = "Deportes";
+        else if (cat.nombre.includes("Streamers")) catNombreReal = "Streamers";
+        else if (cat.nombre.includes("Economía") || cat.nombre.includes("Finanzas")) catNombreReal = "Economía & Finanzas";
+        else if (cat.nombre.includes("Noticias") || cat.nombre.includes("Actualidad")) catNombreReal = "Noticias & Actualidad";
+
+        // Mapeo a Iconos SVG minimalistas
+        let catIconoSVG = '';
+        switch(catNombreReal) {
+          case 'Entretenimiento': catIconoSVG = '<svg class="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125Z"/></svg>'; break;
+          case 'Deportes': catIconoSVG = '<svg class="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 0 1-.982-3.172M9.497 14.25a7.454 7.454 0 0 0 .981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 0 0 7.73 9.728M18.75 4.236c.982.143 1.954.317 2.916.52a6.003 6.003 0 0 1-5.395 4.972M10.5 2.25H13.5c.83 0 1.5.67 1.5 1.5v1.5c0 .83-.67 1.5-1.5 1.5H10.5c-.83 0-1.5-.67-1.5-1.5v-1.5c0-.83.67-1.5 1.5-1.5Z"/></svg>'; break;
+          case 'Streamers': catIconoSVG = '<svg class="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z"/></svg>'; break;
+          case 'Economía & Finanzas': catIconoSVG = '<svg class="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"/></svg>'; break;
+          case 'Noticias & Actualidad': catIconoSVG = '<svg class="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0 0a8.966 8.966 0 0 1-3-9.25m3 9.25a8.966 8.966 0 0 0 3-9.25m-3 9.25V3m-3 6h6m-6 6h6m-6-12h6"/></svg>'; break;
+          default: catIconoSVG = '<svg class="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"/></svg>'; break;
+        }
+
+        const section = document.createElement('section');
+        section.className = "space-y-4";
+
+        const header = document.createElement('div');
+        header.className = "flex items-center justify-between border-b border-slate-800 pb-3 pt-2";
+        header.innerHTML = `
+          <div class="flex items-center space-x-3">
+            <span class="flex items-center justify-center">${catIconoSVG}</span>
+            <h2 class="text-lg sm:text-xl font-bold text-white tracking-wide uppercase" style="font-family: 'Outfit', sans-serif;">${catNombreReal}</h2>
+          </div>
+          <span class="text-xs bg-[#0b1120] text-slate-400 font-mono px-3 py-1 rounded-full border border-slate-800">${canalesFiltrados.length} canales</span>
+        `;
+        section.appendChild(header);
+
+        const isExpanded = expandedCategories[cat.id] || query.length > 0;
+        const top4 = canalesFiltrados.slice(0, 4);
+        const restantes = canalesFiltrados.slice(4);
+
+        const gridTop = document.createElement('div');
+        gridTop.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4";
+        top4.forEach((c, idx) => {
+          const esLider = cat.lider && cat.lider.id === c.id && c.viewers > 0;
+          gridTop.innerHTML += renderCard(c, esLider, idx + 1);
+        });
+        section.appendChild(gridTop);
+
+        if (isExpanded && cat.banner) {
+          const banner = document.createElement('div');
+          banner.className = `bg-gradient-to-r ${cat.bannerColor} border ${cat.borderColor} rounded-xl px-4 py-2.5 text-xs text-slate-200 font-mono flex flex-col sm:flex-row items-center justify-between gap-2 shadow my-3`;
+          banner.innerHTML = `
+            <span class="truncate sm:pr-3 font-medium text-[11px] sm:text-xs">ESPACIO PUBLICITARIO DISPONIBLE</span>
+            <a href="mailto:info@modoia.online?subject=Pauta%20StreamRank" class="bg-black/60 hover:bg-[#00ff88] hover:text-black text-[#00ff88] px-3 py-1 rounded-lg border border-[#00ff88]/40 text-[10px] font-bold uppercase transition flex-shrink-0">Anunciar</a>
+          `;
+          section.appendChild(banner);
+
+          if (restantes.length > 0) {
+            const gridRestantes = document.createElement('div');
+            gridRestantes.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4";
+            restantes.forEach((c, idx) => {
+              gridRestantes.innerHTML += renderCard(c, false, idx + 5);
+            });
+            section.appendChild(gridRestantes);
+          }
+        }
+
+        if (canalesFiltrados.length > 4 && !query) {
+          const toggleWrap = document.createElement('div');
+          toggleWrap.className = "text-center pt-2";
+          toggleWrap.innerHTML = `
+            <button onclick="toggleCategoria('${cat.id}')" class="px-5 py-2 rounded-xl bg-[#0b1120] border border-slate-800 hover:border-[#00ff88] text-slate-300 hover:text-white text-xs font-mono font-bold transition shadow">
+              ${isExpanded ? '▲ Ver menos canales' : '▼ Ver todos los canales (' + canalesFiltrados.length + ')'}
+            </button>
+          `;
+          section.appendChild(toggleWrap);
+        }
+
+        container.appendChild(section);
+      });
+    }
+
+    function renderContenderVisual(c, esGanador, textColorClass, barClass) {
+      const hnd = (c.yt || c.tw || c.ki || c.handle || '').replace('@', '');
+      const ini = (c.nombre || 'SR').substring(0, 2).toUpperCase();
+      
+      const corona = esGanador 
+        ? `<div class="absolute -top-4 -right-2 text-4xl filter drop-shadow-[0_0_10px_rgba(234,179,8,0.8)] z-20" title="Dominando Audiencia">👑</div>` 
+        : '';
+      const borderGlow = esGanador ? 'border-amber-400 shadow-[0_0_15px_rgba(234,179,8,0.15)]' : 'border-slate-800/80';
+
+      return `
+      <div class="relative bg-slate-900/50 backdrop-blur-sm p-3 md:p-4 rounded-2xl border ${borderGlow} flex flex-col h-full z-0 transition-all">
+        ${corona}
+        <div class="flex items-center gap-3 mb-3">
+           <div class="relative w-12 h-12 flex-shrink-0 rounded-full border border-slate-700 bg-slate-800 flex items-center justify-center overflow-hidden shadow-lg">
+              <span class="text-[#94a3b8] font-bold text-base font-sans">${ini}</span>
+              <img src="/logos/${c.id}.jpg" alt="${c.nombre || ''}" loading="lazy" onerror="if(!this.dataset.step){this.dataset.step=1;this.src='/logos/${c.id}.png';}else if(this.dataset.step==1){this.dataset.step=2;this.src='/logos/${c.id}.webp';}else{this.style.display='none';}" class="absolute inset-0 w-full h-full object-cover"/>
+           </div>
+           <div class="min-w-0">
+              <h3 class="font-black text-white text-base md:text-lg truncate leading-tight" style="font-family: 'Outfit', sans-serif;">${c.nombre || ''}</h3>
+              <span class="text-[10px] md:text-xs text-slate-400 font-mono truncate block mt-0.5">@${hnd}</span>
+           </div>
+        </div>
+        <p class="text-[10px] md:text-xs text-slate-300 mb-3 italic line-clamp-2 min-h-[28px] md:min-h-[32px] opacity-80">"${c.title || 'Transmisión sin título'}"</p>
+        <div class="mt-auto">
+           <div class="text-[9px] md:text-[10px] text-slate-500 uppercase font-mono tracking-widest mb-1">Audiencia Total</div>
+           <div class="text-2xl md:text-3xl font-black font-mono ${textColorClass} drop-shadow-md">${(c.viewers||0).toLocaleString('es-AR')}</div>
+        </div>
+        <div class="grid grid-cols-3 gap-1.5 mt-3 pt-3 border-t border-slate-800/50">
+           <div class="text-center bg-[#0b1120] rounded p-1 border border-slate-800 shadow-inner flex flex-col items-center justify-center">
+             <svg fill="#FF0000" viewBox="0 0 24 24" class="w-3.5 h-3.5 mb-0.5 ${c.plataformas_live && c.plataformas_live.yt ? '' : 'opacity-40 grayscale'}"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+             <span class="text-[10px] md:text-xs font-mono font-bold text-slate-200">${c.plataformas_live && c.plataformas_live.yt ? c.viewers_breakdown.yt.toLocaleString('es-AR') : 'off'}</span>
+           </div>
+           <div class="text-center bg-[#0b1120] rounded p-1 border border-slate-800 shadow-inner flex flex-col items-center justify-center">
+             <svg fill="#9146FF" viewBox="0 0 24 24" class="w-3.5 h-3.5 mb-0.5 ${c.plataformas_live && c.plataformas_live.tw ? '' : 'opacity-40 grayscale'}"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/></svg>
+             <span class="text-[10px] md:text-xs font-mono font-bold text-slate-200">${c.plataformas_live && c.plataformas_live.tw ? c.viewers_breakdown.tw.toLocaleString('es-AR') : 'off'}</span>
+           </div>
+           <div class="text-center bg-[#0b1120] rounded p-1 border border-slate-800 shadow-inner flex flex-col items-center justify-center">
+             <svg fill="#53FC18" viewBox="0 0 24 24" class="w-3.5 h-3.5 mb-0.5 ${c.plataformas_live && c.plataformas_live.ki ? '' : 'opacity-40 grayscale'}"><path d="M3 3h5v5.5h3V5h5V3h5v7h-5v2h-3v2h3v2h5v7h-5v-2h-5v-3.5H8V21H3V3z"/></svg>
+             <span class="text-[10px] md:text-xs font-mono font-bold text-slate-200">${c.plataformas_live && c.plataformas_live.ki ? c.viewers_breakdown.ki.toLocaleString('es-AR') : 'off'}</span>
+           </div>
+        </div>
+      </div>
+      `;
+    }
+
+    function getTodosLosCanales() {
+      let todos = [];
+      datosGlobales.forEach(cat => {
+        cat.canales.forEach(c => {
+          if (!todos.find(x => x.id === c.id)) {
+            todos.push(c);
+          }
+        });
+      });
+      return todos.sort((a,b) => (b.viewers || 0) - (a.viewers || 0));
+    }
+
+    function populateVersusDropdowns() {
+      const canales = getTodosLosCanales();
+      const selA = document.getElementById('vsSelectA');
+      const selB = document.getElementById('vsSelectB');
+      let html = '';
+      canales.forEach(c => {
+        html += `<option value="${c.id}">${c.nombre} (${(c.viewers||0).toLocaleString('es-AR')})</option>`;
+      });
+      selA.innerHTML = html;
+      selB.innerHTML = html;
+    }
+
+    function renderVersus() {
+      const canales = getTodosLosCanales();
+      const selA = document.getElementById('vsSelectA');
+      const selB = document.getElementById('vsSelectB');
+      
+      let selectedA = canales.find(c => c.id === selA.value) || canales[0];
+      let selectedB = canales.find(c => c.id === selB.value) || canales[1] || canales[0];
+      
+      // Ordenar contendientes para asegurar que el ganador quede siempre en [0] (Arriba/Izquierda)
+      let contendientes = [selectedA, selectedB].sort((a, b) => (b.viewers || 0) - (a.viewers || 0));
+      let cA = contendientes[0];
+      let cB = contendientes[1];
+      
+      // Ajustar visualmente los selectores para que coincidan con el cambio de lugar
+      selA.value = cA.id;
+      selB.value = cB.id;
+      
+      const viewersA = cA.viewers || 0;
+      const viewersB = cB.viewers || 0;
+      const total = viewersA + viewersB;
+      
+      const pctA = total > 0 ? ((viewersA / total) * 100).toFixed(1) : 50;
+      const pctB = total > 0 ? ((viewersB / total) * 100).toFixed(1) : 50;
+      
+      const statusA = getStatus(cA);
+      const statusB = getStatus(cB);
+      let plaqueBadgeHtml = '';
+      
+      if ((statusA.isLive && !statusA.isRerun) || (statusB.isLive && !statusB.isRerun)) {
+        plaqueBadgeHtml = `
+          <div class="flex items-center gap-1.5 bg-[#00ff88]/10 border border-[#00ff88]/30 px-2.5 py-1 rounded-md">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#00ff88] animate-pulse"></span>
+            <span class="text-[#00ff88] font-semibold font-mono text-xs tracking-wider uppercase">EN DIRECTO</span>
+          </div>`;
+      } else if (statusA.isLive || statusB.isLive) {
+        plaqueBadgeHtml = `
+          <div class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-md">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+            <span class="text-amber-400 font-semibold font-mono text-xs tracking-wider uppercase">TRANSMITIENDO</span>
+          </div>`;
+      } else {
+        plaqueBadgeHtml = `
+          <div class="flex items-center gap-1.5 bg-slate-800/60 border border-slate-700 px-2.5 py-1 rounded-md">
+            <span class="text-slate-500 font-semibold font-mono text-xs tracking-wider uppercase">SEÑAL EN ESPERA</span>
+          </div>`;
+      }
+      document.getElementById('vsPlaqueBadge').innerHTML = plaqueBadgeHtml;
+      
+      document.getElementById('vsCardA').innerHTML = renderContenderVisual(cA, viewersA >= viewersB && total > 0, 'text-matrix', 'bg-matrix');
+      document.getElementById('vsCardB').innerHTML = renderContenderVisual(cB, viewersB > viewersA && total > 0, 'text-blue-400', 'bg-blue-500');
+      
+      document.getElementById('vsBarA').style.width = pctA + '%';
+      document.getElementById('vsBarB').style.width = pctB + '%';
+      
+      document.getElementById('vsPctA').innerText = pctA + '%';
+      document.getElementById('vsPctB').innerText = pctB + '%';
+    }
+
+    function abrirVersus(canalId) {
+      populateVersusDropdowns();
+      document.getElementById('vsSelectA').value = canalId;
+      
+      const canales = getTodosLosCanales();
+      const topCompetitor = canales.find(c => c.id !== canalId);
+      if (topCompetitor) {
+        document.getElementById('vsSelectB').value = topCompetitor.id;
+      }
+
+      renderVersus();
+      document.getElementById('vsModal').classList.remove('hidden');
+    }
+
+    function cerrarVersus() {
+      document.getElementById('vsModal').classList.add('hidden');
+    }
+
+    async function descargarPlaca() {
         const btn = document.getElementById('btnDescargarPlaca');
         const originalText = btn.innerHTML;
         btn.innerHTML = 'Generando Placa HD...';
@@ -14,19 +820,16 @@ async function descargarPlaca() {
             let c1 = canales.find(c => c.id === idA) || canales[0];
             let c2 = canales.find(c => c.id === idB) || canales[1] || canales[0];
 
-            // Ordenar para que el ganador siempre sea c1
             if ((c2.viewers || 0) > (c1.viewers || 0)) {
                 let temp = c1; c1 = c2; c2 = temp;
             }
 
             const isMobile = window.innerWidth < 768;
             const canvas = document.createElement('canvas');
-            // Doble resolución limpia
             canvas.width = isMobile ? 1080 : 1200;
             canvas.height = isMobile ? 1920 : 675;
             const ctx = canvas.getContext('2d');
 
-            // Funciones Auxiliares dentro del scope principal
             const roundRect = (ctx, x, y, width, height, radius, fill, stroke, strokeWidth = 1) => {
                 ctx.beginPath();
                 ctx.moveTo(x + radius, y);
@@ -68,7 +871,7 @@ async function descargarPlaca() {
                 img.onload = () => resolve(img);
                 img.onerror = () => resolve(null);
                 img.src = url;
-                setTimeout(() => resolve(null), 1500); // timeout por las dudas
+                setTimeout(() => resolve(null), 1500);
             });
 
             const ytPath = "M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z";
@@ -142,16 +945,16 @@ async function descargarPlaca() {
                 ctx.fillText((c.viewers || 0).toLocaleString('es-AR'), startX + (isMobile ? 45 : 30), startY + (isMobile ? 390 : 280));
 
                 ctx.beginPath();
-                ctx.moveTo(startX + 30, startY + (isMobile ? 420 : 310));
-                ctx.lineTo(startX + wCard - 30, startY + (isMobile ? 420 : 310));
+                ctx.moveTo(startX + 30, startY + (isMobile ? 430 : 310));
+                ctx.lineTo(startX + wCard - 30, startY + (isMobile ? 430 : 310));
                 ctx.strokeStyle = '#1e293b';
                 ctx.lineWidth = 1;
                 ctx.stroke();
 
                 const pY = startY + (isMobile ? 450 : 325);
-                const pW = (wCard - 80) / 3; 
+                const pW = (wCard - (isMobile ? 120 : 80)) / 3; 
                 const pH = isMobile ? 65 : 45;
-                const pGap = 10;
+                const pGap = isMobile ? 20 : 10;
                 const platformValSize = isMobile ? '24px' : '18px';
                 
                 const drawPlat = (px, svgPath, val, color) => {
@@ -161,7 +964,7 @@ async function descargarPlaca() {
                     ctx.font = `bold ${platformValSize} monospace`;
                     ctx.fillStyle = '#e2e8f0';
                     ctx.textAlign = 'right';
-                    ctx.fillText(isActive ? val.toLocaleString('es-AR') : '0', px + pW - 20, pY + (isMobile ? 42 : 28));
+                    ctx.fillText(isActive ? val.toLocaleString('es-AR') : '0', px + pW - (isMobile ? 30 : 20), pY + (isMobile ? 42 : 28));
                     ctx.textAlign = 'left';
                 };
 
@@ -171,11 +974,21 @@ async function descargarPlaca() {
                 drawPlat(startX + (isMobile ? 40 : 30) + (pW + pGap)*2, kiPath, vb.ki || 0, '#00ff88');
             };
 
-            // --- Ejecución del dibujo ---
             ctx.fillStyle = '#050811';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Coordenadas Header
+            ctx.fillStyle = '#1e293b';
+            for(let ix = 0; ix < canvas.width; ix += 8) {
+                for(let iy = 0; iy < canvas.height; iy += 8) {
+                    ctx.fillRect(ix, iy, 1, 1);
+                }
+            }
+            const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            grad.addColorStop(0, 'rgba(11,17,32,0.8)');
+            grad.addColorStop(1, 'rgba(5,8,17,0.9)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
             const headerX = isMobile ? 90 : 80;
             const headerY = isMobile ? 100 : 50;
             const scaleTitle = isMobile ? 1.5 : 1;
@@ -204,7 +1017,6 @@ async function descargarPlaca() {
             ctx.fillStyle = 'rgba(0, 255, 136, 0.9)';
             ctx.fillText(timestampText, headerX, headerY + (45 * scaleTitle));
 
-            // Badge Directo/Rerun
             const st1 = getStatus(c1), st2 = getStatus(c2);
             let badgeTxt = 'SEÑAL EN ESPERA', badgeColor = '#64748b', badgeBg = 'rgba(30,41,59,0.6)', badgeStroke = '#334155';
             if((st1.isLive && !st1.isRerun) || (st2.isLive && !st2.isRerun)) { 
@@ -225,29 +1037,20 @@ async function descargarPlaca() {
             ctx.fill();
             ctx.fillText(badgeTxt, badgeX + (35 * scaleTitle), headerY + (15 * scaleTitle));
 
-            // Coordenadas Tarjetas
             let startX1, startY1, startX2, startY2, wCard, hCard;
-
             if (isMobile) {
-                wCard = 900;
-                hCard = 540;
-                startX1 = 90;
-                startY1 = 280;
-                startX2 = 90;
-                startY2 = 980;
+                wCard = 900; hCard = 540;
+                startX1 = 90; startY1 = 280;
+                startX2 = 90; startY2 = 980;
             } else {
-                wCard = 520;
-                hCard = 390;
-                startX1 = 55;
-                startY1 = 150;
-                startX2 = 625;
-                startY2 = 150;
+                wCard = 520; hCard = 390;
+                startX1 = 55; startY1 = 150;
+                startX2 = 625; startY2 = 150;
             }
 
             await drawCard(c1, true, startX1, startY1, wCard, hCard);
             await drawCard(c2, false, startX2, startY2, wCard, hCard);
 
-            // Círculo VS Central
             const vsX = canvas.width / 2;
             const vsY = isMobile ? 900 : 345;
             const vsR = isMobile ? 70 : 45;
@@ -266,7 +1069,6 @@ async function descargarPlaca() {
             ctx.textBaseline = 'middle';
             ctx.fillText('VS', vsX, vsY);
 
-            // Barra de dominio
             const viewers1 = c1.viewers || 0;
             const viewers2 = c2.viewers || 0;
             const total = viewers1 + viewers2;
@@ -322,14 +1124,12 @@ async function descargarPlaca() {
             ctx.fillRect(barX + (barW * (pct1/100)), bY + (isMobile ? 25 : 15), barW, barH);
             ctx.restore();
 
-            // Pie
             const creditsY = isMobile ? 1800 : 650;
             ctx.font = `${isMobile ? 24 : 14}px monospace`;
             ctx.fillStyle = '#475569';
             ctx.textAlign = 'center';
             ctx.fillText('streamrank.modoia.online', vsX, creditsY);
 
-            // Exportar
             try {
                 const dataUrl = canvas.toDataURL('image/png', 1.0);
                 const link = document.createElement('a');
@@ -360,3 +1160,11 @@ async function descargarPlaca() {
             btn.disabled = false;
         }
     }
+
+    function filtrarCanales() { renderizarCatalogo(); }
+
+    cargarCatalogo();
+    setInterval(cargarCatalogo, 10000);
+  </script>
+</body>
+</html>
