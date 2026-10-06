@@ -10,11 +10,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// API Key de Google (opcional o de respaldo)
 const YOUTUBE_API_KEY = (process.env.YOUTUBE_API_KEY || '').trim().replace(/['"\r\n\s]/g, '');
-
-const YT_POLL_MS = Number(process.env.YT_POLL_MS) || 25 * 1000;          // viewers cada 25s
-const YT_DISCOVER_MS = Number(process.env.YT_DISCOVER_MS) || 60 * 1000;  // detección cada 60s
 
 const TZ_ARG = 'America/Argentina/Buenos_Aires';
 function obtenerHoraArg() {
@@ -143,10 +139,7 @@ const CANALES = [
 
 const publicPath = path.resolve(__dirname, 'public');
 const logosDir = path.join(publicPath, 'logos');
-
-if (!fs.existsSync(logosDir)) {
-  fs.mkdirSync(logosDir, { recursive: true });
-}
+if (!fs.existsSync(logosDir)) fs.mkdirSync(logosDir, { recursive: true });
 
 const horaBase = obtenerHoraArg();
 
@@ -171,17 +164,17 @@ const telemetriaState = CANALES.map((c) => {
   };
 });
 
-// ───────────────────────── 1. Kick ─────────────────────────
+// ───────────────────────── 1. Kick (Liviano con timeout estricto) ─────────────────────────
 async function consultarKick(user) {
   if (!user) return { isLive: false, viewers: 0 };
   try {
     const res = await fetch('https://kick.com/api/v1/channels/' + user, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-      signal: AbortSignal.timeout(3500)
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      signal: AbortSignal.timeout(2000)
     });
     if (!res.ok) return { isLive: false, viewers: 0 };
     const data = await res.json();
-    if (data && data.livestream && data.livestream.is_live) {
+    if (data?.livestream?.is_live) {
       return {
         isLive: true,
         viewers: parseInt(data.livestream.viewer_count || 0, 10),
@@ -197,7 +190,7 @@ async function consultarTwitch(user) {
   if (!user) return { isLive: false, viewers: 0 };
   try {
     const query = JSON.stringify({
-      query: 'query { user(login: "' + user + '") { stream { viewersCount title } } }'
+      query: `query { user(login: "${user}") { stream { viewersCount title } } }`
     });
     const res = await fetch('https://gql.twitch.tv/gql', {
       method: 'POST',
@@ -206,11 +199,11 @@ async function consultarTwitch(user) {
         'Content-Type': 'application/json'
       },
       body: query,
-      signal: AbortSignal.timeout(3500)
+      signal: AbortSignal.timeout(2000)
     });
     if (!res.ok) return { isLive: false, viewers: 0 };
     const data = await res.json();
-    const stream = data && data.data && data.data.user && data.data.user.stream;
+    const stream = data?.data?.user?.stream;
     if (stream) {
       return {
         isLive: true,
@@ -222,7 +215,7 @@ async function consultarTwitch(user) {
   return { isLive: false, viewers: 0 };
 }
 
-// ───────────────────────── 3. YouTube Motor Híbrido ─────────────────────────
+// ───────────────────────── 3. YouTube (Optimizado) ─────────────────────────
 const ytRuntime = new Map();
 for (const c of CANALES) {
   if (!c.ytHandle && !c.ytChannelId) continue;
@@ -233,32 +226,36 @@ for (const c of CANALES) {
     videoId: null,
     title: '',
     live: false,
-    viewers: 0,
-    updatedAt: 0
+    viewers: 0
   });
 }
 
-// Fallback por scraping directo del /live sin consumir cuota
+async function idsDesdeRSS(channelId) {
+  try {
+    const r = await fetch('https://www.youtube.com/feeds/videos.xml?channel_id=' + channelId, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      signal: AbortSignal.timeout(2500)
+    });
+    if (!r.ok) return [];
+    const xml = await r.text();
+    return [...xml.matchAll(/([^<]+)<\/yt:videoId>/g)].map((m) => m[1]).slice(0, 3);
+  } catch (e) {
+    return [];
+  }
+}
+
 async function scrapearLiveDirecto(handle) {
   try {
     const cleanHandle = handle.replace('@', '');
     const res = await fetch(`https://www.youtube.com/@${cleanHandle}/live`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-        'Accept-Language': 'es-419,es;q=0.9,en;q=0.8'
-      },
-      signal: AbortSignal.timeout(5000),
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/126.0.0.0 Safari/537.36' },
+      signal: AbortSignal.timeout(3000),
       redirect: 'follow'
     });
-
     if (!res.ok) return null;
     const html = await res.text();
-
     const isLive = html.includes('"isLive":true') || html.includes('"isLiveStream":true');
     if (!isLive) return null;
-
-    const vidMatch = html.match(/"videoId":"([^"]{11})"/);
-    const videoId = vidMatch ? vidMatch[1] : null;
 
     let viewers = 0;
     const vcMatch = html.match(/"viewCount":\{"runs":\[\{"text":"([^"]+)"\}/) || html.match(/"videoViewCountRenderer":\{"viewCount":\{"simpleText":"([^"]+)"\}/);
@@ -271,119 +268,82 @@ async function scrapearLiveDirecto(handle) {
     if (tMatch && tMatch[1]) {
       title = tMatch[1].replace('- YouTube', '').trim();
     }
-
-    return { videoId, isLive: true, viewers, title };
+    return { isLive: true, viewers, title };
   } catch (err) {
     return null;
   }
 }
 
-async function idsDesdeRSS(channelId, max = 5) {
-  try {
-    const r = await fetch('https://www.youtube.com/feeds/videos.xml?channel_id=' + channelId, {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
-      signal: AbortSignal.timeout(5000)
-    });
-    if (!r.ok) return [];
-    const xml = await r.text();
-    return [...xml.matchAll(/([^<]+)<\/yt:videoId>/g)].map((m) => m[1]).slice(0, max);
-  } catch (e) {
-    return [];
-  }
-}
-
-async function verificarVideos(ids) {
+async function verificarVideosApi(ids) {
   const out = new Map();
   if (!YOUTUBE_API_KEY || !ids.length) return out;
-  const unicos = [...new Set(ids)];
-  
-  for (let i = 0; i < unicos.length; i += 50) {
-    try {
-      const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=\({unicos.slice(i, i + 50).join(',')}&key=\){YOUTUBE_API_KEY}`;
-      const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
-      if (!r.ok) continue;
-      const d = await r.json();
-      for (const it of (d && d.items ? d.items : [])) {
-        const l = it.liveStreamingDetails;
-        const live = Boolean(l && l.actualStartTime && !l.actualEndTime);
-        out.set(it.id, {
-          live,
-          viewers: live ? Number(l.concurrentViewers || 0) : 0,
-          title: (it.snippet && it.snippet.title) || 'En vivo'
-        });
-      }
-    } catch (e) {}
-  }
+  try {
+    const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=\({ids.join(',')}&key=\){YOUTUBE_API_KEY}`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(3000) });
+    if (!r.ok) return out;
+    const d = await r.json();
+    for (const it of (d?.items || [])) {
+      const l = it.liveStreamingDetails;
+      const live = Boolean(l && l.actualStartTime && !l.actualEndTime);
+      out.set(it.id, {
+        live,
+        viewers: live ? Number(l.concurrentViewers || 0) : 0,
+        title: it.snippet?.title || 'En vivo'
+      });
+    }
+  } catch (e) {}
   return out;
 }
 
-// Sondeo periódico ultra-rápido de YouTube
-async function actualizarYouTube() {
-  for (const rt of ytRuntime.values()) {
-    try {
-      // 1. Si tenemos video activo y API Key, sondeamos su métrica
-      if (rt.videoId && YOUTUBE_API_KEY) {
-        const res = await verificarVideos([rt.videoId]);
-        const data = res.get(rt.videoId);
-        if (data && data.live) {
-          rt.live = true;
-          rt.viewers = data.viewers;
-          rt.title = data.title;
-          rt.updatedAt = Date.now();
-          continue;
-        }
-      }
+let escaneoEnCurso = false;
+async function escanearYouTubeEnSegundoPlano() {
+  if (escaneoEnCurso) return;
+  escaneoEnCurso = true;
 
-      // 2. Si no tiene video o la API falló, chequeo rápido vía RSS
-      if (rt.channelId && YOUTUBE_API_KEY) {
-        const ids = await idsDesdeRSS(rt.channelId, 3);
-        if (ids.length) {
-          const res = await verificarVideos(ids);
+  try {
+    // 1. Recolectar IDs vía RSS de a 5 canales a la vez
+    const canalesConChannelId = [...ytRuntime.values()].filter(rt => rt.channelId);
+    for (let i = 0; i < canalesConChannelId.length; i += 6) {
+      const lote = canalesConChannelId.slice(i, i + 6);
+      await Promise.all(lote.map(async (rt) => {
+        const ids = await idsDesdeRSS(rt.channelId);
+        if (ids.length && YOUTUBE_API_KEY) {
+          const res = await verificarVideosApi(ids);
           const vivo = ids.map(id => ({ id, ...res.get(id) })).find(v => v.live);
           if (vivo) {
-            rt.videoId = vivo.id;
-            rt.title = vivo.title;
             rt.live = true;
             rt.viewers = vivo.viewers;
-            rt.updatedAt = Date.now();
-            continue;
+            rt.title = vivo.title;
+            return;
           }
         }
-      }
-
-      // 3. Respaldo definitivo infalible: /live directo
-      if (rt.handle) {
-        const scraped = await scrapearLiveDirecto(rt.handle);
-        if (scraped && scraped.isLive) {
-          rt.videoId = scraped.videoId || rt.videoId;
-          rt.title = scraped.title || rt.title;
-          rt.live = true;
-          rt.viewers = scraped.viewers > 0 ? scraped.viewers : rt.viewers;
-          rt.updatedAt = Date.now();
-          continue;
+        // Si no dio por RSS/API, chequeamos por /live directo
+        if (rt.handle) {
+          const scraped = await scrapearLiveDirecto(rt.handle);
+          if (scraped && scraped.isLive) {
+            rt.live = true;
+            rt.viewers = scraped.viewers > 0 ? scraped.viewers : rt.viewers;
+            rt.title = scraped.title || rt.title;
+            return;
+          }
         }
-      }
-
-      // Si ningún método detectó vivo:
-      rt.live = false;
-      rt.viewers = 0;
-      rt.videoId = null;
-      rt.updatedAt = Date.now();
-
-    } catch (err) {
-      console.warn(`[YT-Update] Error en ${rt.canalId}:`, err.message);
+        rt.live = false;
+        rt.viewers = 0;
+      }));
+      await new Promise(r => setTimeout(r, 200));
     }
-
-    // Pequeño delay de 250ms entre canales para no alertar a YouTube
-    await new Promise(r => setTimeout(r, 250));
+  } catch (err) {
+    console.warn('[YT Scan Error]:', err.message);
+  } finally {
+    escaneoEnCurso = false;
   }
 }
 
 // ───────────────────────── Sincronizador Maestro ─────────────────────────
-let ejecutandoSync = false;
+let syncEnCurso = false;
 async function sincronizarPipeline() {
-  if (ejecutandoSync) return;
-  ejecutandoSync = true;
+  if (syncEnCurso) return;
+  syncEnCurso = true;
   const horaActual = obtenerHoraArg();
 
   try {
@@ -414,126 +374,10 @@ async function sincronizarPipeline() {
   } catch (err) {
     console.error('Error sincronizando pipeline:', err);
   } finally {
-    ejecutandoSync = false;
+    syncEnCurso = false;
   }
 }
 
-// Iniciar bucles de telemetría
-setInterval(actualizarYouTube, YT_POLL_MS);
-setInterval(sincronizarPipeline, 10000);
-
-// Primer barrido inmediato
-setTimeout(async () => {
-  await actualizarYouTube();
-  await sincronizarPipeline();
-}, 1000);
-
-// ───────────────────────── Endpoints API ─────────────────────────
-app.get('/api/ranking-categorias', (req, res) => {
-  try {
-    const categorias = CATEGORIAS_ORDEN.map((catKey) => {
-      const meta = CATEGORIAS_CONFIG[catKey];
-      const canales = telemetriaState
-        .filter((c) => c.categoria === catKey)
-        .sort((a, b) => b.viewers - a.viewers);
-
-      const lider = canales.find((c) => c.is_live && c.viewers > 0) || null;
-
-      return {
-        id: catKey,
-        nombre: meta.nombre,
-        banner: meta.banner,
-        bannerColor: meta.bannerColor,
-        borderColor: meta.borderColor,
-        lider,
-        total_canales: canales.length,
-        canales
-      };
-    });
-
-    res.json({
-      status: 'success',
-      timestamp: obtenerHoraArg(),
-      fecha: obtenerFechaArg(),
-      categorias
-    });
-  } catch (err) {
-    res.status(500).json({ error: 'Error interno en telemetría' });
-  }
-});
-
-app.get('/api/dataset-ai', (req, res) => {
-  res.json({
-    status: 'ok',
-    total_canales: telemetriaState.length,
-    timestamp: new Date().toISOString(),
-    canales: telemetriaState
-  });
-});
-
-const csvCampo = (v) => '"' + String(v != null ? v : '').replace(/"/g, '""') + '"';
-
-app.get('/api/descargar-analytics', (req, res) => {
-  const canalId = req.query.canal || 'todos';
-  const periodo = req.query.periodo || 'hoy';
-  const formato = req.query.formato || 'json';
-
-  let datosFiltrados = telemetriaState;
-  if (canalId !== 'todos') {
-    datosFiltrados = telemetriaState.filter((c) => c.id === canalId);
-  }
-
-  if (formato === 'csv') {
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename="streamrank_' + canalId + '_' + periodo + '.csv"');
-    let csv = 'Canal,Categoria,Handle,Viewers_Total,YouTube,Twitch,Kick,Estado,Titulo,Ultima_Actualizacion\n';
-    datosFiltrados.forEach((c) => {
-      csv += [
-        csvCampo(c.nombre),
-        csvCampo(c.categoria),
-        csvCampo(c.handle),
-        c.viewers,
-        c.viewers_breakdown.yt,
-        c.viewers_breakdown.tw,
-        c.viewers_breakdown.ki,
-        csvCampo(c.is_live ? 'EN VIVO' : 'OFFLINE'),
-        csvCampo(c.title),
-        csvCampo(c.hora_actualizacion)
-      ].join(',') + '\n';
-    });
-    return res.send(csv);
-  }
-
-  const exportPayload = {
-    metadata: {
-      fuente: 'StreamRank Argentina',
-      alcance: canalId,
-      periodo: periodo,
-      timestamp: new Date().toISOString(),
-      formato: 'AI_Semantic_Dataset'
-    },
-    instrucciones_ia: {
-      rol: 'Sos un auditor senior de medios y métricas de streaming en Argentina.',
-      tarea: 'Respondé las dudas del usuario basándote exclusivamente en la telemetría adjunta.'
-    },
-    canales: datosFiltrados
-  };
-
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Content-Disposition', 'attachment; filename="streamrank_' + canalId + '_' + periodo + '.json"');
-  return res.json(exportPayload);
-});
-
-app.get('/modoia', (req, res) => {
-  res.redirect(301, 'https://modoia.online');
-});
-
-app.use(express.static(publicPath));
-
-app.use((req, res) => {
-  res.sendFile(path.join(publicPath, 'index.html'));
-});
-
-app.listen(PORT, '0.0.0.0', () => {
-  console.log('[StreamRank ARG] Servidor activo en puerto ' + PORT);
-});
+// ───────────────────────── Timers Asíncronos ─────────────────────────
+// Ejecutan en segundo plano, NUNCA traban la respuesta HTTP
+setInterval(escanearYouTubeEnSegundoPlano,
