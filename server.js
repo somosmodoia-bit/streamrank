@@ -313,7 +313,7 @@ async function resolverTodos() {
   });
 }
 
-// Rescate canónico instantáneo para transmisiones nuevas (0 cuota de API)
+// Rescate canónico directo sin gastar cuota de API
 async function idDesdeLiveUrl(rt) {
   try {
     const destino = rt.handle
@@ -390,7 +390,7 @@ async function descubrir({ playlist }) {
     const ids = [];
     if (rt.fixedVideoId) ids.push(rt.fixedVideoId);
 
-    // 1. Rescate inmediato por URL canónica
+    // 1. Rescate canónico directo
     const liveDirecto = await idDesdeLiveUrl(rt);
     if (liveDirecto) ids.push(liveDirecto);
 
@@ -456,7 +456,6 @@ async function pollYouTube() {
       rt.live = false;
       rt.viewers = 0;
       rt.title = '';
-      // Si cortó, sondea rápido si arrancó otro stream enseguida
       idDesdeLiveUrl(rt).then((nuevoId) => {
         if (nuevoId && nuevoId !== rt.videoId) {
           rt.videoId = nuevoId;
