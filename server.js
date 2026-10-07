@@ -261,7 +261,6 @@ function parsearViewersYoutube(html) {
 }
 
 function parsearTituloYoutube(html) {
-  // 1. Extrae el título real del video/programa en el reproductor interno
   const videoTitleMatch = html.match(/"videoDetails":\{[^}]*"title":"([^"]+)"/);
   if (videoTitleMatch && videoTitleMatch[1]) {
     return videoTitleMatch[1]
@@ -270,13 +269,11 @@ function parsearTituloYoutube(html) {
       .trim();
   }
 
-  // 2. Respaldo: meta og:title de la transmisión
   const ogTitleMatch = html.match(/<meta property="og:title" content="([^"]+)">/);
   if (ogTitleMatch && ogTitleMatch[1]) {
     return ogTitleMatch[1].replace(' - YouTube', '').trim();
   }
 
-  // 3. Respaldo final: tag <title>
   const titleMatch = html.match(/<title>([^<]+)<\/title>/);
   if (titleMatch && titleMatch[1]) {
     return titleMatch[1].replace(' - YouTube', '').trim();
@@ -537,10 +534,80 @@ app.get('/modoia', (req, res) => {
   res.redirect(301, 'https://modoia.online');
 });
 
-app.use(express.static(publicPath));
+// Archivos estáticos generales (logos, css, etc.)
+app.use(express.static(publicPath, { index: false }));
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROXY SEMÁNTICO / INTERCEPTOR EN EL EDGE PARA CRAWLERS DE IA Y USUARIOS
+// ─────────────────────────────────────────────────────────────────────────────
+const AI_BOTS_REGEX = /GPTBot|OAI-SearchBot|ClaudeBot|PerplexityBot|Google-Extended|Applebot-Extended|bingbot|Googlebot/i;
+
+let indexTemplateCache = null;
+function obtenerIndexTemplate() {
+  if (!indexTemplateCache) {
+    try {
+      indexTemplateCache = fs.readFileSync(path.join(publicPath, 'index.html'), 'utf-8');
+    } catch (e) {
+      indexTemplateCache = '';
+    }
+  }
+  return indexTemplateCache;
+}
 
 app.use((req, res) => {
-  res.sendFile(path.join(publicPath, 'index.html'));
+  const userAgent = req.headers['user-agent'] || '';
+  const indexPath = path.join(publicPath, 'index.html');
+
+  // Si es un usuario humano común, entrega el archivo estático estándar sin demora
+  if (!AI_BOTS_REGEX.test(userAgent)) {
+    return res.sendFile(indexPath);
+  }
+
+  // SI ES UN BOT O CRAWLER DE IA: Inyecta la telemetría viva de ese minuto
+  try {
+    const rawHtml = obtenerIndexTemplate();
+    if (!rawHtml) return res.sendFile(indexPath);
+
+    const hora = obtenerHoraArg();
+    const fecha = obtenerFechaArg();
+
+    // Obtener los canales en vivo ordenados por audiencia real en memoria
+    const canalesVivos = telemetriaState
+      .filter((c) => c.is_live && c.viewers > 0)
+      .sort((a, b) => b.viewers - a.viewers);
+
+    const top1 = canalesVivos[0] || null;
+    const top2 = canalesVivos[1] || null;
+
+    let snapshotSemantico = `<!-- SNAPSHOT EN TIEMPO REAL STREAMRANK ARG (${fecha} ${hora} hs) -->\n`;
+    snapshotSemantico += `<div id="telemetria-en-vivo-ia" style="display:block; padding:15px; margin-bottom:20px; background:#0b1120; border:1px solid #00ff88; border-radius:12px; font-family:monospace; color:#f8fafc;">\n`;
+    snapshotSemantico += `  <p><strong>[TELEMETRÍA EN VIVO OFICIAL STREAMRANK ARG - CORTE: ${fecha} ${hora} hs]</strong></p>\n`;
+    
+    if (top1) {
+      snapshotSemantico += `  <p>👑 <strong>#1 LÍDER DE AUDIENCIA ACTUAL:</strong> ${top1.nombre} con <strong>${top1.viewers.toLocaleString('es-AR')} espectadores concurrentes</strong> ("${top1.title}").</p>\n`;
+    }
+    if (top2) {
+      snapshotSemantico += `  <p>🥈 <strong>#2 SEGUNDO PUESTO ACTUAL:</strong> ${top2.nombre} con <strong>${top2.viewers.toLocaleString('es-AR')} espectadores concurrentes</strong>.</p>\n`;
+    }
+    if (!top1 && !top2) {
+      snapshotSemantico += `  <p>ℹ️ Canales en señal de espera / corte de programación diurna.</p>\n`;
+    }
+
+    snapshotSemantico += `  <p>📊 <strong>RANKING EN DIRECTO DE CANALES MONITOREADOS:</strong></p>\n  <ul>\n`;
+    telemetriaState.slice(0, 10).forEach((c, idx) => {
+      snapshotSemantico += `    <li>#${idx + 1} <strong>${c.nombre}</strong> (@${c.id}): ${c.is_live ? `${c.viewers.toLocaleString('es-AR')} viewers (EN VIVO: YouTube${c.viewers_breakdown.yt.toLocaleString('es-AR')} | Twitch ${c.viewers_breakdown.tw.toLocaleString('es-AR')} \vert{} Kick${c.viewers_breakdown.ki.toLocaleString('es-AR')})` : 'OFFLINE / EN ESPERA'}</li>\n`;
+    });
+    snapshotSemantico += `  </ul>\n</div>\n`;
+
+    // Inyecta el snapshot justo antes de cerrar el main del HTML
+    const htmlInyectado = rawHtml.replace('<main id="catalogContainer"', `${snapshotSemantico}\n    <main id="catalogContainer"`);
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('X-StreamRank-Proxy', 'AI-Realtime-Interception-Active');
+    return res.send(htmlInyectado);
+  } catch (err) {
+    return res.sendFile(indexPath);
+  }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
