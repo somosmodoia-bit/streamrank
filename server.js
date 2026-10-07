@@ -184,10 +184,9 @@ async function consultarKick(user) {
     if (!res.ok) return { isLive: false, viewers: 0 };
     const data = await res.json();
     if (data && data.livestream && data.livestream.is_live) {
-      const v = parseInt(data.livestream.viewer_count || 0, 10);
       return {
-        isLive: v > 0,
-        viewers: v,
+        isLive: true,
+        viewers: parseInt(data.livestream.viewer_count || 0, 10),
         title: data.livestream.session_title || ''
       };
     }
@@ -215,10 +214,9 @@ async function consultarTwitch(user) {
     const data = await res.json();
     const stream = data && data.data && data.data.user && data.data.user.stream;
     if (stream) {
-      const v = parseInt(stream.viewersCount || 0, 10);
       return {
-        isLive: v > 0,
-        viewers: v,
+        isLive: true,
+        viewers: parseInt(stream.viewersCount || 0, 10),
         title: stream.title || ''
       };
     }
@@ -226,7 +224,7 @@ async function consultarTwitch(user) {
   return { isLive: false, viewers: 0 };
 }
 
-// ───────────────────────── 3. YouTube (Scraper Directo con Filtro de Salas de Espera) ─────────────────────────
+// ───────────────────────── 3. YouTube (Scraper Directo Sin Cuota) ─────────────────────────
 const ytRuntime = new Map();
 for (const c of CANALES) {
   if (!c.ytHandle && !c.ytChannelId) continue;
@@ -263,7 +261,7 @@ function parsearViewersYoutube(html) {
 }
 
 function parsearTituloYoutube(html) {
-  // 1. Extrae el título del reproductor de video
+  // 1. Extrae el título real del video/programa en el reproductor interno
   const videoTitleMatch = html.match(/"videoDetails":\{[^}]*"title":"([^"]+)"/);
   if (videoTitleMatch && videoTitleMatch[1]) {
     return videoTitleMatch[1]
@@ -272,13 +270,13 @@ function parsearTituloYoutube(html) {
       .trim();
   }
 
-  // 2. Respaldo: OpenGraph meta tag
+  // 2. Respaldo: meta og:title de la transmisión
   const ogTitleMatch = html.match(/<meta property="og:title" content="([^"]+)">/);
   if (ogTitleMatch && ogTitleMatch[1]) {
     return ogTitleMatch[1].replace(' - YouTube', '').trim();
   }
 
-  // 3. Respaldo final: tag title
+  // 3. Respaldo final: tag <title>
   const titleMatch = html.match(/<title>([^<]+)<\/title>/);
   if (titleMatch && titleMatch[1]) {
     return titleMatch[1].replace(' - YouTube', '').trim();
@@ -314,23 +312,6 @@ async function consultarYoutubeDirecto(rt) {
     }
 
     const html = await res.text();
-
-    // FILTRO 1: Descartar si es un estreno programado o sala de espera inactiva
-    const esEspera = html.includes('"isUpcoming":true') || 
-                     html.includes('"status":"UPCOMING"') || 
-                     html.includes('LIVE_STREAM_OFFLINE') ||
-                     html.includes('Comienza en') || 
-                     html.includes('Premiere in');
-
-    if (esEspera) {
-      rt.live = false;
-      rt.viewers = 0;
-      rt.videoId = null;
-      rt.consecutiveFails = 0;
-      return null;
-    }
-
-    // FILTRO 2: Comprobar si efectivamente está al aire
     const esEnVivo = html.includes('"isLive":true') || 
                      html.includes('"isLiveStream":true') || 
                      html.includes('{"text":" mirando"}') || 
@@ -347,16 +328,6 @@ async function consultarYoutubeDirecto(rt) {
       return null;
     }
 
-    const viewers = parsearViewersYoutube(html);
-
-    // FILTRO 3: Si marca menos de 5 viewers en YouTube, es falso positivo / canal en standby
-    if (viewers < 5) {
-      rt.live = false;
-      rt.viewers = 0;
-      rt.videoId = null;
-      return null;
-    }
-
     let vid = rt.fixedVideoId;
     if (!vid) {
       const canonicalMatch = html.match(/<link rel="canonical" href="https:\/\/www\.youtube\.com\/watch\?v=([^"]+)"/);
@@ -365,10 +336,11 @@ async function consultarYoutubeDirecto(rt) {
       }
     }
 
+    const viewers = parsearViewersYoutube(html);
     const title = parsearTituloYoutube(html);
 
     rt.live = true;
-    rt.viewers = viewers;
+    rt.viewers = viewers > 0 ? viewers : (rt.viewers > 0 ? rt.viewers : 1);
     rt.title = title;
     rt.videoId = vid;
     rt.consecutiveFails = 0;
@@ -384,7 +356,7 @@ async function sincronizarYoutube() {
   }
 }
 
-// ───────────────────────── Pipeline Multiplataforma ─────────────────────────
+// ───────────────────────── Pipeline Twitch / Kick + cruce con YouTube ─────────────────────────
 let ejecutandoSync = false;
 async function sincronizarPipeline() {
   if (ejecutandoSync) return;
