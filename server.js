@@ -261,6 +261,22 @@ function parsearViewersYoutube(html) {
 }
 
 function parsearTituloYoutube(html) {
+  // 1. Extrae el título real del video/programa en el reproductor interno
+  const videoTitleMatch = html.match(/"videoDetails":\{[^}]*"title":"([^"]+)"/);
+  if (videoTitleMatch && videoTitleMatch[1]) {
+    return videoTitleMatch[1]
+      .replace(/\\u0026/g, '&')
+      .replace(/\\"/g, '"')
+      .trim();
+  }
+
+  // 2. Respaldo: meta og:title de la transmisión
+  const ogTitleMatch = html.match(/<meta property="og:title" content="([^"]+)">/);
+  if (ogTitleMatch && ogTitleMatch[1]) {
+    return ogTitleMatch[1].replace(' - YouTube', '').trim();
+  }
+
+  // 3. Respaldo final: tag <title>
   const titleMatch = html.match(/<title>([^<]+)<\/title>/);
   if (titleMatch && titleMatch[1]) {
     return titleMatch[1].replace(' - YouTube', '').trim();
