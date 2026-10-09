@@ -175,16 +175,18 @@ const telemetriaState = CANALES.map((c) => {
   };
 });
 
-// Filtro estricto para ignorar conteos de likes (ej: "3.7 K", "495", "12K")
-function esNumeroOLike(texto) {
+// Detecta si lo capturado es un contador de likes tipo "3.7 K", "495", etc.
+function esContadorLikes(texto) {
   if (!texto) return true;
   const t = texto.trim();
-  return /^([0-9.,\s]+|[0-9.,\s]+[kKmM])$/.test(t) || t === 'En vivo' || t === 'YouTube';
+  return /^([0-9.,\s]+|[0-9.,\s]+[kKmM])$/.test(t);
 }
 
 // Función para limpiar y acotar el nombre del programa sin desbordar el layout
 function limpiarNombrePrograma(rawTitle) {
-  if (!rawTitle || esNumeroOLike(rawTitle)) return 'En Vivo';
+  if (!rawTitle || rawTitle === 'En vivo' || rawTitle === 'YouTube' || esContadorLikes(rawTitle)) {
+    return 'En Vivo';
+  }
   const clean = rawTitle.replace(/\s+/g, ' ').trim();
   return clean.length > 42 ? clean.substring(0, 39) + '...' : clean;
 }
@@ -240,7 +242,7 @@ async function consultarTwitch(user) {
   return { isLive: false, viewers: 0 };
 }
 
-// ───────────────────────── 3. YouTube (Scraper Directo con Parser Robusto) ─────────────────────────
+// ───────────────────────── 3. YouTube (Scraper Directo) ─────────────────────────
 const ytRuntime = new Map();
 for (const c of CANALES) {
   if (!c.ytHandle && !c.ytChannelId) continue;
@@ -277,24 +279,32 @@ function parsearViewersYoutube(html) {
 }
 
 function parsearTituloYoutube(html) {
-  // 1. Parser en videoDetails sin chocar con botones de likes
-  const detailsMatch = html.match(/"videoDetails":\{[\s\S]*?"title":"([^"]+)"/);
-  if (detailsMatch && detailsMatch[1]) {
-    const t = detailsMatch[1].replace(/\\u0026/g, '&').replace(/\\"/g, '"').trim();
-    if (!esNumeroOLike(t)) return t;
+  // 1. Parser primario: solo lo toma si NO es un contador de likes
+  const runMatch = html.match(/"videoDescriptionHeaderRenderer":\{"title":\{"runs":\[\{"text":"([^"]+)"/);
+  if (runMatch && runMatch[1]) {
+    const t = runMatch[1].replace(/\\u0026/g, '&').replace(/\\"/g, '"').trim();
+    if (!esContadorLikes(t)) {
+      return t;
+    }
   }
 
-  // 2. Fallbacks oficiales de metadatos Open Graph
-  const ogTitleMatch = html.match(/<meta property="og:title" content="([^"]+)">/);
-  if (ogTitleMatch && ogTitleMatch[1]) {
-    const og = ogTitleMatch[1].replace(/&amp;/g, '&').replace(' - YouTube', '').trim();
-    if (!esNumeroOLike(og)) return og;
-  }
-
+  // 2. Fallbacks de etiquetas meta
   const metaMatch = html.match(/<meta name="title" content="([^"]+)">/);
   if (metaMatch && metaMatch[1]) {
-    const mt = metaMatch[1].replace(/&amp;/g, '&').replace(' - YouTube', '').trim();
-    if (!esNumeroOLike(mt)) return mt;
+    const t = metaMatch[1].replace(/&amp;/g, '&').replace(' - YouTube', '').trim();
+    if (!esContadorLikes(t)) return t;
+  }
+
+  const ogTitleMatch = html.match(/<meta property="og:title" content="([^"]+)">/);
+  if (ogTitleMatch && ogTitleMatch[1]) {
+    const t = ogTitleMatch[1].replace(/&amp;/g, '&').replace(' - YouTube', '').trim();
+    if (!esContadorLikes(t)) return t;
+  }
+
+  const titleMatch = html.match(/<title>([^<]+)<\/title>/);
+  if (titleMatch && titleMatch[1]) {
+    const t = titleMatch[1].replace(/&amp;/g, '&').replace(' - YouTube', '').trim();
+    if (!esContadorLikes(t)) return t;
   }
 
   return null;
@@ -359,10 +369,15 @@ async function consultarYoutubeDirecto(rt) {
       }
     }
 
+    // Manejo de título con persistencia (si un sondeo falla, no borra el título anterior)
     const rawTitle = parsearTituloYoutube(html);
     if (rawTitle) {
-      rt.title = limpiarNombrePrograma(rawTitle);
-    } else if (!rt.title) {
+      const parsed = limpiarNombrePrograma(rawTitle);
+      if (parsed !== 'En Vivo') {
+        rt.title = parsed;
+      }
+    }
+    if (!rt.title) {
       rt.title = 'En Vivo';
     }
 
