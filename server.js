@@ -175,9 +175,16 @@ const telemetriaState = CANALES.map((c) => {
   };
 });
 
+// Filtro estricto para ignorar conteos de likes (ej: "3.7 K", "495", "12K")
+function esNumeroOLike(texto) {
+  if (!texto) return true;
+  const t = texto.trim();
+  return /^([0-9.,\s]+|[0-9.,\s]+[kKmM])$/.test(t) || t === 'En vivo' || t === 'YouTube';
+}
+
 // Función para limpiar y acotar el nombre del programa sin desbordar el layout
 function limpiarNombrePrograma(rawTitle) {
-  if (!rawTitle || rawTitle === 'En vivo' || rawTitle === 'YouTube') return 'En Vivo';
+  if (!rawTitle || esNumeroOLike(rawTitle)) return 'En Vivo';
   const clean = rawTitle.replace(/\s+/g, ' ').trim();
   return clean.length > 42 ? clean.substring(0, 39) + '...' : clean;
 }
@@ -270,30 +277,27 @@ function parsearViewersYoutube(html) {
 }
 
 function parsearTituloYoutube(html) {
-  // 1. Parser primario: Título real del stream en el renderer nativo
-  const runMatch = html.match(/"videoDescriptionHeaderRenderer":\{"title":\{"runs":\[\{"text":"([^"]+)"/);
-  if (runMatch && runMatch[1]) {
-    return runMatch[1].replace(/\\u0026/g, '&').replace(/\\"/g, '"').trim();
-  }
-
-  // 2. Parser secundario: videoDetails transversal (sin tope de llaves)
+  // 1. Parser en videoDetails sin chocar con botones de likes
   const detailsMatch = html.match(/"videoDetails":\{[\s\S]*?"title":"([^"]+)"/);
   if (detailsMatch && detailsMatch[1]) {
-    return detailsMatch[1].replace(/\\u0026/g, '&').replace(/\\"/g, '"').trim();
+    const t = detailsMatch[1].replace(/\\u0026/g, '&').replace(/\\"/g, '"').trim();
+    if (!esNumeroOLike(t)) return t;
   }
 
-  // 3. Fallbacks de etiquetas meta
-  const metaMatch = html.match(/<meta name="title" content="([^"]+)">/);
-  if (metaMatch && metaMatch[1]) {
-    return metaMatch[1].replace(' - YouTube', '').trim();
-  }
-
+  // 2. Fallbacks oficiales de metadatos Open Graph
   const ogTitleMatch = html.match(/<meta property="og:title" content="([^"]+)">/);
   if (ogTitleMatch && ogTitleMatch[1]) {
-    return ogTitleMatch[1].replace(' - YouTube', '').trim();
+    const og = ogTitleMatch[1].replace(/&amp;/g, '&').replace(' - YouTube', '').trim();
+    if (!esNumeroOLike(og)) return og;
   }
 
-  return 'En vivo';
+  const metaMatch = html.match(/<meta name="title" content="([^"]+)">/);
+  if (metaMatch && metaMatch[1]) {
+    const mt = metaMatch[1].replace(/&amp;/g, '&').replace(' - YouTube', '').trim();
+    if (!esNumeroOLike(mt)) return mt;
+  }
+
+  return null;
 }
 
 async function consultarYoutubeDirecto(rt) {
@@ -356,11 +360,14 @@ async function consultarYoutubeDirecto(rt) {
     }
 
     const rawTitle = parsearTituloYoutube(html);
-    const title = limpiarNombrePrograma(rawTitle);
+    if (rawTitle) {
+      rt.title = limpiarNombrePrograma(rawTitle);
+    } else if (!rt.title) {
+      rt.title = 'En Vivo';
+    }
 
     rt.live = true;
     rt.viewers = viewers;
-    rt.title = title;
     rt.videoId = vid;
     rt.consecutiveFails = 0;
   } catch (e) {
