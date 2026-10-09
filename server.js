@@ -99,6 +99,7 @@ const CANALES = [
   { id: 'urbanaplay', nombre: 'Urbana Play', categoria: 'entretenimiento', ytHandle: 'UrbanaPlayFM', ytChannelId: 'UCC1kfsMJko54AqxtcFECt-A', twitchUser: 'urbanaplayfm' },
 
   // 2. Deportes
+  { id: 'elduka', nombre: 'El Duka', categoria: 'deportes', ytHandle: 'elduka' },
   { id: 'vestuario', nombre: 'Vestuario Stream', categoria: 'deportes', ytHandle: 'VestuarioStream' },
   { id: 'programa412', nombre: '412 Fútbol (Davoo & Cobra)', categoria: 'deportes', ytHandle: 'programa412', ytChannelId: 'UCD2w1rGcJc99akNKluz_FDw' },
   { id: 'azzstream', nombre: 'AZZ Stream (Azzaro)', categoria: 'deportes', ytHandle: 'somosazz', ytChannelId: 'UCgLBmUFPO8JtZ1nPIBQGMlQ' },
@@ -134,7 +135,8 @@ const CANALES = [
   { id: 'c5n', nombre: 'C5N', categoria: 'noticias', ytHandle: 'c5n', ytChannelId: 'UCFgk2Q2mVO1BklRQhSv6p0w' },
   { id: 'lanacionmas', nombre: 'La Nación +', categoria: 'noticias', ytHandle: 'lanacion', ytChannelId: 'UCba3hpU7EFBSk817y9qZkiA', ytVideoId: 'FEWZjXJ7M0c' },
   { id: 'telefenoticias', nombre: 'Telefe Noticias', categoria: 'noticias', ytHandle: 'telefenoticias' },
-  { id: 'telenueve', nombre: 'Telenueve / El Nueve', categoria: 'noticias', ytHandle: 'TelenueveC9', ytChannelId: 'UC2Q91pxDF0BPf0eK44pgYMw' },
+  { id: 'telenueve', nombre: 'El Nueve', categoria: 'noticias', ytHandle: 'elnueve' },
+  { id: 'carnaval', nombre: 'Carnaval Stream', categoria: 'noticias', ytHandle: 'CarnavalStream' },
   { id: 'neura', nombre: 'Neura Media / Troncal', categoria: 'noticias', ytHandle: 'NeuraMedia', ytChannelId: 'UC-40U87JsevMIMn7PMw4jPw', twitchUser: 'neuramedia' },
   { id: 'carajostream', nombre: 'Carajo Stream', categoria: 'noticias', ytHandle: 'carajostream', ytChannelId: 'UC4mdhKZXjrKoq5aVG6juHEg' },
   { id: 'eldestape', nombre: 'El Destape', categoria: 'noticias', ytHandle: 'ElDestapeTV', ytChannelId: 'UC5wAqJ9NF0fpGH9dVf3h6HA' },
@@ -173,6 +175,13 @@ const telemetriaState = CANALES.map((c) => {
   };
 });
 
+// Función para extraer el nombre del programa sin romper las tarjetas
+function limpiarNombrePrograma(rawTitle) {
+  if (!rawTitle) return 'En Vivo';
+  const clean = rawTitle.split(/[|—–-]/)[0].trim();
+  return clean.length > 40 ? clean.substring(0, 37) + '...' : clean;
+}
+
 // ───────────────────────── 1. Kick ─────────────────────────
 async function consultarKick(user) {
   if (!user) return { isLive: false, viewers: 0 };
@@ -187,7 +196,7 @@ async function consultarKick(user) {
       return {
         isLive: true,
         viewers: parseInt(data.livestream.viewer_count || 0, 10),
-        title: data.livestream.session_title || ''
+        title: limpiarNombrePrograma(data.livestream.session_title || '')
       };
     }
   } catch (e) {}
@@ -217,14 +226,14 @@ async function consultarTwitch(user) {
       return {
         isLive: true,
         viewers: parseInt(stream.viewersCount || 0, 10),
-        title: stream.title || ''
+        title: limpiarNombrePrograma(stream.title || '')
       };
     }
   } catch (e) {}
   return { isLive: false, viewers: 0 };
 }
 
-// ───────────────────────── 3. YouTube (Scraper Directo Sin Cuota) ─────────────────────────
+// ───────────────────────── 3. YouTube (Scraper Directo Robusto) ─────────────────────────
 const ytRuntime = new Map();
 for (const c of CANALES) {
   if (!c.ytHandle && !c.ytChannelId) continue;
@@ -309,19 +318,29 @@ async function consultarYoutubeDirecto(rt) {
     }
 
     const html = await res.text();
-    const esEnVivo = html.includes('"isLive":true') || 
-                     html.includes('"isLiveStream":true') || 
-                     html.includes('{"text":" mirando"}') || 
-                     html.includes('watching now') ||
-                     html.includes('directo');
 
-    if (!esEnVivo) {
-      rt.consecutiveFails++;
-      if (rt.consecutiveFails >= 2) {
-        rt.live = false;
-        rt.viewers = 0;
-        rt.videoId = null;
-      }
+    // FILTRO CERROJO:
+    // 1. Debe contener confirmación explícita de emisión en vivo
+    const tieneIndicadorVivo = html.includes('"isLive":true') || html.includes('"isLiveStream":true');
+    // 2. Si es una emisión programada en espera (upcoming/waiting), NO es vivo
+    const esEspera = html.includes('LIVE_STREAM_OFFLINE') || html.includes('"status":"UPCOMING"') || html.includes('scheduledStartTime');
+
+    if (!tieneIndicadorVivo || esEspera) {
+      rt.live = false;
+      rt.viewers = 0;
+      rt.videoId = null;
+      rt.consecutiveFails = 0;
+      return null;
+    }
+
+    const viewers = parsearViewersYoutube(html);
+
+    // Si tiene 5 o menos viewers en canales de esta escala, es una prueba técnica o señal cerrada
+    if (viewers <= 5) {
+      rt.live = false;
+      rt.viewers = 0;
+      rt.videoId = null;
+      rt.consecutiveFails = 0;
       return null;
     }
 
@@ -333,11 +352,11 @@ async function consultarYoutubeDirecto(rt) {
       }
     }
 
-    const viewers = parsearViewersYoutube(html);
-    const title = parsearTituloYoutube(html);
+    const rawTitle = parsearTituloYoutube(html);
+    const title = limpiarNombrePrograma(rawTitle);
 
     rt.live = true;
-    rt.viewers = viewers > 0 ? viewers : (rt.viewers > 0 ? rt.viewers : 1);
+    rt.viewers = viewers;
     rt.title = title;
     rt.videoId = vid;
     rt.consecutiveFails = 0;
@@ -558,12 +577,10 @@ app.use((req, res) => {
   const userAgent = req.headers['user-agent'] || '';
   const indexPath = path.join(publicPath, 'index.html');
 
-  // Si es un usuario humano común, entrega el archivo estático estándar sin demora
   if (!AI_BOTS_REGEX.test(userAgent)) {
     return res.sendFile(indexPath);
   }
 
-  // SI ES UN BOT O CRAWLER DE IA: Inyecta la telemetría viva de ese minuto
   try {
     const rawHtml = obtenerIndexTemplate();
     if (!rawHtml) return res.sendFile(indexPath);
@@ -571,7 +588,6 @@ app.use((req, res) => {
     const hora = obtenerHoraArg();
     const fecha = obtenerFechaArg();
 
-    // Obtener los canales en vivo ordenados por audiencia real en memoria
     const canalesVivos = telemetriaState
       .filter((c) => c.is_live && c.viewers > 0)
       .sort((a, b) => b.viewers - a.viewers);
@@ -599,7 +615,6 @@ app.use((req, res) => {
     });
     snapshotSemantico += `  </ul>\n</div>\n`;
 
-    // Inyecta el snapshot justo antes de cerrar el main del HTML
     const htmlInyectado = rawHtml.replace('<main id="catalogContainer"', `${snapshotSemantico}\n    <main id="catalogContainer"`);
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
