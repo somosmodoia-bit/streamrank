@@ -99,7 +99,7 @@ const CANALES = [
   { id: 'urbanaplay', nombre: 'Urbana Play', categoria: 'entretenimiento', ytHandle: 'UrbanaPlayFM', ytChannelId: 'UCC1kfsMJko54AqxtcFECt-A', twitchUser: 'urbanaplayfm' },
 
   // 2. Deportes
-  { id: 'elduka', nombre: 'El Duka', categoria: 'deportes', ytHandle: 'elduka' },
+  { id: 'duka', nombre: 'El Duka', categoria: 'deportes', ytHandle: 'elduka' },
   { id: 'vestuario', nombre: 'Vestuario Stream', categoria: 'deportes', ytHandle: 'VestuarioStream' },
   { id: 'programa412', nombre: '412 Fútbol (Davoo & Cobra)', categoria: 'deportes', ytHandle: 'programa412', ytChannelId: 'UCD2w1rGcJc99akNKluz_FDw' },
   { id: 'azzstream', nombre: 'AZZ Stream (Azzaro)', categoria: 'deportes', ytHandle: 'somosazz', ytChannelId: 'UCgLBmUFPO8JtZ1nPIBQGMlQ' },
@@ -175,11 +175,11 @@ const telemetriaState = CANALES.map((c) => {
   };
 });
 
-// Función para extraer el nombre del programa sin romper las tarjetas
+// Función para limpiar y acotar el nombre del programa sin desbordar el layout
 function limpiarNombrePrograma(rawTitle) {
-  if (!rawTitle) return 'En Vivo';
-  const clean = rawTitle.split(/[|—–-]/)[0].trim();
-  return clean.length > 40 ? clean.substring(0, 37) + '...' : clean;
+  if (!rawTitle || rawTitle === 'En vivo' || rawTitle === 'YouTube') return 'En Vivo';
+  const clean = rawTitle.replace(/\s+/g, ' ').trim();
+  return clean.length > 42 ? clean.substring(0, 39) + '...' : clean;
 }
 
 // ───────────────────────── 1. Kick ─────────────────────────
@@ -233,7 +233,7 @@ async function consultarTwitch(user) {
   return { isLive: false, viewers: 0 };
 }
 
-// ───────────────────────── 3. YouTube (Scraper Directo Robusto) ─────────────────────────
+// ───────────────────────── 3. YouTube (Scraper Directo con Parser Robusto) ─────────────────────────
 const ytRuntime = new Map();
 for (const c of CANALES) {
   if (!c.ytHandle && !c.ytChannelId) continue;
@@ -270,12 +270,22 @@ function parsearViewersYoutube(html) {
 }
 
 function parsearTituloYoutube(html) {
-  const videoTitleMatch = html.match(/"videoDetails":\{[^}]*"title":"([^"]+)"/);
-  if (videoTitleMatch && videoTitleMatch[1]) {
-    return videoTitleMatch[1]
-      .replace(/\\u0026/g, '&')
-      .replace(/\\"/g, '"')
-      .trim();
+  // 1. Parser primario: Título real del stream en el renderer nativo
+  const runMatch = html.match(/"videoDescriptionHeaderRenderer":\{"title":\{"runs":\[\{"text":"([^"]+)"/);
+  if (runMatch && runMatch[1]) {
+    return runMatch[1].replace(/\\u0026/g, '&').replace(/\\"/g, '"').trim();
+  }
+
+  // 2. Parser secundario: videoDetails transversal (sin tope de llaves)
+  const detailsMatch = html.match(/"videoDetails":\{[\s\S]*?"title":"([^"]+)"/);
+  if (detailsMatch && detailsMatch[1]) {
+    return detailsMatch[1].replace(/\\u0026/g, '&').replace(/\\"/g, '"').trim();
+  }
+
+  // 3. Fallbacks de etiquetas meta
+  const metaMatch = html.match(/<meta name="title" content="([^"]+)">/);
+  if (metaMatch && metaMatch[1]) {
+    return metaMatch[1].replace(' - YouTube', '').trim();
   }
 
   const ogTitleMatch = html.match(/<meta property="og:title" content="([^"]+)">/);
@@ -283,10 +293,6 @@ function parsearTituloYoutube(html) {
     return ogTitleMatch[1].replace(' - YouTube', '').trim();
   }
 
-  const titleMatch = html.match(/<title>([^<]+)<\/title>/);
-  if (titleMatch && titleMatch[1]) {
-    return titleMatch[1].replace(' - YouTube', '').trim();
-  }
   return 'En vivo';
 }
 
@@ -319,10 +325,8 @@ async function consultarYoutubeDirecto(rt) {
 
     const html = await res.text();
 
-    // FILTRO CERROJO:
-    // 1. Debe contener confirmación explícita de emisión en vivo
+    // Filtro estricto anti-espera y anti-falsos vivos
     const tieneIndicadorVivo = html.includes('"isLive":true') || html.includes('"isLiveStream":true');
-    // 2. Si es una emisión programada en espera (upcoming/waiting), NO es vivo
     const esEspera = html.includes('LIVE_STREAM_OFFLINE') || html.includes('"status":"UPCOMING"') || html.includes('scheduledStartTime');
 
     if (!tieneIndicadorVivo || esEspera) {
@@ -335,7 +339,6 @@ async function consultarYoutubeDirecto(rt) {
 
     const viewers = parsearViewersYoutube(html);
 
-    // Si tiene 5 o menos viewers en canales de esta escala, es una prueba técnica o señal cerrada
     if (viewers <= 5) {
       rt.live = false;
       rt.viewers = 0;
